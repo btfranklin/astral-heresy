@@ -15,12 +15,16 @@ REQUIRED_FILES = [
     "README.md",
     "docs/index.md",
     "docs/ARCHITECTURE.md",
+    "docs/QUALITY.md",
     "docs/RUNTIME.md",
+    "docs/TECH-DEBT.md",
     "docs/content/stages-bosses.md",
     "docs/generated/content-inventory.md",
     "scripts/generate_content_inventory.py",
     "scripts/check_structure.py",
     "scripts/check_content_contract.mjs",
+    "scripts/check_combat_smoke.mjs",
+    "scripts/check_powerup_smoke.mjs",
     "scripts/check_runtime_smoke.mjs",
     "scripts/check_runtime_browser_smoke.mjs",
 ]
@@ -30,7 +34,9 @@ MARKDOWN_FILES = [
     "README.md",
     "docs/index.md",
     "docs/ARCHITECTURE.md",
+    "docs/QUALITY.md",
     "docs/RUNTIME.md",
+    "docs/TECH-DEBT.md",
     "docs/content/stages-bosses.md",
     "docs/generated/content-inventory.md",
 ]
@@ -106,6 +112,36 @@ def check_runtime_smoke() -> list[str]:
     return [message]
 
 
+def check_combat_smoke() -> list[str]:
+    result = subprocess.run(
+        ["node", "scripts/check_combat_smoke.mjs"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return []
+
+    message = result.stderr.strip() or result.stdout.strip() or "Combat smoke check failed."
+    return [message]
+
+
+def check_powerup_smoke() -> list[str]:
+    result = subprocess.run(
+        ["node", "scripts/check_powerup_smoke.mjs"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return []
+
+    message = result.stderr.strip() or result.stdout.strip() or "Powerup smoke check failed."
+    return [message]
+
+
 def main() -> int:
     errors = []
     errors.extend(require_files())
@@ -113,6 +149,8 @@ def main() -> int:
     errors.extend(check_generated_inventory())
     errors.extend(check_structure())
     errors.extend(check_content_contract())
+    errors.extend(check_combat_smoke())
+    errors.extend(check_powerup_smoke())
     errors.extend(check_runtime_smoke())
 
     if errors:

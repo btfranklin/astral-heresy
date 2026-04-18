@@ -1,4 +1,5 @@
 import { getPlayerBounds } from "../state/playerState.js";
+import { createPlayfieldContext } from "../state/playfieldState.js";
 import { createBossInstance, listBossShowcaseEntries } from "../data/bosses.js";
 import { getEnemyArchetype, listEnemyShowcaseEntries } from "../data/enemies.js";
 import { spawnEnemy } from "../systems/enemySystem.js";
@@ -82,6 +83,7 @@ export function createShowcaseScene(state, player, config) {
   const boss = createBossInstance(bossKey, {
     view: state.view,
     player,
+    playfield: createPlayfieldContext(state),
     spawnEnemyBullet() {},
     spawnEnemy() {},
   });

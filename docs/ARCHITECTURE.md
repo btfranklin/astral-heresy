@@ -25,22 +25,23 @@ Initialization order:
 
 Per-frame order:
 
-1. `updateStage`
-2. `updatePlayer`
-3. `updateCombat`
-4. `updateBullets`
-5. `updateEnemies`
-6. `updateMovement`
-7. `updatePickups`
-8. `updateParticles`
-9. `updateBoss`
-10. `handleCollisions`
-11. `cleanupBullets`
-12. `flushEntities`
-13. build render buckets
-14. background render
-15. canvas/entity render
-16. DOM interface sync
+1. refresh stage density budgets and reset stage-director frame reservations
+2. `updateStage`
+3. `updatePlayer`
+4. `updateCombat`
+5. `updateBullets`
+6. `updateEnemies`
+7. `updateMovement`
+8. `updatePickups`
+9. `updateParticles`
+10. `updateBoss`
+11. `handleCollisions`
+12. `cleanupBullets`
+13. `flushEntities`
+14. build render buckets
+15. background render
+16. canvas/entity render
+17. DOM interface sync
 
 If you change ordering, document why here. Collision timing, boss defeat timing, and entity cleanup behavior depend on this sequence.
 
@@ -81,7 +82,7 @@ Current intended direction:
 - `state/` and `entities/` should stay free of DOM, renderer, and audio concerns.
 - `systems/` may depend on `state/`, `entities/`, `core/`, `audio/`, and narrow content helpers. They should not manipulate DOM nodes directly.
 - The combat economy now lives mainly in `systems/collisionSystem.js`, `systems/combatSystem.js`, `systems/playerSystem.js`, and `core/combat.js`. Keep graze, burst, chain, and loop-two rules in those seams rather than spreading them into renderers.
-- Desktop combat-space ownership now flows through `state.playfield` plus the stage director in `core/director.js`. Keep lane geometry and saturation budgeting centralized there; do not reintroduce per-stage viewport math or ad hoc enemy-count caps.
+- Desktop combat-space ownership now flows through `state.playfield` plus the stage director in `core/director.js`. Keep lane geometry and saturation budgeting centralized there; do not reintroduce per-stage viewport math or ad hoc enemy-count caps. The director's same-frame reservation model is part of that contract: gates are authoritative within a single stage-update pass, not advisory suggestions that later waves can ignore.
 - `ui/` should depend on state shape and DOM only.
 - `rendering/` should read state and entities; it should not own gameplay mutation beyond transient visual fields already present in state.
 - `debug/` is an inspection surface. Keep it callable from the composition root, but avoid making gameplay systems depend on it.
@@ -101,6 +102,7 @@ These boundaries are enforced by `python3 scripts/check_structure.py`, which is 
 - [`../src/data/powerups.js`](../src/data/powerups.js): generic pickup catalog spanning weapon, utility, and risk rewards
 - [`../src/core/powerups.js`](../src/core/powerups.js): active-effect timers, pickup notice state, and shared powerup rules
 - [`../src/core/director.js`](../src/core/director.js): stage-density budgeting and wave gating for authored stage content
+- [`../src/systems/collisionSystem.js`](../src/systems/collisionSystem.js): combat-economy hotspot; future extractions should split along player damage/burst resolution, enemy kill rewards, pickup/shard collection, and boss hit resolution seams
 - [`../src/rendering/enemyRenderers.js`](../src/rendering/enemyRenderers.js): large visual dispatch surface
 - [`../src/core/game.js`](../src/core/game.js): orchestration pressure point
 - [`../src/core/runtimeController.js`](../src/core/runtimeController.js): lifecycle and teardown surface

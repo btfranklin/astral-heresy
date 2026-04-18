@@ -7,6 +7,7 @@ The files under `src/data/` are executable content factories. They do not just h
 - [`../../src/data/stages.js`](../../src/data/stages.js): ordered stage registry
 - [`../../src/data/enemies.js`](../../src/data/enemies.js): enemy archetype registry
 - [`../../src/data/stages/`](../../src/data/stages): per-stage factories and enemy wave timing
+- [`../../src/data/stageRuntime.js`](../../src/data/stageRuntime.js): shared stage-wave gating helpers
 - [`../../src/data/bosses.js`](../../src/data/bosses.js): boss export surface
 - [`../../src/data/bosses/`](../../src/data/bosses): per-boss factories and phase logic
 - [`../../src/data/powerups.js`](../../src/data/powerups.js): generic pickup catalog and category metadata
@@ -55,13 +56,27 @@ Stage `update()` owns:
 
 Use it instead of raw `view.width * 0.2..0.8` math so desktop side bays remain non-playable and enemy entries start just outside the combat lane instead of behind the HUD.
 
-`director.gateWave({ enemyCost, bulletCost, priority })` is the shared soft-density gate for stage waves.
+`director.gateWave({ enemyCost, bulletCost, priority })` is the shared soft-density gate for stage waves. It returns:
+
+- `allow`
+- `delay`
+- `bulletScale`
+- `escortScale`
+- `anchorOnly`
+
+The runtime refreshes live density and resets the director's same-frame reservations once per gameplay frame before stage content runs. Each approved gate reserves against the current frame immediately, so later gates in the same `stage.update()` call budget against `live + reserved`, not only the already-live entity counts.
 
 - `priority="normal"` waves should defer entirely when `allow === false`.
-- `priority="elite"` and `priority="setpiece"` should still spawn their anchor unit once, but escorts and extra volleys should obey `escortScale` and `bulletScale`.
+- `priority="elite"` and `priority="setpiece"` should treat `allow === false && anchorOnly === true` as an anchor-only fallback: spawn exactly one authored anchor, skip escorts or secondary anchors, and still honor `bulletScale`.
+- `allow === false && anchorOnly === false` means defer the encounter and retry after `delay`.
 - Prefer reducing escorts first, then thinning bullet counts. Do not delete active bullets mid-flight.
 
 `densityTiers`, when present, is an ordered array of `{ until, maxEnemies, maxEnemyBullets }` entries used by the runtime stage director. Loop two automatically adds the shared bonus on top of these budgets.
+
+Shared helpers in [`../../src/data/stageRuntime.js`](../../src/data/stageRuntime.js) keep these semantics consistent:
+
+- `gateRecurringWave(stageState, key, t, ctx, options)` retries recurring beats after `delay` when the gate defers them.
+- `resolveOneShotWave(ctx, options)` collapses one-shot authored encounters into `full`, `anchor`, or `defer`.
 
 ## Enemy Archetype Contract
 
@@ -128,6 +143,14 @@ Each phase provides:
 - optional `weakpoint`
 - `pattern(boss, dt, ctx)`
 
+Boss pattern `ctx` includes the runtime geometry surface used by stage content:
+
+- `view`
+- `player`
+- `loopIndex`
+- `playfield`
+- `spawnEnemyBullet(x, y, angle, speed, opts)`
+
 `weakpoint`, when present, currently supports:
 
 - `radius`
@@ -141,6 +164,8 @@ Each phase provides:
 - optional `color`
 
 Boss phase progression and defeat handling live in [`../../src/systems/bossSystem.js`](../../src/systems/bossSystem.js). Boss authoring should not duplicate that lifecycle logic.
+
+When a boss attack is authored as desktop lanes, use `ctx.playfield.laneX(...)` instead of raw viewport-width spacing. Raw `ctx.view.width` math is only a fallback for contexts that truly do not provide playfield geometry.
 
 ## Pattern Helpers
 
@@ -196,4 +221,4 @@ See [`../generated/content-inventory.md`](../generated/content-inventory.md) for
 
 ## Mechanical Enforcement
 
-`node scripts/check_content_contract.mjs` instantiates the registries with a fake runtime context and validates stage ordering, boss instantiation, renderer-key coverage, and showcase coverage directly. If you intentionally change the contract, update this document and the checker together.
+`node scripts/check_content_contract.mjs` instantiates the registries with a fake runtime context and validates stage ordering, boss instantiation, renderer-key coverage, showcase coverage, and lane-authored boss attacks against the desktop bullet envelope directly. If you intentionally change the contract, update this document and the checker together.

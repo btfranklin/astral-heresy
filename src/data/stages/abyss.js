@@ -1,15 +1,7 @@
 import { lerp, rand } from "../../core/math.js";
 import { scaledCount } from "../../core/director.js";
 import { emitAimedBurst, emitRadial, emitSpiral } from "../patterns.js";
-
-function gateRecurringWave(stageState, key, t, ctx, options) {
-  const gate = ctx.director.gateWave(options);
-  if (!gate.allow) {
-    stageState[key] = t + gate.delay;
-    return null;
-  }
-  return gate;
-}
+import { gateRecurringWave, resolveOneShotWave } from "../stageRuntime.js";
 
 export const stageAbyss = {
   key: "abyssal-cathedral",
@@ -204,266 +196,280 @@ export const stageAbyss = {
     }
 
     if (!stageState.gauntletDone && t >= 11) {
-      stageState.gauntletDone = true;
-      const gate = ctx.director.gateWave({
+      const wave = resolveOneShotWave(ctx, {
         enemyCost: 6,
         bulletCost: 20,
         priority: "setpiece",
       });
-      for (const laneFraction of [0.22, 0.34, 0.5, 0.66, 0.78]) {
-        ctx.spawnEnemy("spear", {
-          x: lane.laneX(laneFraction),
-          y: -40 - rand(0, 40),
+      if (wave.mode !== "defer") {
+        stageState.gauntletDone = true;
+        const gate = wave.gate;
+        if (wave.mode === "full") {
+          for (const laneFraction of [0.22, 0.34, 0.5, 0.66, 0.78]) {
+            ctx.spawnEnemy("spear", {
+              x: lane.laneX(laneFraction),
+              y: -40 - rand(0, 40),
+              vx: 0,
+              vy: 126,
+              hp: inLoopTwo ? 5 : 4,
+              fire(enemy, dtInner) {
+                const ai = enemy.components.ai;
+                const pos = enemy.components.position;
+                if (!ai || !pos) return;
+                ai.nextShot = (ai.nextShot || 0) - dtInner;
+                if (ai.nextShot <= 0) {
+                  emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, pos.x, pos.y, scaledCount(2, gate.bulletScale, 2), 0.12, 245, {
+                    r: 3,
+                    color: "#ffe1a5",
+                  });
+                  ai.nextShot = 0.8;
+                }
+              },
+            });
+          }
+        }
+        ctx.spawnEnemy("throne", {
+          x: lane.laneX(0.5),
+          y: -70,
           vx: 0,
-          vy: 126,
-          hp: inLoopTwo ? 5 : 4,
+          vy: 42,
+          hp: inLoopTwo ? 12 : 10,
+          dropKey: "graze-bloom",
+          scoreBonus: 190,
+          scoreShardCount: 4,
+          label: "Gauntlet Heart",
           fire(enemy, dtInner) {
             const ai = enemy.components.ai;
             const pos = enemy.components.position;
             if (!ai || !pos) return;
             ai.nextShot = (ai.nextShot || 0) - dtInner;
             if (ai.nextShot <= 0) {
-              emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, pos.x, pos.y, scaledCount(2, gate.bulletScale, 2), 0.12, 245, {
-                r: 3,
-                color: "#ffe1a5",
-              });
-              ai.nextShot = 0.8;
+              emitRadial(
+                ctx.spawnEnemyBullet,
+                pos.x,
+                pos.y,
+                scaledCount(inLoopTwo ? 20 : 16, gate.bulletScale, 10),
+                150,
+                {
+                  r: 4,
+                  color: "#ff8b6a",
+                  wobble: 2.2,
+                }
+              );
+              ai.nextShot = 2;
             }
           },
         });
       }
-      ctx.spawnEnemy("throne", {
-        x: lane.laneX(0.5),
-        y: -70,
-        vx: 0,
-        vy: 42,
-        hp: inLoopTwo ? 12 : 10,
-        dropKey: "graze-bloom",
-        scoreBonus: 190,
-        scoreShardCount: 4,
-        label: "Gauntlet Heart",
-        fire(enemy, dtInner) {
-          const ai = enemy.components.ai;
-          const pos = enemy.components.position;
-          if (!ai || !pos) return;
-          ai.nextShot = (ai.nextShot || 0) - dtInner;
-          if (ai.nextShot <= 0) {
-            emitRadial(
-              ctx.spawnEnemyBullet,
-              pos.x,
-              pos.y,
-              scaledCount(inLoopTwo ? 20 : 16, gate.bulletScale, 10),
-              150,
-              {
-                r: 4,
-                color: "#ff8b6a",
-                wobble: 2.2,
-              }
-            );
-            ai.nextShot = 2;
-          }
-        },
-      });
     }
 
     if (!stageState.singularityDone && t >= 16) {
-      stageState.singularityDone = true;
-      const gate = ctx.director.gateWave({
+      const wave = resolveOneShotWave(ctx, {
         enemyCost: 3,
         bulletCost: 16,
         priority: "setpiece",
       });
-      ctx.spawnEnemy("throne", {
-        x: lane.laneX(0.5),
-        y: -54,
-        vx: 0,
-        vy: 38,
-        hp: inLoopTwo ? 16 : 13,
-        r: 24,
-        dropKey: "magnet-core",
-        scoreBonus: 210,
-        scoreShardCount: 5,
-        label: "Magnet Shrine",
-        fire(enemy, dtInner) {
-          const ai = enemy.components.ai;
-          const pos = enemy.components.position;
-          if (!ai || !pos) return;
-          ai.nextShot = (ai.nextShot || 0) - dtInner;
-          if (ai.nextShot <= 0) {
-            emitRadial(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(14, gate.bulletScale, 8), 156, {
-              r: 4,
-              color: "#8fe8ff",
-              turn: 0.62,
-              wobble: 2.6,
+      if (wave.mode !== "defer") {
+        stageState.singularityDone = true;
+        const gate = wave.gate;
+        ctx.spawnEnemy("throne", {
+          x: lane.laneX(0.5),
+          y: -54,
+          vx: 0,
+          vy: 38,
+          hp: inLoopTwo ? 16 : 13,
+          r: 24,
+          dropKey: "magnet-core",
+          scoreBonus: 210,
+          scoreShardCount: 5,
+          label: "Magnet Shrine",
+          fire(enemy, dtInner) {
+            const ai = enemy.components.ai;
+            const pos = enemy.components.position;
+            if (!ai || !pos) return;
+            ai.nextShot = (ai.nextShot || 0) - dtInner;
+            if (ai.nextShot <= 0) {
+              emitRadial(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(14, gate.bulletScale, 8), 156, {
+                r: 4,
+                color: "#8fe8ff",
+                turn: 0.62,
+                wobble: 2.6,
+              });
+              ai.nextShot = 1.55;
+            }
+          },
+        });
+        if (wave.mode === "full" && gate.escortScale > 0.5) {
+          for (const side of [-1, 1]) {
+            ctx.spawnEnemy("fang", {
+              x: lane.laneX(0.5) + side * 132,
+              y: -58,
+              vx: side * 18,
+              vy: 54,
+              fire(enemy, dtInner) {
+                const ai = enemy.components.ai;
+                const pos = enemy.components.position;
+                if (!ai || !pos) return;
+                ai.nextShot = (ai.nextShot || 0) - dtInner;
+                if (ai.nextShot <= 0) {
+                  emitSpiral(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(8, gate.bulletScale, 5), 168, side * 0.4, {
+                    r: 3,
+                    color: "#ffc1f7",
+                    turn: -side * 0.42,
+                  });
+                  ai.nextShot = 1.15;
+                }
+              },
             });
-            ai.nextShot = 1.55;
           }
-        },
-      });
-      if (gate.escortScale > 0.5) {
-        for (const side of [-1, 1]) {
-          ctx.spawnEnemy("fang", {
-            x: lane.laneX(0.5) + side * 132,
-            y: -58,
-            vx: side * 18,
-            vy: 54,
-            fire(enemy, dtInner) {
-              const ai = enemy.components.ai;
-              const pos = enemy.components.position;
-              if (!ai || !pos) return;
-              ai.nextShot = (ai.nextShot || 0) - dtInner;
-              if (ai.nextShot <= 0) {
-                emitSpiral(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(8, gate.bulletScale, 5), 168, side * 0.4, {
-                  r: 3,
-                  color: "#ffc1f7",
-                  turn: -side * 0.42,
-                });
-                ai.nextShot = 1.15;
-              }
-            },
-          });
         }
       }
     }
 
     if (!stageState.eliteDone && t >= 20) {
-      stageState.eliteDone = true;
-      const gate = ctx.director.gateWave({
+      const wave = resolveOneShotWave(ctx, {
         enemyCost: 3,
         bulletCost: 20,
         priority: "elite",
       });
-      ctx.spawnEnemy("throne", {
-        x: lane.laneX(0.5),
-        y: -68,
-        vx: 0,
-        vy: 42,
-        hp: inLoopTwo ? 24 : 20,
-        r: 28,
-        elite: true,
-        dropKey: "beam",
-        scoreBonus: 320,
-        scoreShardCount: 5,
-        label: "Solar Confessor",
-        fire(enemy, dtInner) {
-          const ai = enemy.components.ai;
-          const pos = enemy.components.position;
-          if (!ai || !pos) return;
-          ai.nextShot = (ai.nextShot || 0) - dtInner;
-          if (ai.nextShot <= 0) {
-            emitRadial(
-              ctx.spawnEnemyBullet,
-              pos.x,
-              pos.y,
-              scaledCount(inLoopTwo ? 22 : 18, gate.bulletScale, 11),
-              165,
-              {
-                r: 4,
-                color: "#ffb85b",
-                turn: 0.55,
-                wobble: 2.6,
-              }
-            );
-            emitAimedBurst(
-              ctx.spawnEnemyBullet,
-              ctx.player,
-              pos.x,
-              pos.y,
-              scaledCount(5, gate.bulletScale, 3),
-              0.36,
-              250,
-              {
-                r: 3,
-                color: "#ffe3b2",
-              }
-            );
-            ai.nextShot = 1.15;
-          }
-        },
-      });
-      if (gate.escortScale > 0.5) {
-        for (const side of [-1, 1]) {
-          ctx.spawnEnemy("fang", {
-            x: lane.laneX(0.5) + side * 120,
-            y: -44,
-            vx: side * 18,
-            vy: 58,
-            hp: inLoopTwo ? 9 : 7,
-            fire(enemy, dtInner) {
-              const ai = enemy.components.ai;
-              const pos = enemy.components.position;
-              if (!ai || !pos) return;
-              ai.nextShot = (ai.nextShot || 0) - dtInner;
-              if (ai.nextShot <= 0) {
-                emitSpiral(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(9, gate.bulletScale, 5), 170, side * 0.42, {
+      if (wave.mode !== "defer") {
+        stageState.eliteDone = true;
+        const gate = wave.gate;
+        ctx.spawnEnemy("throne", {
+          x: lane.laneX(0.5),
+          y: -68,
+          vx: 0,
+          vy: 42,
+          hp: inLoopTwo ? 24 : 20,
+          r: 28,
+          elite: true,
+          dropKey: "beam",
+          scoreBonus: 320,
+          scoreShardCount: 5,
+          label: "Solar Confessor",
+          fire(enemy, dtInner) {
+            const ai = enemy.components.ai;
+            const pos = enemy.components.position;
+            if (!ai || !pos) return;
+            ai.nextShot = (ai.nextShot || 0) - dtInner;
+            if (ai.nextShot <= 0) {
+              emitRadial(
+                ctx.spawnEnemyBullet,
+                pos.x,
+                pos.y,
+                scaledCount(inLoopTwo ? 22 : 18, gate.bulletScale, 11),
+                165,
+                {
+                  r: 4,
+                  color: "#ffb85b",
+                  turn: 0.55,
+                  wobble: 2.6,
+                }
+              );
+              emitAimedBurst(
+                ctx.spawnEnemyBullet,
+                ctx.player,
+                pos.x,
+                pos.y,
+                scaledCount(5, gate.bulletScale, 3),
+                0.36,
+                250,
+                {
                   r: 3,
-                  color: "#ffc1f7",
-                  turn: -side * 0.4,
-                });
-                ai.nextShot = 1.3;
-              }
-            },
-          });
+                  color: "#ffe3b2",
+                }
+              );
+              ai.nextShot = 1.15;
+            }
+          },
+        });
+        if (wave.mode === "full" && gate.escortScale > 0.5) {
+          for (const side of [-1, 1]) {
+            ctx.spawnEnemy("fang", {
+              x: lane.laneX(0.5) + side * 120,
+              y: -44,
+              vx: side * 18,
+              vy: 58,
+              hp: inLoopTwo ? 9 : 7,
+              fire(enemy, dtInner) {
+                const ai = enemy.components.ai;
+                const pos = enemy.components.position;
+                if (!ai || !pos) return;
+                ai.nextShot = (ai.nextShot || 0) - dtInner;
+                if (ai.nextShot <= 0) {
+                  emitSpiral(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(9, gate.bulletScale, 5), 170, side * 0.42, {
+                    r: 3,
+                    color: "#ffc1f7",
+                    turn: -side * 0.4,
+                  });
+                  ai.nextShot = 1.3;
+                }
+              },
+            });
+          }
         }
       }
     }
 
     if (!stageState.sealDone && t >= 25.2) {
-      stageState.sealDone = true;
-      const gate = ctx.director.gateWave({
+      const wave = resolveOneShotWave(ctx, {
         enemyCost: 3,
         bulletCost: 14,
         priority: "setpiece",
       });
-      ctx.spawnEnemy("spear", {
-        x: lane.laneX(0.5),
-        y: -40,
-        vx: 0,
-        vy: 98,
-        hp: inLoopTwo ? 11 : 9,
-        r: 20,
-        risk: true,
-        dropKey: "point-blank-seal",
-        scoreBonus: 220,
-        scoreShardCount: 6,
-        label: "Seal Warden",
-        fire(enemy, dtInner) {
-          const ai = enemy.components.ai;
-          const pos = enemy.components.position;
-          if (!ai || !pos) return;
-          ai.nextShot = (ai.nextShot || 0) - dtInner;
-          if (ai.nextShot <= 0) {
-            emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, pos.x, pos.y, scaledCount(4, gate.bulletScale, 2), 0.18, 250, {
-              r: 3,
-              color: "#ff9a6a",
+      if (wave.mode !== "defer") {
+        stageState.sealDone = true;
+        const gate = wave.gate;
+        ctx.spawnEnemy("spear", {
+          x: lane.laneX(0.5),
+          y: -40,
+          vx: 0,
+          vy: 98,
+          hp: inLoopTwo ? 11 : 9,
+          r: 20,
+          risk: true,
+          dropKey: "point-blank-seal",
+          scoreBonus: 220,
+          scoreShardCount: 6,
+          label: "Seal Warden",
+          fire(enemy, dtInner) {
+            const ai = enemy.components.ai;
+            const pos = enemy.components.position;
+            if (!ai || !pos) return;
+            ai.nextShot = (ai.nextShot || 0) - dtInner;
+            if (ai.nextShot <= 0) {
+              emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, pos.x, pos.y, scaledCount(4, gate.bulletScale, 2), 0.18, 250, {
+                r: 3,
+                color: "#ff9a6a",
+              });
+              ai.nextShot = 0.72;
+            }
+          },
+        });
+        if (wave.mode === "full" && gate.escortScale > 0.5) {
+          for (const side of [-1, 1]) {
+            ctx.spawnEnemy("throne", {
+              x: lane.laneX(0.5) + side * 160,
+              y: ctx.view.height * 0.2,
+              vx: 0,
+              vy: 26,
+              hp: 8,
+              fire(enemy, dtInner) {
+                const ai = enemy.components.ai;
+                const pos = enemy.components.position;
+                if (!ai || !pos) return;
+                ai.nextShot = (ai.nextShot || 0) - dtInner;
+                if (ai.nextShot <= 0) {
+                  emitRadial(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(10, gate.bulletScale, 6), 170, {
+                    r: 3,
+                    color: "#ff8b6a",
+                    turn: side * 0.38,
+                  });
+                  ai.nextShot = 1.1;
+                }
+              },
             });
-            ai.nextShot = 0.72;
           }
-        },
-      });
-      if (gate.escortScale > 0.5) {
-        for (const side of [-1, 1]) {
-          ctx.spawnEnemy("throne", {
-            x: lane.laneX(0.5) + side * 160,
-            y: ctx.view.height * 0.2,
-            vx: 0,
-            vy: 26,
-            hp: 8,
-            fire(enemy, dtInner) {
-              const ai = enemy.components.ai;
-              const pos = enemy.components.position;
-              if (!ai || !pos) return;
-              ai.nextShot = (ai.nextShot || 0) - dtInner;
-              if (ai.nextShot <= 0) {
-                emitRadial(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(10, gate.bulletScale, 6), 170, {
-                  r: 3,
-                  color: "#ff8b6a",
-                  turn: side * 0.38,
-                });
-                ai.nextShot = 1.1;
-              }
-            },
-          });
         }
       }
     }

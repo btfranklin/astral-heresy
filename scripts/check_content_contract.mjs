@@ -7,6 +7,7 @@ import { getPowerupDefinition, listPowerupKeys } from "../src/data/powerups.js";
 import { stageDefinitions } from "../src/data/stages.js";
 import { listBossRendererKeys } from "../src/rendering/bossRenderers.js";
 import { listEnemyRendererKeys } from "../src/rendering/enemyRenderers.js";
+import { getBulletEnvelope } from "../src/state/playfieldState.js";
 
 function fail(message) {
   throw new Error(message);
@@ -34,6 +35,8 @@ function makeContentContext() {
   const spawnPickupCalls = [];
   const playfield = {
     active: true,
+    minX: 280,
+    maxX: 1000,
     leftEdge: 280,
     rightEdge: 1000,
     minY: 30,
@@ -65,7 +68,7 @@ function makeContentContext() {
     playfield,
     director: {
       gateWave() {
-        return { allow: true, delay: 0, bulletScale: 1, escortScale: 1 };
+        return { allow: true, delay: 0, bulletScale: 1, escortScale: 1, anchorOnly: false };
       },
     },
     spawnEnemyBullet(x, y, angle, speed, opts = {}) {
@@ -131,10 +134,23 @@ function validatePhase(phase, bossName, phaseIndex, ctx) {
     cooldowns: Object.create(null),
   };
   phase.pattern(fakeBossState, 0.016, ctx);
+  const spawned = ctx.spawnEnemyBulletCalls.slice(before);
   assert(
     ctx.spawnEnemyBulletCalls.length >= before,
     `${bossName} phase ${phaseIndex + 1} pattern execution should not remove spawn records.`
   );
+  if (bossName === "Seraph of Orbits" && phase.name === "Starfall Rite") {
+    const laneShots = spawned.filter(({ opts }) => opts?.color === "#ffa7f0");
+    const envelope = getBulletEnvelope(ctx.playfield, ctx.view.width);
+    assert(
+      laneShots.length === 9,
+      "Seraph phase 3 should emit one lane shot per lane during the contract check."
+    );
+    assert(
+      laneShots.every(({ x }) => x >= envelope.minX && x <= envelope.maxX),
+      "Seraph phase 3 lane shots must stay inside the active desktop bullet envelope."
+    );
+  }
 }
 
 function validateBossDefinition(definition, ctx, bossRendererKeys) {

@@ -5,9 +5,10 @@ import assert from "node:assert/strict";
 import { createStageDirector, refreshDensityState } from "../src/core/director.js";
 import { createBossInstance } from "../src/data/bosses.js";
 import { stageDefinitions } from "../src/data/stages.js";
+import { stageAbyss } from "../src/data/stages/abyss.js";
 import { stageNebula } from "../src/data/stages/nebula.js";
 import { createGameState } from "../src/state/gameState.js";
-import { createPlayfield, createPlayfieldContext } from "../src/state/playfieldState.js";
+import { createPlayfield, createPlayfieldContext, getBulletEnvelope } from "../src/state/playfieldState.js";
 import { createPlayerState } from "../src/state/playerState.js";
 import { updateBoss, defeatBoss } from "../src/systems/bossSystem.js";
 import { spawnEnemy, updateEnemies } from "../src/systems/enemySystem.js";
@@ -259,10 +260,17 @@ function testStageDirectorSoftGating() {
     maxEnemyBullets: 24,
     saturated: false,
   };
+  director.beginFrame();
   const nearBudget = director.gateWave({ enemyCost: 1, bulletCost: 5, priority: "normal" });
   assert.equal(nearBudget.allow, true, "Near-budget waves should still be allowed.");
   assert.equal(nearBudget.bulletScale < 1, true, "Near-budget waves should thin bullet counts.");
   assert.equal(nearBudget.escortScale, 0, "Near-budget waves should suppress escorts first.");
+  const reservedFollowup = director.gateWave({ enemyCost: 1, bulletCost: 5, priority: "normal" });
+  assert.equal(
+    reservedFollowup.allow,
+    false,
+    "A second same-frame wave should see the first wave's reserved capacity."
+  );
 
   state.density = {
     liveEnemies: 4,
@@ -271,10 +279,130 @@ function testStageDirectorSoftGating() {
     maxEnemyBullets: 24,
     saturated: true,
   };
+  director.beginFrame();
   const overBudget = director.gateWave({ enemyCost: 2, bulletCost: 8, priority: "normal" });
   assert.equal(overBudget.allow, false, "Over-budget waves should defer instead of spawning immediately.");
+  assert.equal(overBudget.anchorOnly, false, "Normal waves should not spawn anchor-only fallbacks.");
   assert.equal(overBudget.delay >= 0.35, true, "Deferred waves should report a retry delay.");
   assert.equal(overBudget.bulletScale <= 0.72, true, "Deferred waves should still return a reduced bullet scale.");
+}
+
+function testOneShotWaveFallbacks() {
+  const { state, player } = makeState();
+  const playfield = createPlayfieldContext(state);
+
+  const deferredNormalSpawns = [];
+  const normalState = stageNebula.init();
+  normalState.nextSwoop = 0.5;
+  normalState.nextRing = 99;
+  normalState.nextSine = 99;
+  stageNebula.update(normalState, 1, 1 / 60, {
+    view: state.view,
+    player,
+    playfield,
+    loopIndex: 0,
+    director: {
+      gateWave() {
+        return { allow: false, delay: 0.6, bulletScale: 0.7, escortScale: 0, anchorOnly: false };
+      },
+    },
+    spawnEnemy(archetypeKey, overrides = {}) {
+      deferredNormalSpawns.push({ archetypeKey, overrides });
+    },
+    spawnEnemyBullet() {},
+    spawnPickup() {},
+    spawnScoreShards() {},
+  });
+  assert.equal(deferredNormalSpawns.length, 0, "Recurring normal waves should fully defer when over budget.");
+  assert.equal(Number(normalState.nextSwoop.toFixed(2)), 1.6, "Deferred normal waves should retry after the reported delay.");
+
+  const anchorEliteSpawns = [];
+  const eliteState = stageNebula.init();
+  eliteState.nextSwoop = 99;
+  eliteState.nextRing = 99;
+  eliteState.nextSine = 99;
+  eliteState.corridorDone = true;
+  eliteState.orbitalsEliteDone = true;
+  stageNebula.update(eliteState, 17.6, 1 / 60, {
+    view: state.view,
+    player,
+    playfield,
+    loopIndex: 0,
+    director: {
+      gateWave() {
+        return { allow: false, delay: 0.5, bulletScale: 0.72, escortScale: 0, anchorOnly: true };
+      },
+    },
+    spawnEnemy(archetypeKey, overrides = {}) {
+      anchorEliteSpawns.push({ archetypeKey, overrides });
+    },
+    spawnEnemyBullet() {},
+    spawnPickup() {},
+    spawnScoreShards() {},
+  });
+  assert.equal(anchorEliteSpawns.length, 1, "Over-budget elite beats should still spawn exactly one anchor.");
+  assert.equal(anchorEliteSpawns[0].archetypeKey, "halo");
+  assert.equal(eliteState.eliteDone, true, "Anchor-only elite fallbacks should mark the beat complete.");
+
+  const anchorSetpieceSpawns = [];
+  const setpieceState = stageAbyss.init();
+  setpieceState.nextHarrier = 99;
+  setpieceState.nextNova = 99;
+  setpieceState.nextFang = 99;
+  setpieceState.singularityDone = true;
+  setpieceState.eliteDone = true;
+  setpieceState.sealDone = true;
+  stageAbyss.update(setpieceState, 11.1, 1 / 60, {
+    view: state.view,
+    player,
+    playfield,
+    loopIndex: 0,
+    director: {
+      gateWave() {
+        return { allow: false, delay: 0.5, bulletScale: 0.72, escortScale: 0, anchorOnly: true };
+      },
+    },
+    spawnEnemy(archetypeKey, overrides = {}) {
+      anchorSetpieceSpawns.push({ archetypeKey, overrides });
+    },
+    spawnEnemyBullet() {},
+    spawnPickup() {},
+    spawnScoreShards() {},
+  });
+  assert.equal(anchorSetpieceSpawns.length, 1, "Over-budget setpieces should collapse to one anchor.");
+  assert.equal(anchorSetpieceSpawns[0].archetypeKey, "throne");
+  assert.equal(anchorSetpieceSpawns[0].overrides.dropKey, "graze-bloom");
+  assert.equal(setpieceState.gauntletDone, true, "Anchor-only setpieces should mark the beat complete.");
+}
+
+function testSeraphStarfallStaysInDesktopLane() {
+  const { state, player } = makeState();
+  const envelope = getBulletEnvelope(state.playfield, state.view.width);
+  const spawnXs = [];
+  const boss = createBossInstance("seraph", {
+    ...makeBossContext(state, player),
+    spawnEnemyBullet(x) {
+      spawnXs.push(x);
+    },
+  });
+  boss.phaseIndex = 2;
+  boss.phaseTime = 1;
+  boss.x = 640;
+  boss.y = 150;
+
+  boss.phases[2].pattern(boss, 0.016, {
+    ...makeBossContext(state, player),
+    spawnEnemyBullet(x) {
+      spawnXs.push(x);
+    },
+  });
+
+  assert.equal(spawnXs.length, 9, "Seraph phase 3 should emit one lane shot per lane.");
+  assert.equal(
+    spawnXs.every((x) => x >= envelope.minX && x <= envelope.maxX),
+    true,
+    "Seraph lane attacks should stay inside the active desktop bullet envelope."
+  );
 }
 
 function testNebulaEarlyPacingStaysWithinBudget() {
@@ -289,6 +417,7 @@ function testNebulaEarlyPacingStaysWithinBudget() {
     const t = frame / 60;
     state.stageTime = t;
     refreshDensityState(state, stageNebula);
+    director.beginFrame();
     stageNebula.update(stageState, t, 1 / 60, {
       view: state.view,
       player,
@@ -333,6 +462,8 @@ function run() {
   testLoopTransition();
   testPlayfieldLaneEnforcement();
   testStageDirectorSoftGating();
+  testOneShotWaveFallbacks();
+  testSeraphStarfallStaysInDesktopLane();
   testNebulaEarlyPacingStaysWithinBudget();
   console.log("Combat smoke checks passed.");
 }

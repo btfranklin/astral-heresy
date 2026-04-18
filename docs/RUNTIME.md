@@ -36,6 +36,8 @@ Then visit `http://127.0.0.1:7666/`.
 - Restart after loss: `Enter` or `R`
 - Toggle pointer steering for testing: `M`
 
+Held movement/fire input is cleared on `window.blur` and when the document becomes hidden. Alt-tabbing or switching tabs should never leave the ship drifting or auto-firing when focus returns.
+
 ## Debug And Inspection Surfaces
 
 ### Global Handle
@@ -108,10 +110,11 @@ Run this after gameplay, UI, or content edits:
 6. Confirm graze, burst stock, weapon, chain, and loop HUD fields update without layout breakage.
 7. Collect at least one pickup and confirm the ephemeral acquisition text plus HUD feed entry appear immediately.
 8. Confirm the active-effects strip updates with weapon and timed utility/risk effects.
-9. Force-spawn or wait for an enemy near the side boundary and confirm it never lives behind the HUD bay.
-10. Confirm restart behavior after a loss with `Enter` or `R`.
-11. Visit at least one enemy render-study URL and one boss render-study URL.
-12. Confirm the page still initializes on a browser with WebGL enabled.
+9. Hold movement or fire, blur the window or hide the tab, then return and confirm the ship is idle until new input is pressed.
+10. Force-spawn or wait for an enemy near the side boundary and confirm it never lives behind the HUD bay.
+11. Confirm restart behavior after a loss with `Enter` or `R`.
+12. Visit at least one enemy render-study URL and one boss render-study URL.
+13. Confirm the page still initializes on a browser with WebGL enabled.
 
 For a mechanical approximation of these flows without a real browser, run:
 
@@ -139,6 +142,7 @@ That harness validates:
 - interface copy and boss-panel sync
 - deterministic step and text-state hooks
 - burst input wiring and loop HUD reset
+- input reset on blur and visibility loss
 - playfield and density text-state coverage
 - render-study URL parsing and scene setup
 

@@ -243,6 +243,8 @@ class FakeDocument {
     this.burstStockPips = burstStockPips;
     this.effectChips = effectChips;
     this.listeners = new Map();
+    this.hidden = false;
+    this.visibilityState = "visible";
   }
 
   getElementById(id) {
@@ -514,6 +516,22 @@ function testGameStartRestartAndDisposeFlow() {
     assert.equal(game.renderGameToText().includes("\"playfield\""), true, "Text-state output should include playfield geometry.");
     assert.equal(game.renderGameToText().includes("\"density\""), true, "Text-state output should include density telemetry.");
 
+    fixture.document.dispatchEvent({ type: "keydown", code: "KeyZ", preventDefault() {} });
+    fixture.document.dispatchEvent({ type: "keydown", code: "KeyA", preventDefault() {} });
+    fixture.elements.game.dispatchEvent({ type: "pointerdown", clientX: 180, clientY: 320 });
+    fixture.window.dispatchEvent({ type: "blur" });
+    assert.equal(game.state.input.KeyZ, false, "Blur should clear held fire keys.");
+    assert.equal(game.state.input.KeyA, false, "Blur should clear held movement keys.");
+    assert.equal(game.state.input.PointerFire, false, "Blur should clear held pointer fire.");
+
+    fixture.document.dispatchEvent({ type: "keydown", code: "ArrowLeft", preventDefault() {} });
+    fixture.document.hidden = true;
+    fixture.document.visibilityState = "hidden";
+    fixture.document.dispatchEvent({ type: "visibilitychange" });
+    assert.equal(game.state.input.ArrowLeft, false, "Visibility loss should clear held keys.");
+    fixture.document.hidden = false;
+    fixture.document.visibilityState = "visible";
+
     game.state.powerupNotice = {
       title: "Halo Shield",
       roleTag: "BARRIER READY",
@@ -564,9 +582,11 @@ function testGameStartRestartAndDisposeFlow() {
     assert.equal(fixture.pendingAnimationFrames(), 0, "dispose() should cancel pending animation frames.");
     assert.equal(getListenerCount(fixture.document.listeners, "keydown"), 0, "dispose() should remove document keydown listeners.");
     assert.equal(getListenerCount(fixture.document.listeners, "keyup"), 0, "dispose() should remove document keyup listeners.");
+    assert.equal(getListenerCount(fixture.document.listeners, "visibilitychange"), 0, "dispose() should remove document visibilitychange listeners.");
     assert.equal(getListenerCount(fixture.windowListeners, "resize"), 0, "dispose() should remove window resize listeners.");
     assert.equal(getListenerCount(fixture.windowListeners, "pointerup"), 0, "dispose() should remove window pointerup listeners.");
     assert.equal(getListenerCount(fixture.windowListeners, "pointercancel"), 0, "dispose() should remove window pointercancel listeners.");
+    assert.equal(getListenerCount(fixture.windowListeners, "blur"), 0, "dispose() should remove window blur listeners.");
     assert.equal(getListenerCount(fixture.elements.game.listeners, "pointermove"), 0, "dispose() should remove canvas pointermove listeners.");
     assert.equal(getListenerCount(fixture.elements.game.listeners, "pointerdown"), 0, "dispose() should remove canvas pointerdown listeners.");
 

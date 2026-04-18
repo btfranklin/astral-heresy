@@ -122,6 +122,7 @@ export function createGame({
     }
 
     refreshDensityState(state, stages[state.stageIndex]);
+    stageDirector.beginFrame();
     updateStage(state, stages, dataContext, audio, dt);
     updatePlayer(state, player, audio, dt);
     updateCombat(state, player, dt);

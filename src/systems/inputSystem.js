@@ -18,6 +18,13 @@ const controlKeys = new Set([
 export function createInputSystem(state, gameCanvas) {
   let attached = false;
 
+  function resetInputs() {
+    for (const code of controlKeys) {
+      state.input[code] = false;
+    }
+    state.input.PointerFire = false;
+  }
+
   function setPointerPosition(event) {
     const rect = gameCanvas.getBoundingClientRect();
     state.input.pointerX = event.clientX - rect.left;
@@ -51,6 +58,16 @@ export function createInputSystem(state, gameCanvas) {
     state.input.PointerFire = false;
   }
 
+  function onWindowBlur() {
+    resetInputs();
+  }
+
+  function onVisibilityChange() {
+    if (document.hidden || document.visibilityState === "hidden") {
+      resetInputs();
+    }
+  }
+
   function attach() {
     if (attached) return;
     attached = true;
@@ -60,6 +77,8 @@ export function createInputSystem(state, gameCanvas) {
     gameCanvas.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("blur", onWindowBlur);
+    document.addEventListener("visibilitychange", onVisibilityChange);
   }
 
   function detach() {
@@ -71,7 +90,10 @@ export function createInputSystem(state, gameCanvas) {
     gameCanvas.removeEventListener("pointerdown", onPointerDown);
     window.removeEventListener("pointerup", onPointerUp);
     window.removeEventListener("pointercancel", onPointerUp);
+    window.removeEventListener("blur", onWindowBlur);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    resetInputs();
   }
 
-  return { attach, detach };
+  return { attach, detach, resetInputs };
 }

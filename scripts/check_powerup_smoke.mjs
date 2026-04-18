@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 
 import { createGameState } from "../src/state/gameState.js";
+import { createPlayfield, createPlayfieldContext } from "../src/state/playfieldState.js";
 import { createPlayerState } from "../src/state/playerState.js";
 import { createBossInstance } from "../src/data/bosses.js";
 import { updateBoss } from "../src/systems/bossSystem.js";
@@ -20,6 +21,7 @@ function makeState() {
   state.started = true;
   state.view.width = 1280;
   state.view.height = 720;
+  state.playfield = createPlayfield(state.view.width, state.view.height);
   state.input = { pointerEnabled: true };
   const player = createPlayerState(state.view.width, state.view.height);
   return { state, player };
@@ -42,6 +44,7 @@ function makeBossContext(state, player) {
   return {
     view: state.view,
     player,
+    playfield: createPlayfieldContext(state),
     loopIndex: 0,
     spawnEnemyBullet() {},
     spawnEnemy() {},

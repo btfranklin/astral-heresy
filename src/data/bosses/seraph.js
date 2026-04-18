@@ -1,5 +1,12 @@
 import { emitAimedBurst, emitRadial, emitSpiral, runCooldown } from "../patterns.js";
 
+function getLaneX(ctx, index, total) {
+  if (ctx.playfield?.active && typeof ctx.playfield.laneX === "function") {
+    return ctx.playfield.laneX((index + 0.5) / total);
+  }
+  return (ctx.view.width * (index + 0.5)) / total;
+}
+
 export const bossDefinitionSeraph = {
   key: "seraph",
   name: "Seraph of Orbits",
@@ -84,7 +91,7 @@ export const bossDefinitionSeraph = {
         runCooldown(boss, "starfall-rite-lanes", 2.6, dt, () => {
           const lanes = 9;
           for (let i = 0; i < lanes; i++) {
-            const x = (ctx.view.width * (i + 0.5)) / lanes;
+            const x = getLaneX(ctx, i, lanes);
             emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, x, boss.y + 60, 1, 0, 240, {
               r: 4,
               color: "#ffa7f0",

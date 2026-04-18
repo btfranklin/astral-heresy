@@ -2,6 +2,13 @@ const DEFAULT_TIERS = [
   { until: Infinity, maxEnemies: 6, maxEnemyBullets: 42 },
 ];
 
+function createFrameReservations() {
+  return {
+    enemies: 0,
+    enemyBullets: 0,
+  };
+}
+
 function createDensityState() {
   return {
     liveEnemies: 0,
@@ -38,6 +45,11 @@ function clampScale(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function reserveWave(frameReservations, enemyCost, bulletCost) {
+  frameReservations.enemies += Math.max(0, enemyCost);
+  frameReservations.enemyBullets += Math.max(0, bulletCost);
+}
+
 export function refreshDensityState(state, stage) {
   const counts = countLiveEntities(state);
   const budget = resolveBudget(stage, state.stageTime, state.loopIndex);
@@ -59,42 +71,59 @@ export function scaledCount(count, scale, min = 1) {
 }
 
 export function createStageDirector(state) {
+  const frameReservations = createFrameReservations();
+
   return {
+    beginFrame() {
+      frameReservations.enemies = 0;
+      frameReservations.enemyBullets = 0;
+    },
     gateWave({ enemyCost = 1, bulletCost = 0, priority = "normal" } = {}) {
       const density = state.density || createDensityState();
-      const enemyRatio = density.maxEnemies > 0 ? density.liveEnemies / density.maxEnemies : 0;
+      const reservedEnemies = density.liveEnemies + frameReservations.enemies;
+      const reservedEnemyBullets = density.liveEnemyBullets + frameReservations.enemyBullets;
+      const enemyRatio = density.maxEnemies > 0 ? reservedEnemies / density.maxEnemies : 0;
       const bulletRatio =
-        density.maxEnemyBullets > 0 ? density.liveEnemyBullets / density.maxEnemyBullets : 0;
+        density.maxEnemyBullets > 0 ? reservedEnemyBullets / density.maxEnemyBullets : 0;
       const saturation = Math.max(enemyRatio, bulletRatio);
       const projectedEnemyRatio =
-        density.maxEnemies > 0 ? (density.liveEnemies + enemyCost) / density.maxEnemies : saturation;
+        density.maxEnemies > 0 ? (reservedEnemies + enemyCost) / density.maxEnemies : saturation;
       const projectedBulletRatio =
         density.maxEnemyBullets > 0
-          ? (density.liveEnemyBullets + bulletCost) / density.maxEnemyBullets
+          ? (reservedEnemyBullets + bulletCost) / density.maxEnemyBullets
           : saturation;
       const projected = Math.max(projectedEnemyRatio, projectedBulletRatio);
 
       if (projected < 0.78) {
-        return { allow: true, delay: 0, bulletScale: 1, escortScale: 1 };
+        reserveWave(frameReservations, enemyCost, bulletCost);
+        return { allow: true, delay: 0, bulletScale: 1, escortScale: 1, anchorOnly: false };
       }
 
       if (projected <= 1) {
         const pressure = clampScale((projected - 0.78) / 0.22, 0, 1);
-        return {
+        const gate = {
           allow: true,
           delay: 0,
           bulletScale: clampScale(0.85 - pressure * 0.15, 0.7, 0.85),
           escortScale: projected >= 0.9 || enemyRatio >= 0.88 ? 0 : 1,
+          anchorOnly: false,
         };
+        reserveWave(frameReservations, enemyCost, Math.round(bulletCost * gate.bulletScale));
+        return gate;
       }
 
       const overPressure = clampScale((projected - 1) / 0.55, 0, 1);
-      return {
+      const gate = {
         allow: false,
         delay: 0.35 + overPressure * 0.55,
         bulletScale: priority === "normal" ? 0.7 : 0.72,
         escortScale: 0,
+        anchorOnly: priority !== "normal" && enemyCost > 0,
       };
+      if (gate.anchorOnly) {
+        reserveWave(frameReservations, 1, Math.round(bulletCost * gate.bulletScale));
+      }
+      return gate;
     },
   };
 }

@@ -7,7 +7,9 @@ This directory is the system of record for repository knowledge that should surv
 - [`../README.md`](../README.md): quickstart and high-level repo overview
 - [`../AGENTS.md`](../AGENTS.md): short task router for coding agents
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md): domain map, update loop, and dependency rules
+- [`QUALITY.md`](./QUALITY.md): verification matrix and golden repo invariants
 - [`RUNTIME.md`](./RUNTIME.md): runbook, debug surfaces, and smoke-test flows
+- [`TECH-DEBT.md`](./TECH-DEBT.md): prioritized structural debt and next cleanup investments
 - [`content/stages-bosses.md`](./content/stages-bosses.md): stage and boss authoring contract
 - [`generated/content-inventory.md`](./generated/content-inventory.md): generated reference for stages, bosses, phases, showcase keys, and pattern helpers
 
@@ -15,6 +17,8 @@ This directory is the system of record for repository knowledge that should surv
 
 - Keep docs additive and linked. Prefer a short index plus targeted documents over one giant page.
 - When behavior depends on runtime interaction, add the repro path to [`RUNTIME.md`](./RUNTIME.md).
+- When a new recurring verification rule appears, add it to [`QUALITY.md`](./QUALITY.md).
+- When the repo accumulates structural debt that future agents would otherwise rediscover in review, record it in [`TECH-DEBT.md`](./TECH-DEBT.md).
 - When gameplay/content structure changes, refresh [`generated/content-inventory.md`](./generated/content-inventory.md) with `python3 scripts/generate_content_inventory.py`.
 - Run `python3 scripts/check_repo_legibility.py` after changing docs structure or generated references.
 - Use `python3 scripts/check_structure.py` when changing import boundaries or moving code between `src/` areas.
