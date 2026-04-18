@@ -48,6 +48,7 @@ If you change ordering, document why here. Collision timing, boss defeat timing,
 
 - [`../src/state/gameState.js`](../src/state/gameState.js): global run state, input flags, entity list, viewport metrics, scoring, boss/run lifecycle
 - [`../src/state/playerState.js`](../src/state/playerState.js): player position, speed, fire cadence, invulnerability, hit points, burst state, weapon mode, and viewport-derived movement bounds
+- [`../src/state/playfieldState.js`](../src/state/playfieldState.js): shared combat-lane geometry for desktop side bays, player bounds, and stage-safe playfield helpers
 - [`../src/entities/entityFactory.js`](../src/entities/entityFactory.js): entity IDs, lifecycle, and deferred deletion
 - [`../src/entities/components.js`](../src/entities/components.js): component payload shapes used by systems and renderers
 - [`../src/entities/entityBuckets.js`](../src/entities/entityBuckets.js): frame-local typed views used by collision and rendering
@@ -80,6 +81,7 @@ Current intended direction:
 - `state/` and `entities/` should stay free of DOM, renderer, and audio concerns.
 - `systems/` may depend on `state/`, `entities/`, `core/`, `audio/`, and narrow content helpers. They should not manipulate DOM nodes directly.
 - The combat economy now lives mainly in `systems/collisionSystem.js`, `systems/combatSystem.js`, `systems/playerSystem.js`, and `core/combat.js`. Keep graze, burst, chain, and loop-two rules in those seams rather than spreading them into renderers.
+- Desktop combat-space ownership now flows through `state.playfield` plus the stage director in `core/director.js`. Keep lane geometry and saturation budgeting centralized there; do not reintroduce per-stage viewport math or ad hoc enemy-count caps.
 - `ui/` should depend on state shape and DOM only.
 - `rendering/` should read state and entities; it should not own gameplay mutation beyond transient visual fields already present in state.
 - `debug/` is an inspection surface. Keep it callable from the composition root, but avoid making gameplay systems depend on it.
@@ -95,7 +97,10 @@ These boundaries are enforced by `python3 scripts/check_structure.py`, which is 
 - [`../src/data/stages/`](../src/data/stages): per-stage gameplay definitions
 - [`../src/data/enemies.js`](../src/data/enemies.js): enemy archetype registry
 - [`../src/data/bosses/`](../src/data/bosses): per-boss phase definitions
-- [`../src/data/weapons.js`](../src/data/weapons.js): weapon-mode definitions and pickup reward catalog
+- [`../src/data/weapons.js`](../src/data/weapons.js): raw weapon fire definitions, orbital offsets, and temporary weapon firing behavior
+- [`../src/data/powerups.js`](../src/data/powerups.js): generic pickup catalog spanning weapon, utility, and risk rewards
+- [`../src/core/powerups.js`](../src/core/powerups.js): active-effect timers, pickup notice state, and shared powerup rules
+- [`../src/core/director.js`](../src/core/director.js): stage-density budgeting and wave gating for authored stage content
 - [`../src/rendering/enemyRenderers.js`](../src/rendering/enemyRenderers.js): large visual dispatch surface
 - [`../src/core/game.js`](../src/core/game.js): orchestration pressure point
 - [`../src/core/runtimeController.js`](../src/core/runtimeController.js): lifecycle and teardown surface

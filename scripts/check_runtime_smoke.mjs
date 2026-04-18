@@ -133,7 +133,7 @@ function createFake2dContext() {
     {},
     {
       get(_target, key) {
-        if (key === "createRadialGradient") {
+        if (key === "createRadialGradient" || key === "createLinearGradient") {
           return () => gradient;
         }
         return () => {};
@@ -237,10 +237,11 @@ class FakeCanvas extends FakeElement {
 }
 
 class FakeDocument {
-  constructor(elements, hullPips, burstStockPips) {
+  constructor(elements, hullPips, burstStockPips, effectChips) {
     this.elements = elements;
     this.hullPips = hullPips;
     this.burstStockPips = burstStockPips;
+    this.effectChips = effectChips;
     this.listeners = new Map();
   }
 
@@ -254,6 +255,9 @@ class FakeDocument {
     }
     if (selector === "#burst-stocks .stock-pip") {
       return this.burstStockPips;
+    }
+    if (selector === "#effect-strip .effect-chip") {
+      return this.effectChips;
     }
     return [];
   }
@@ -297,6 +301,7 @@ function createRuntimeFixture(search = "") {
   const burstStockPips = Array.from({ length: 2 }, (_, index) =>
     new FakeElement(null, index === 0 ? ["stock-pip", "is-full"] : ["stock-pip"])
   );
+  const effectChips = Array.from({ length: 6 }, () => new FakeElement(null, ["effect-chip", "hidden"]));
   const elements = {
     bg: new FakeCanvas("bg", (type) => (type === "webgl" ? createFakeWebGLContext() : null)),
     game: new FakeCanvas("game", (type) => (type === "2d" ? createFake2dContext() : null)),
@@ -325,6 +330,11 @@ function createRuntimeFixture(search = "") {
     "burst-stocks": new FakeElement("burst-stocks"),
     "weapon-value": new FakeElement("weapon-value"),
     "bonus-banner": new FakeElement("bonus-banner"),
+    "powerup-feed": new FakeElement("powerup-feed", ["hidden"]),
+    "powerup-notice-category": new FakeElement("powerup-notice-category"),
+    "powerup-notice-role": new FakeElement("powerup-notice-role"),
+    "powerup-notice-sigil": new FakeElement("powerup-notice-sigil"),
+    "powerup-notice-title": new FakeElement("powerup-notice-title"),
     "boss-panel": new FakeElement("boss-panel", ["hidden"]),
     "boss-name": new FakeElement("boss-name"),
     "boss-phase": new FakeElement("boss-phase"),
@@ -338,7 +348,7 @@ function createRuntimeFixture(search = "") {
     "end-time": new FakeElement("end-time"),
   };
 
-  const document = new FakeDocument(elements, hullPips, burstStockPips);
+  const document = new FakeDocument(elements, hullPips, burstStockPips, effectChips);
   const windowListeners = new Map();
   const rafQueue = [];
   let nextFrameId = 1;
@@ -405,6 +415,7 @@ function createRuntimeFixture(search = "") {
     elements,
     hullPips,
     burstStockPips,
+    effectChips,
     requestAnimationFrame,
     cancelAnimationFrame,
     runNextAnimationFrame,
@@ -474,6 +485,8 @@ function testGameStartRestartAndDisposeFlow() {
     assert.equal(fixture.elements["loop-value"].textContent, "I");
     assert.equal(fixture.elements["weapon-value"].textContent, "Standard");
     assert.equal(fixture.elements["burst-chip"].textContent, "Burst 1/2");
+    assert.equal(game.state.playfield.active, true, "Desktop layout should expose an active combat lane.");
+    assert.equal(game.state.playfield.leftBayWidth > 0, true, "Desktop layout should reserve left side-bay width.");
     assert.equal(
       fixture.elements["start-screen"].classList.contains("hidden"),
       false,
@@ -498,6 +511,26 @@ function testGameStartRestartAndDisposeFlow() {
     assert.equal(game.state.feedback.burst > 0, true, "KeyX should trigger burst feedback after launch.");
     assert.equal(game.state.burstStocks, 0, "Burst should spend the starting stock.");
     assert.equal(game.renderGameToText().includes("\"grazeCharge\""), true, "Text-state output should include combat economy fields.");
+    assert.equal(game.renderGameToText().includes("\"playfield\""), true, "Text-state output should include playfield geometry.");
+    assert.equal(game.renderGameToText().includes("\"density\""), true, "Text-state output should include density telemetry.");
+
+    game.state.powerupNotice = {
+      title: "Halo Shield",
+      roleTag: "BARRIER READY",
+      category: "utility",
+      timer: 0.8,
+      hudTimer: 1.9,
+      ribbonTimer: 0.3,
+      color: "#bdfdff",
+      sigil: "hex",
+      x: game.player.x,
+      y: game.player.y,
+    };
+    game.player.activePowerups.haloShield = 10;
+    fixture.runNextAnimationFrame(40);
+    assert.equal(fixture.elements["powerup-feed"].classList.contains("hidden"), false, "Active pickup notices should appear in the HUD feed.");
+    assert.equal(fixture.elements["powerup-notice-title"].textContent, "Halo Shield");
+    assert.equal(fixture.effectChips[0].classList.contains("hidden"), false, "Active effects should appear in the timer strip.");
 
     game.state.loopIndex = 1;
     game.state.loopTimer = 1.5;
@@ -539,6 +572,32 @@ function testGameStartRestartAndDisposeFlow() {
 
     fixture.runNextAnimationFrame();
     assert.equal(fixture.pendingAnimationFrames(), 0, "Disposed animation frames should not reschedule.");
+  });
+}
+
+function testPlayfieldGeometryAdaptsByViewport() {
+  withFixture("", (fixture) => {
+    const game = createGame({
+      bgCanvas: fixture.elements.bg,
+      gameCanvas: fixture.elements.game,
+      startScreen: fixture.elements["start-screen"],
+      startButton: fixture.elements["start-button"],
+      endScreen: fixture.elements["end-screen"],
+      restartButton: fixture.elements["restart-button"],
+      documentRoot: fixture.document,
+    });
+
+    game.init();
+    assert.equal(game.state.playfield.active, true, "Desktop runtime should create side bays.");
+    assert.equal(game.player.x >= game.state.playfield.minX && game.player.x <= game.state.playfield.maxX, true);
+
+    fixture.window.innerWidth = 900;
+    fixture.window.innerHeight = 720;
+    fixture.window.dispatchEvent({ type: "resize" });
+
+    assert.equal(game.state.playfield.active, false, "Tablet width should disable desktop side bays.");
+    assert.equal(game.state.playfield.leftBayWidth, 0);
+    assert.equal(game.state.playfield.rightBayWidth, 0);
   });
 }
 
@@ -603,6 +662,7 @@ function testShowcaseAndInterfaceFlows() {
 
 function run() {
   testGameStartRestartAndDisposeFlow();
+  testPlayfieldGeometryAdaptsByViewport();
   testShowcaseAndInterfaceFlows();
   console.log("Runtime smoke checks passed.");
 }

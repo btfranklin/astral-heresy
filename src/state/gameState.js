@@ -1,3 +1,5 @@
+import { createPlayfield } from "./playfieldState.js";
+
 function createScoreBonuses() {
   return {
     graze: 0,
@@ -8,6 +10,7 @@ function createScoreBonuses() {
     phaseBreak: 0,
     elite: 0,
     pickup: 0,
+    shard: 0,
   };
 }
 
@@ -19,10 +22,36 @@ function createFeedbackState() {
     phase: 0,
     loop: 0,
     chain: 0,
+    shield: 0,
   };
 }
 
-function createDefaults() {
+function createDensityState() {
+  return {
+    liveEnemies: 0,
+    liveEnemyBullets: 0,
+    maxEnemies: 6,
+    maxEnemyBullets: 42,
+    saturated: false,
+  };
+}
+
+function createPowerupNotice() {
+  return {
+    title: "",
+    roleTag: "",
+    category: "utility",
+    timer: 0,
+    hudTimer: 0,
+    ribbonTimer: 0,
+    color: "#79ffe1",
+    sigil: "hex",
+    x: 0,
+    y: 0,
+  };
+}
+
+function createDefaults(width = 0, height = 0) {
   return {
     time: 0,
     stageIndex: 0,
@@ -49,6 +78,10 @@ function createDefaults() {
     bonusTimer: 0,
     loopTimer: 0,
     burstOrigin: null,
+    shieldOrigin: null,
+    playfield: createPlayfield(width, height),
+    density: createDensityState(),
+    powerupNotice: createPowerupNotice(),
     scoreBonuses: createScoreBonuses(),
     feedback: createFeedbackState(),
   };
@@ -70,7 +103,7 @@ export function createGameState() {
 }
 
 export function resetGameState(state) {
-  Object.assign(state, createDefaults());
+  Object.assign(state, createDefaults(state.view.width, state.view.height));
   state.input = {
     pointerEnabled: true,
   };

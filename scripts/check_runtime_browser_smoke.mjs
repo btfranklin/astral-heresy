@@ -115,6 +115,20 @@ async function main() {
       throw new Error(`Unexpected restart state: ${JSON.stringify(afterRestart)}`);
     }
 
+    const playfieldState = evalJson(
+      "(() => { const textState = JSON.parse(window.render_game_to_text()); return JSON.stringify({ active: textState.playfield.active, leftBayWidth: textState.playfield.leftBayWidth, rightBayWidth: textState.playfield.rightBayWidth, minX: textState.playfield.minX, maxX: textState.playfield.maxX, density: textState.density }); })()"
+    );
+    if (!playfieldState.active || playfieldState.leftBayWidth <= 0 || playfieldState.rightBayWidth <= 0) {
+      throw new Error(`Unexpected desktop playfield state: ${JSON.stringify(playfieldState)}`);
+    }
+    runPwcli("screenshot");
+
+    const clampedEnemy = evalJson(
+      "(() => { const game = window.__astralHeresy; const enemy = game.debugSpawnEnemy('cherub', { x: 0, y: 160, vx: 0, vy: 0 }); window.advanceTime(16); const textState = JSON.parse(window.render_game_to_text()); return JSON.stringify({ enemyX: Math.round(enemy.components.position.x), laneMinX: textState.playfield.minX, density: textState.density }); })()"
+    );
+    if (clampedEnemy.enemyX < clampedEnemy.laneMinX - 80) {
+      throw new Error(`Enemy lane clamp failed: ${JSON.stringify(clampedEnemy)}`);
+    }
     runPwcli("screenshot");
 
     const burstState = evalJson(
@@ -130,6 +144,38 @@ async function main() {
     );
     if (!pickupHud.weaponText.includes("Spread") || pickupHud.grazeText !== "60%") {
       throw new Error(`Unexpected pickup HUD state: ${JSON.stringify(pickupHud)}`);
+    }
+    runPwcli("screenshot");
+
+    const pickupNotice = evalJson(
+      "(() => { const game = window.__astralHeresy; game.debugSpawnPickup('halo-shield', game.player.x, game.player.y, {}); window.advanceTime(16); return JSON.stringify({ noticeTitle: document.getElementById('powerup-notice-title').textContent, feedVisible: !document.getElementById('powerup-feed').classList.contains('hidden'), textState: JSON.parse(window.render_game_to_text()) }); })()"
+    );
+    if (pickupNotice.noticeTitle !== "Halo Shield" || !pickupNotice.feedVisible || pickupNotice.textState.powerupNotice?.title !== "Halo Shield") {
+      throw new Error(`Unexpected pickup notice state: ${JSON.stringify(pickupNotice)}`);
+    }
+    runPwcli("screenshot");
+
+    const shieldBreak = evalJson(
+      "(() => { const game = window.__astralHeresy; game.player.activePowerups.haloShield = 10; game.player.hp = 5; game.player.invuln = 0; game.debugSpawnEnemyBullet(game.player.x, game.player.y, 0, 0, { r: 4 }); window.advanceTime(16); return JSON.stringify({ hp: game.player.hp, shieldTimer: game.player.activePowerups.haloShield, shieldFeedback: game.state.feedback.shield > 0 }); })()"
+    );
+    if (shieldBreak.hp !== 5 || shieldBreak.shieldTimer !== 0 || !shieldBreak.shieldFeedback) {
+      throw new Error(`Unexpected shield break state: ${JSON.stringify(shieldBreak)}`);
+    }
+    runPwcli("screenshot");
+
+    const orbitalsState = evalJson(
+      "(() => { const game = window.__astralHeresy; game.player.weaponMode = 'orbitals'; game.player.weaponLabel = 'Orbitals'; game.player.weaponTimer = 9.1; document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', bubbles: true, cancelable: true })); window.advanceTime(140); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyZ', bubbles: true, cancelable: true })); return JSON.stringify({ weapon: JSON.parse(window.render_game_to_text()).player.weapon, playerBullets: JSON.parse(window.render_game_to_text()).playerBullets }); })()"
+    );
+    if (orbitalsState.weapon !== "orbitals" || orbitalsState.playerBullets < 2) {
+      throw new Error(`Unexpected orbitals state: ${JSON.stringify(orbitalsState)}`);
+    }
+    runPwcli("screenshot");
+
+    const magnetState = evalJson(
+      "(() => { const game = window.__astralHeresy; game.player.activePowerups.magnetCore = 10; game.debugSpawnScoreShards(game.player.x + 180, game.player.y - 20, 3, { seedOffset: Math.PI / 2 }); window.advanceTime(120); const textState = JSON.parse(window.render_game_to_text()); return JSON.stringify({ magnetTimer: game.player.activePowerups.magnetCore, scoreShards: textState.scoreShards.length }); })()"
+    );
+    if (magnetState.magnetTimer <= 0 || magnetState.scoreShards === 0) {
+      throw new Error(`Unexpected magnet state: ${JSON.stringify(magnetState)}`);
     }
     runPwcli("screenshot");
 
@@ -158,6 +204,12 @@ async function main() {
     );
     if (bossShowcase.type !== "boss" || bossShowcase.key !== "prism" || bossShowcase.phaseIndex !== 1) {
       throw new Error(`Unexpected boss showcase state: ${JSON.stringify(bossShowcase)}`);
+    }
+    const amplifierBrand = evalJson(
+      "(() => { window.__astralHeresy.state.boss.weakpointBrandTimer = 1.1; window.__astralHeresy.state.feedback.weakpoint = 0.6; window.advanceTime(16); return JSON.stringify({ weakpointBrandTimer: window.__astralHeresy.state.boss.weakpointBrandTimer }); })()"
+    );
+    if (amplifierBrand.weakpointBrandTimer <= 0) {
+      throw new Error(`Unexpected amplifier brand state: ${JSON.stringify(amplifierBrand)}`);
     }
     runPwcli("screenshot");
     runPwcli("close");

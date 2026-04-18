@@ -42,6 +42,7 @@ export function updatePlayer(state, player, audio, dt) {
   player.fireCooldown -= dt;
   if ((input.KeyZ || input.Space || input.PointerFire) && player.fireCooldown <= 0 && !state.over) {
     const weapon = fireWeapon(player.weaponMode, {
+      state,
       focus,
       player,
       spawnBullet: (x, y, angle, speed, opts) => spawnPlayerBullet(state, x, y, angle, speed, opts),

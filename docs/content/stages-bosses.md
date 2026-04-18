@@ -9,6 +9,8 @@ The files under `src/data/` are executable content factories. They do not just h
 - [`../../src/data/stages/`](../../src/data/stages): per-stage factories and enemy wave timing
 - [`../../src/data/bosses.js`](../../src/data/bosses.js): boss export surface
 - [`../../src/data/bosses/`](../../src/data/bosses): per-boss factories and phase logic
+- [`../../src/data/powerups.js`](../../src/data/powerups.js): generic pickup catalog and category metadata
+- [`../../src/core/powerups.js`](../../src/core/powerups.js): shared powerup timing/effect rules
 - [`../../src/data/patterns.js`](../../src/data/patterns.js): reusable bullet-pattern helpers
 - [`../../src/debug/showcase.js`](../../src/debug/showcase.js): render-study keys for enemies and bosses
 
@@ -22,6 +24,7 @@ Each stage object currently provides:
 - `name`
 - `duration`
 - `bossKey`
+- optional `densityTiers`
 - `init()`
 - `update(stageState, t, dt, ctx)`
 
@@ -30,6 +33,8 @@ Each stage object currently provides:
 - `view`
 - `player`
 - `loopIndex`
+- `playfield`
+- `director`
 - `spawnEnemyBullet(x, y, angle, speed, opts)`
 - `spawnEnemy(archetypeKey, overrides)`
 - `spawnPickup(kind, x, y, overrides)`
@@ -39,6 +44,24 @@ Stage `update()` owns:
 - enemy spawn timing
 - enemy movement/fire closures
 - transitions into the stage boss via `bossKey` once `t >= duration`
+
+`playfield` is the stage-safe geometry surface for authored content:
+
+- `leftEdge`
+- `rightEdge`
+- `laneX(fraction)`
+- `randomX(padding)`
+- `clampX(x, padding)`
+
+Use it instead of raw `view.width * 0.2..0.8` math so desktop side bays remain non-playable and enemy entries start just outside the combat lane instead of behind the HUD.
+
+`director.gateWave({ enemyCost, bulletCost, priority })` is the shared soft-density gate for stage waves.
+
+- `priority="normal"` waves should defer entirely when `allow === false`.
+- `priority="elite"` and `priority="setpiece"` should still spawn their anchor unit once, but escorts and extra volleys should obey `escortScale` and `bulletScale`.
+- Prefer reducing escorts first, then thinning bullet counts. Do not delete active bullets mid-flight.
+
+`densityTiers`, when present, is an ordered array of `{ until, maxEnemies, maxEnemyBullets }` entries used by the runtime stage director. Loop two automatically adds the shared bonus on top of these budgets.
 
 ## Enemy Archetype Contract
 
@@ -52,7 +75,7 @@ Each archetype currently provides:
 - `r`, `hp`
 - `color`, `accent`, `glowColor`
 
-Stages call `spawnEnemy(archetypeKey, overrides)`, which is implemented by [`../../src/systems/enemySystem.js`](../../src/systems/enemySystem.js).
+Stages call `spawnEnemy(archetypeKey, overrides, spawnOptions?)`, which is implemented by [`../../src/systems/enemySystem.js`](../../src/systems/enemySystem.js).
 
 Useful override fields:
 
@@ -61,11 +84,15 @@ Useful override fields:
 - `behavior(enemy, dt, state)`
 - `fire(enemy, dt, state)`
 - `elite`
+- `risk`
 - `dropKey`
 - `scoreBonus`
+- `scoreShardCount`
 - `label`
 
-Elite encounters should carry their pickup reward through `dropKey`. Current scripted rewards are the non-base weapon keys from `src/data/weapons.js`.
+`spawnOptions.laneAware` defaults to `true` in normal runtime content. Only debug/showcase paths should disable it.
+
+Weapon pickups should stay attached to elite encounters through `dropKey`. Utility and risk pickups can also be attached to non-elite setpiece anchors or exposed danger beats, but they should remain authored and non-random. `dropKey` values now come from [`../../src/data/powerups.js`](../../src/data/powerups.js), not only `src/data/weapons.js`.
 
 The concrete entity/component shell is assembled by the enemy system and entity/component helpers. Stage code should define behavior, not entity bookkeeping.
 
@@ -127,7 +154,7 @@ Boss phase progression and defeat handling live in [`../../src/systems/bossSyste
 
 Use these first before inventing one-off projectile loops in stage or boss code. If a pattern becomes reusable across more than one fight, promote it into `patterns.js`.
 
-For player-facing weapon modulation, use the pickup and weapon definitions in [`../../src/data/weapons.js`](../../src/data/weapons.js) instead of duplicating duration or label values in stage files.
+For player-facing pickup rewards, use the generic powerup definitions in [`../../src/data/powerups.js`](../../src/data/powerups.js). Weapon-fire behavior still lives in [`../../src/data/weapons.js`](../../src/data/weapons.js), but stages should not duplicate pickup duration, category, or labeling rules in content files.
 
 ## Authoring Workflow
 
@@ -138,8 +165,9 @@ For player-facing weapon modulation, use the pickup and weapon definitions in [`
 3. Point the stage at a `bossKey`.
 4. Refresh the generated inventory with `python3 scripts/generate_content_inventory.py`.
 5. Run `node scripts/check_content_contract.mjs`.
-6. Run `node scripts/check_combat_smoke.mjs` if the stage changes pickup rewards, graze windows, or loop-two density.
-7. Run `python3 scripts/check_repo_legibility.py`.
+6. Run `node scripts/check_combat_smoke.mjs` if the stage changes graze, burst, chain, weakpoint, or loop-two rules.
+7. Run `node scripts/check_powerup_smoke.mjs` if the stage changes pickup rewards, score shards, or active-effect timing.
+8. Run `python3 scripts/check_repo_legibility.py`.
 
 ### Add A Boss
 

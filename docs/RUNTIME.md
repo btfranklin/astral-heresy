@@ -48,6 +48,9 @@ Useful console reads:
 window.__astralHeresy.state
 window.__astralHeresy.player
 window.__astralHeresy.resetGame(true)
+window.__astralHeresy.debugSpawnEnemy("cherub", { x: 0, y: 180, vx: 0, vy: 0 })
+window.__astralHeresy.debugSpawnPickup("halo-shield", window.__astralHeresy.player.x, window.__astralHeresy.player.y)
+window.__astralHeresy.debugSpawnScoreShards(window.__astralHeresy.player.x + 120, window.__astralHeresy.player.y, 4)
 window.render_game_to_text()
 window.advanceTime(1000)
 ```
@@ -60,6 +63,9 @@ Useful fields:
 - `state.loopIndex`
 - `state.grazeCharge`
 - `state.burstStocks`
+- `state.playfield`
+- `state.density`
+- `state.powerupNotice`
 - `state.over`
 - `state.victory`
 - `state.renderDetail`
@@ -98,11 +104,14 @@ Run this after gameplay, UI, or content edits:
 2. Load `/` and confirm the start dialog is visible.
 3. Launch a run and confirm the HUD updates from `Awaiting launch clearance` to active combat text.
 4. Fire, focus, burst with `X`, and toggle pointer steering with `M`.
-5. Confirm graze, burst stock, weapon, chain, and loop HUD fields update without layout breakage.
-6. Collect at least one elite pickup and confirm the weapon label/timer update.
-7. Confirm restart behavior after a loss with `Enter` or `R`.
-8. Visit at least one enemy render-study URL and one boss render-study URL.
-9. Confirm the page still initializes on a browser with WebGL enabled.
+5. Confirm the desktop side bays read as non-playable space and the center lane is visually framed apart from them.
+6. Confirm graze, burst stock, weapon, chain, and loop HUD fields update without layout breakage.
+7. Collect at least one pickup and confirm the ephemeral acquisition text plus HUD feed entry appear immediately.
+8. Confirm the active-effects strip updates with weapon and timed utility/risk effects.
+9. Force-spawn or wait for an enemy near the side boundary and confirm it never lives behind the HUD bay.
+10. Confirm restart behavior after a loss with `Enter` or `R`.
+11. Visit at least one enemy render-study URL and one boss render-study URL.
+12. Confirm the page still initializes on a browser with WebGL enabled.
 
 For a mechanical approximation of these flows without a real browser, run:
 
@@ -116,14 +125,29 @@ For combat-economy-specific verification without the DOM harness, run:
 node scripts/check_combat_smoke.mjs
 ```
 
+For dedicated powerup verification without the DOM harness, run:
+
+```bash
+node scripts/check_powerup_smoke.mjs
+```
+
 That harness validates:
 
 - start-screen visibility before launch
 - launch and restart wiring
+- playfield geometry for desktop and tablet widths
 - interface copy and boss-panel sync
 - deterministic step and text-state hooks
 - burst input wiring and loop HUD reset
+- playfield and density text-state coverage
 - render-study URL parsing and scene setup
+
+The dedicated powerup lane validates:
+
+- acquisition notice and HUD feed timing
+- `Burst Cell`, `Halo Shield`, `Chain Sigil`, `Graze Bloom`, `Magnet Core`
+- `Orbitals`, `Weakpoint Amplifier`, and `Point-Blank Seal`
+- score-shard routing and weakpoint-brand damage behavior
 
 For a real-browser pass that captures screenshots under `output/playwright/runtime-smoke/`, run:
 
@@ -135,6 +159,11 @@ That lane validates:
 
 - page boot in a real browser
 - launch flow and restart wiring
+- side-bay framing and playfield geometry in the real browser
+- enemy clamping away from the HUD bay area
+- pickup acquisition callout visibility
+- active-effect HUD state
+- shield-break, orbitals, amplifier-brand, and magnet-core scenes
 - one enemy render-study URL
 - one boss render-study URL
 - screenshot capture into the ignored output folder

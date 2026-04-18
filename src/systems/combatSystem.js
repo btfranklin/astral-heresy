@@ -1,4 +1,5 @@
 import { combatTuning, resetChain } from "../core/combat.js";
+import { decayPowerupState, getChainDecayFactor } from "../core/powerups.js";
 import { getWeaponDefinition } from "../data/weapons.js";
 
 function decayTimer(owner, key, dt) {
@@ -9,6 +10,7 @@ export function updateCombat(state, player, dt) {
   decayTimer(state, "grazeWindow", dt);
   decayTimer(state, "bonusTimer", dt);
   decayTimer(state, "loopTimer", dt);
+  decayPowerupState(state, player, dt);
 
   for (const key of Object.keys(state.feedback)) {
     state.feedback[key] = Math.max(0, state.feedback[key] - dt);
@@ -26,7 +28,7 @@ export function updateCombat(state, player, dt) {
   }
 
   if (state.chainTimer > 0) {
-    state.chainTimer = Math.max(0, state.chainTimer - dt);
+    state.chainTimer = Math.max(0, state.chainTimer - dt * getChainDecayFactor(player));
     if (state.chainTimer <= 0) {
       resetChain(state);
     }

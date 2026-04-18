@@ -1,20 +1,27 @@
 import { addEntity, createEntity, removeEntity } from "../entities/entityFactory.js";
 import { ai, collider, health, position, render, reward, velocity } from "../entities/components.js";
 import { getEnemyArchetype } from "../data/enemies.js";
+import { clampToEnemyEnvelope } from "../state/playfieldState.js";
 
-export function spawnEnemy(state, archetypeKey, overrides = {}) {
+export function spawnEnemy(state, archetypeKey, overrides = {}, spawnOptions = {}) {
   const archetype = getEnemyArchetype(archetypeKey);
   if (!archetype) {
     throw new Error(`Unknown enemy archetype: ${archetypeKey}`);
   }
 
   const opts = { ...archetype, ...overrides };
+  const laneAware = spawnOptions.laneAware !== false;
+  const radius = opts.r || 18;
+  const spawnX =
+    laneAware && state.playfield.active
+      ? clampToEnemyEnvelope(state.playfield, opts.x, radius + 40)
+      : opts.x;
   return addEntity(
     state,
     createEntity("enemy", {
-      position: position(opts.x, opts.y),
+      position: position(spawnX, opts.y),
       velocity: velocity(opts.vx || 0, opts.vy || 40),
-      collider: collider(opts.r || 18),
+      collider: collider(radius),
       health: health(opts.hp || 4),
       render: render({
         color: opts.color || "#7ad7ff",
@@ -26,8 +33,10 @@ export function spawnEnemy(state, archetypeKey, overrides = {}) {
         opts.elite || opts.dropKey || opts.scoreBonus
           ? reward({
               elite: opts.elite,
+              risk: opts.risk,
               dropKey: opts.dropKey,
               scoreBonus: opts.scoreBonus,
+              scoreShardCount: opts.scoreShardCount,
               label: opts.label,
             })
           : null,
@@ -58,7 +67,22 @@ export function updateEnemies(state, dt) {
       enemyAI.fire(entity, dt, state);
     }
 
-    if (pos.y > state.view.height + 80 || pos.x < -120 || pos.x > state.view.width + 120) {
+    if (state.playfield.active) {
+      const lanePadding = Math.max(28, (entity.components.collider?.r || 18) + 14);
+      const minX = state.playfield.minX - lanePadding;
+      const maxX = state.playfield.maxX + lanePadding;
+      if (pos.x < minX) {
+        pos.x = minX;
+        vel.vx = Math.max(28, Math.abs(vel.vx) * 0.45 + 28);
+      } else if (pos.x > maxX) {
+        pos.x = maxX;
+        vel.vx = -Math.max(28, Math.abs(vel.vx) * 0.45 + 28);
+      }
+    }
+
+    const minX = state.playfield.active ? state.playfield.minX - 160 : -120;
+    const maxX = state.playfield.active ? state.playfield.maxX + 160 : state.view.width + 120;
+    if (pos.y > state.view.height + 80 || pos.x < minX || pos.x > maxX) {
       removeEntity(entity);
     }
   }

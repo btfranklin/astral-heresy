@@ -1,4 +1,5 @@
 import { resetGameState } from "../state/gameState.js";
+import { createPlayfield } from "../state/playfieldState.js";
 import { getPlayerBounds, resetPlayerState } from "../state/playerState.js";
 import { createShowcaseScene } from "../debug/showcase.js";
 import { sfxStart } from "../audio/sfx.js";
@@ -47,6 +48,7 @@ export function createRuntimeController({
     state.view.dpr = windowObject.devicePixelRatio || 1;
     state.view.width = windowObject.innerWidth;
     state.view.height = windowObject.innerHeight;
+    state.playfield = createPlayfield(state.view.width, state.view.height);
 
     bgCanvas.width = Math.floor(state.view.width * state.view.dpr);
     bgCanvas.height = Math.floor(state.view.height * state.view.dpr);

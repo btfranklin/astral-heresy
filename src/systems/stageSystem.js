@@ -23,7 +23,8 @@ export function updateStage(state, stages, contentContext, audio, dt) {
           entity.type === "enemy" ||
           entity.type === "enemyBullet" ||
           entity.type === "playerBullet" ||
-          entity.type === "pickup"
+          entity.type === "pickup" ||
+          entity.type === "scoreShard"
         ) {
           removeEntity(entity);
         }

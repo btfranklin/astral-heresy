@@ -342,6 +342,81 @@ canvas {
   color: #ffe6b7;
 }
 
+.powerup-feed {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.powerup-feed.hidden {
+  display: none;
+}
+
+.powerup-role {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #fff0cb;
+}
+
+.powerup-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.powerup-sigil {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 16px;
+  color: #f7ffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.powerup-title-text {
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f7ffff;
+}
+
+.effects-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.effect-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.effect-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(231, 243, 255, 0.82);
+}
+
+.effect-chip.hidden {
+  display: none;
+}
+
 .chip {
   padding: 8px 12px;
   border-radius: 999px;

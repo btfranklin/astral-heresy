@@ -34,6 +34,7 @@ function resolveWeakpoint(boss, phase) {
 
 export function updateBoss(state, boss, dt, contentContext) {
   boss.phaseTime += dt;
+  boss.weakpointBrandTimer = Math.max(0, (boss.weakpointBrandTimer || 0) - dt);
 
   const targetY = state.view.height * 0.18;
   boss.y = lerp(boss.y, targetY, dt * 0.6);
@@ -81,7 +82,8 @@ export function defeatBoss(state, player, boss, spawnParticle, audio, stages) {
       entity.type === "enemy" ||
       entity.type === "enemyBullet" ||
       entity.type === "playerBullet" ||
-      entity.type === "pickup"
+      entity.type === "pickup" ||
+      entity.type === "scoreShard"
     ) {
       removeEntity(entity);
     }
@@ -104,6 +106,9 @@ export function defeatBoss(state, player, boss, spawnParticle, audio, stages) {
       player.invuln = 1.4;
       player.weaponMode = "base";
       player.weaponTimer = 0;
+      for (const key of Object.keys(player.activePowerups)) {
+        player.activePowerups[key] = 0;
+      }
       boss.weakpoint = null;
     } else {
       state.over = true;

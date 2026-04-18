@@ -6,7 +6,6 @@ Use this file as a router. The durable source of truth for non-trivial repo know
 
 - Product overview and quickstart: [`README.md`](./README.md)
 - Docs index: [`docs/index.md`](./docs/index.md)
-- Player-facing live backlog: [`ROADMAP.md`](./ROADMAP.md)
 - Architecture map: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
 - Runtime inspection and smoke-test paths: [`docs/RUNTIME.md`](./docs/RUNTIME.md)
 - Stage and boss authoring model: [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md)
@@ -30,6 +29,8 @@ Use this file as a router. The durable source of truth for non-trivial repo know
   `node scripts/check_content_contract.mjs`
 - Running only the combat-economy smoke lane:
   `node scripts/check_combat_smoke.mjs`
+- Running only the powerup smoke lane:
+  `node scripts/check_powerup_smoke.mjs`
 - Running the runtime smoke harness:
   `node scripts/check_runtime_smoke.mjs`
 - Running the real-browser smoke lane:

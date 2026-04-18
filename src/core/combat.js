@@ -26,6 +26,9 @@ export const combatTuning = {
   eliteBonus: 450,
   pickupScore: 220,
   weakpointDefaultBonus: 18,
+  orbitalContactDamage: 0.6,
+  orbitalContactRadius: 10,
+  orbitalContactCooldown: 0.14,
 };
 
 export function createScoreBonuses() {
@@ -90,8 +93,9 @@ export function maybeRechargeBurst(state) {
   }
 }
 
-export function registerGraze(state) {
-  addGrazeCharge(state, combatTuning.grazeChargePerBullet);
+export function registerGraze(state, player) {
+  const grazeMultiplier = player?.activePowerups?.grazeBloom > 0 ? 2 : 1;
+  addGrazeCharge(state, combatTuning.grazeChargePerBullet * grazeMultiplier);
   addBonusScore(state, "graze", combatTuning.grazeScore, "GRAZE");
   state.grazeWindow = combatTuning.grazeComboWindow;
   state.feedback.graze = Math.max(state.feedback.graze, 0.45);
@@ -109,8 +113,8 @@ export function resetChain(state) {
   state.chainTimer = 0;
 }
 
-export function getCloseRangeBonus(distance) {
-  if (distance <= combatTuning.closeRangeNear) return combatTuning.closeRangeNearBonus;
-  if (distance <= combatTuning.closeRangeMid) return combatTuning.closeRangeMidBonus;
+export function getCloseRangeBonus(distance, multiplier = 1) {
+  if (distance <= combatTuning.closeRangeNear) return Math.round(combatTuning.closeRangeNearBonus * multiplier);
+  if (distance <= combatTuning.closeRangeMid) return Math.round(combatTuning.closeRangeMidBonus * multiplier);
   return 0;
 }

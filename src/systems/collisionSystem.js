@@ -7,7 +7,14 @@ import {
   getCloseRangeBonus,
   registerGraze,
 } from "../core/combat.js";
-import { getPickupDefinition } from "../data/weapons.js";
+import {
+  absorbShieldHit,
+  applyPowerupPickup,
+  getCloseRangeBonusMultiplier,
+  getPickupAttractionRadius,
+  powerupTuning,
+} from "../core/powerups.js";
+import { getOrbitalOffsets } from "../core/orbitals.js";
 import {
   sfxBurst,
   sfxChain,
@@ -19,6 +26,10 @@ import {
 } from "../audio/sfx.js";
 
 function damagePlayer(state, player, audio, spawnParticle, x, y, intensity = 30) {
+  if (absorbShieldHit(state, player)) {
+    spawnParticle(state, x, y, "#d8faff", intensity + 18, 300, 0.72, 4);
+    return;
+  }
   player.hp -= 1;
   player.invuln = 1.2;
   state.shake = Math.max(state.shake, 10);
@@ -38,7 +49,17 @@ function spendPlayerBullet(bullet) {
   removeEntity(bullet);
 }
 
-function rewardKill(state, player, enemy, enemyPos, enemyHealth, audio, spawnParticle, spawnPickupEntity) {
+function rewardKill(
+  state,
+  player,
+  enemy,
+  enemyPos,
+  enemyHealth,
+  audio,
+  spawnParticle,
+  spawnPickupEntity,
+  spawnScoreShardEntities
+) {
   const reward = enemy.components.reward;
   spawnParticle(state, enemyPos.x, enemyPos.y, "#79ffe1", 18, 220, 0.9, 3);
   sfxEnemyPop(audio);
@@ -50,9 +71,12 @@ function rewardKill(state, player, enemy, enemyPos, enemyHealth, audio, spawnPar
   addBonusScore(state, "chain", chainBonus, "CHAIN");
 
   const distance = Math.hypot(player.x - enemyPos.x, player.y - enemyPos.y);
-  const closeBonus = getCloseRangeBonus(distance);
+  const closeBonus = getCloseRangeBonus(distance, getCloseRangeBonusMultiplier(player));
   if (closeBonus > 0) {
     addBonusScore(state, "close", closeBonus, "PRESSURE");
+    if (player.activePowerups.pointBlankSeal > 0) {
+      spawnParticle(state, enemyPos.x, enemyPos.y, "#ffb46e", 20, 250, 0.75, 4);
+    }
   }
   if (state.grazeWindow > 0) {
     addBonusScore(state, "close", combatTuning.grazeKillBonus, "FLOW");
@@ -73,6 +97,14 @@ function rewardKill(state, player, enemy, enemyPos, enemyHealth, audio, spawnPar
   if (reward?.dropKey) {
     spawnPickupEntity(reward.dropKey, enemyPos.x, enemyPos.y, {});
   }
+  if (reward?.elite || reward?.risk || reward?.scoreShardCount > 0) {
+    spawnScoreShardEntities(enemyPos.x, enemyPos.y, reward?.scoreShardCount || (reward?.elite ? 5 : 4), {
+      category: reward?.risk ? "risk" : (reward?.elite ? "weapon" : "utility"),
+      label: reward?.label || "Shard",
+      color: reward?.risk ? "#ff9a6a" : "#ffd58e",
+      accent: reward?.risk ? "#ffdcb7" : "#fff6dd",
+    });
+  }
 
   removeEntity(enemy);
 }
@@ -85,7 +117,8 @@ function damageEnemy(
   damage,
   audio,
   spawnParticle,
-  spawnPickupEntity
+  spawnPickupEntity,
+  spawnScoreShardEntities
 ) {
   const enemyPos = enemy.components.position;
   const enemyHealth = enemy.components.health;
@@ -96,7 +129,17 @@ function damageEnemy(
   spendPlayerBullet(bullet);
   spawnParticle(state, enemyPos.x, enemyPos.y, "#ffffff", 6, 120, 0.4, 2);
   if (enemyHealth.hp <= 0) {
-    rewardKill(state, player, enemy, enemyPos, enemyHealth, audio, spawnParticle, spawnPickupEntity);
+    rewardKill(
+      state,
+      player,
+      enemy,
+      enemyPos,
+      enemyHealth,
+      audio,
+      spawnParticle,
+      spawnPickupEntity,
+      spawnScoreShardEntities
+    );
   }
 }
 
@@ -121,6 +164,13 @@ function damageBoss(
     state.feedback.weakpoint = Math.max(state.feedback.weakpoint, 0.5);
     state.shake = Math.max(state.shake, 8);
     sfxWeakpoint(audio);
+    if (bullet.components.attack?.weakpointBrandDuration > 0) {
+      boss.weakpointBrandTimer = Math.max(
+        boss.weakpointBrandTimer || 0,
+        bullet.components.attack.weakpointBrandDuration
+      );
+      state.feedback.weakpoint = Math.max(state.feedback.weakpoint, 0.72);
+    }
     spawnParticle(state, boss.weakpoint.x, boss.weakpoint.y, "#fff5d6", 16, 180, 0.45, 3);
   } else {
     spawnParticle(state, boss.x, boss.y, "#ffe7f6", 4, 100, 0.3, 2);
@@ -141,6 +191,7 @@ function triggerBurst(
   advanceBossPhase,
   defeatBoss,
   spawnPickupEntity,
+  spawnScoreShardEntities,
   buckets
 ) {
   player.pendingBurst = false;
@@ -183,7 +234,17 @@ function triggerBurst(
       health.hp -= combatTuning.burstEnemyDamage;
       spawnParticle(state, pos.x, pos.y, "#9efbff", 10, 150, 0.3, 2);
       if (health.hp <= 0) {
-        rewardKill(state, player, enemy, pos, health, audio, spawnParticle, spawnPickupEntity);
+        rewardKill(
+          state,
+          player,
+          enemy,
+          pos,
+          health,
+          audio,
+          spawnParticle,
+          spawnPickupEntity,
+          spawnScoreShardEntities
+        );
       }
     }
   }
@@ -217,12 +278,14 @@ export function handleCollisions(
   advanceBossPhase,
   defeatBoss,
   spawnPickupEntity,
+  spawnScoreShardEntities,
   buckets
 ) {
   const enemies = buckets.enemies;
   const playerBullets = buckets.playerBullets;
   const enemyBullets = buckets.enemyBullets;
   const pickups = buckets.pickups;
+  const scoreShards = buckets.scoreShards;
 
   if (player.pendingBurst && !state.over) {
     triggerBurst(
@@ -233,8 +296,52 @@ export function handleCollisions(
       advanceBossPhase,
       defeatBoss,
       spawnPickupEntity,
+      spawnScoreShardEntities,
       buckets
     );
+  }
+
+  if (
+    player.weaponMode === "orbitals" &&
+    !state.over &&
+    (state.input.KeyZ || state.input.Space || state.input.PointerFire)
+  ) {
+    const orbitals = getOrbitalOffsets(state.time, Boolean(state.input.ShiftLeft || state.input.ShiftRight));
+    for (const enemy of enemies) {
+      if (enemy.dead) continue;
+      const enemyPos = enemy.components.position;
+      const enemyCol = enemy.components.collider;
+      const enemyHealth = enemy.components.health;
+      const enemyAI = enemy.components.ai;
+      if (!enemyPos || !enemyCol || !enemyHealth || enemyCol.r > 20) continue;
+      enemyAI.orbitalCooldown = Math.max(0, (enemyAI.orbitalCooldown || 0) - 0.016);
+      if (enemyAI.orbitalCooldown > 0) continue;
+      for (const orbital of orbitals) {
+        const ox = player.x + orbital.x;
+        const oy = player.y + orbital.y;
+        const dx = enemyPos.x - ox;
+        const dy = enemyPos.y - oy;
+        if (dx * dx + dy * dy < (enemyCol.r + combatTuning.orbitalContactRadius) ** 2) {
+          enemyAI.orbitalCooldown = combatTuning.orbitalContactCooldown;
+          enemyHealth.hp -= combatTuning.orbitalContactDamage;
+          spawnParticle(state, ox, oy, "#d9fbff", 8, 120, 0.25, 2);
+          if (enemyHealth.hp <= 0) {
+            rewardKill(
+              state,
+              player,
+              enemy,
+              enemyPos,
+              enemyHealth,
+              audio,
+              spawnParticle,
+              spawnPickupEntity,
+              spawnScoreShardEntities
+            );
+          }
+          break;
+        }
+      }
+    }
   }
 
   if (!state.boss) {
@@ -262,7 +369,8 @@ export function handleCollisions(
             bulletAttack?.damage ?? 1,
             audio,
             spawnParticle,
-            spawnPickupEntity
+            spawnPickupEntity,
+            spawnScoreShardEntities
           );
           break;
         }
@@ -287,7 +395,11 @@ export function handleCollisions(
       const dy = boss.y - bulletPos.y;
       const hitBody = dx * dx + dy * dy < (boss.r * 0.75 + bulletCol.r) ** 2;
       if (hitWeakpoint || hitBody) {
-        const damage = (bulletAttack?.damage ?? 1) * (hitWeakpoint ? weakpoint.damageMultiplier : 1);
+        const weakpointBonus = hitWeakpoint && boss.weakpointBrandTimer > 0 ? powerupTuning.weakpointBrandBonus : 1;
+        const damage = (bulletAttack?.damage ?? 1) *
+          (hitWeakpoint
+            ? (bulletAttack?.weakpointDamageMultiplier || weakpoint.damageMultiplier) * weakpointBonus
+            : (bulletAttack?.bodyDamageMultiplier || 1));
         damageBoss(
           state,
           player,
@@ -313,15 +425,26 @@ export function handleCollisions(
     const dx = player.x - pickupPos.x;
     const dy = player.y - pickupPos.y;
     if (dx * dx + dy * dy < (player.radius + pickupCol.r) ** 2) {
-      const definition = getPickupDefinition(pickupComp.kind);
+      const definition = applyPowerupPickup(state, player, pickupComp.kind, pickupPos.x, pickupPos.y);
       if (definition) {
-        player.weaponMode = definition.key;
-        player.weaponLabel = definition.shortLabel;
-        player.weaponTimer = definition.duration;
-        addBonusScore(state, "pickup", combatTuning.pickupScore, definition.shortLabel.toUpperCase());
-        sfxPickup(audio);
+        sfxPickup(audio, definition.category);
       }
       removeEntity(pickupEntity);
+    }
+  }
+
+  const shardRadius = getPickupAttractionRadius(player);
+  for (const shard of scoreShards) {
+    if (shard.dead) continue;
+    const pos = shard.components.position;
+    const col = shard.components.collider;
+    const shardComp = shard.components.scoreShard;
+    if (!pos || !col || !shardComp) continue;
+    const dx = player.x - pos.x;
+    const dy = player.y - pos.y;
+    if (dx * dx + dy * dy < Math.max((player.radius + col.r) ** 2, shardRadius ** 2 * 0.1)) {
+      addBonusScore(state, "shard", shardComp.value, "SHARD");
+      removeEntity(shard);
     }
   }
 
@@ -369,7 +492,7 @@ export function handleCollisions(
       }
       if (!bulletAttack?.grazed && distanceSq >= grazeInnerSq && distanceSq <= grazeOuterSq) {
         bulletAttack.grazed = true;
-        registerGraze(state);
+        registerGraze(state, player);
         sfxGraze(audio);
       }
     }

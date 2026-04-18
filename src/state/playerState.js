@@ -1,29 +1,27 @@
-function getDesktopHudRails(width) {
+import { createPlayfield, getPlayfieldCenter } from "./playfieldState.js";
+
+export function createActivePowerupState() {
   return {
-    left: Math.min(292, Math.max(228, width * 0.22)),
-    right: Math.min(276, Math.max(216, width * 0.2)),
+    haloShield: 0,
+    chainSigil: 0,
+    grazeBloom: 0,
+    magnetCore: 0,
+    pointBlankSeal: 0,
   };
 }
 
 export function getPlayerBounds(width, height) {
-  const compactPortrait = width <= 640 && height > width;
-  const tabletHud = width <= 980;
-  const baseMarginX = 20;
-  const minY = 30;
-  const maxY = compactPortrait
-    ? Math.max(minY, height - Math.max(260, height * 0.4))
-    : height - (tabletHud ? Math.max(150, height * 0.22) : 30);
-  const desktopRails = !compactPortrait && !tabletHud ? getDesktopHudRails(width) : null;
-  const minX = desktopRails ? desktopRails.left + 34 : baseMarginX;
-  const maxX = desktopRails ? width - desktopRails.right - 34 : width - baseMarginX;
-  const startX = desktopRails ? minX + (maxX - minX) * 0.5 : width * 0.5;
-  const startY = compactPortrait ? Math.min(height * 0.66, maxY) : Math.min(height * 0.82, maxY);
+  const playfield = createPlayfield(width, height);
+  const startX = playfield.active ? getPlayfieldCenter(playfield) : width * 0.5;
+  const startY = playfield.compactPortrait
+    ? Math.min(height * 0.66, playfield.maxY)
+    : Math.min(height * 0.82, playfield.maxY);
 
   return {
-    minX,
-    maxX,
-    minY,
-    maxY,
+    minX: playfield.minX,
+    maxX: playfield.maxX,
+    minY: playfield.minY,
+    maxY: playfield.maxY,
     startX,
     startY,
   };
@@ -47,6 +45,7 @@ function createDefaults(width, height) {
     pendingBurst: false,
     burstCooldown: 0,
     burstLatch: false,
+    activePowerups: createActivePowerupState(),
   };
 }
 

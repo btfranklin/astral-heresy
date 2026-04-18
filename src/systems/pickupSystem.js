@@ -1,28 +1,40 @@
 import { addEntity, createEntity, removeEntity } from "../entities/entityFactory.js";
-import { collider, pickup, position, render, reward, velocity } from "../entities/components.js";
-import { getPickupDefinition } from "../data/weapons.js";
+import { collider, pickup, position, render, reward, scoreShard, velocity } from "../entities/components.js";
+import { getPowerupDefinition, getPowerupCategoryStyle } from "../data/powerups.js";
+import { getPickupAttractionRadius, powerupTuning } from "../core/powerups.js";
+import { clampToLane } from "../state/playfieldState.js";
 
-export function spawnPickup(state, kind, x, y, overrides = {}) {
-  const definition = getPickupDefinition(kind);
+export function spawnPickup(state, kind, x, y, overrides = {}, spawnOptions = {}) {
+  const definition = getPowerupDefinition(kind);
   if (!definition) {
     throw new Error(`Unknown pickup kind: ${kind}`);
   }
 
+  const style = getPowerupCategoryStyle(definition.category);
+  const radius = overrides.r || 12;
+  const laneAware = spawnOptions.laneAware !== false;
+  const spawnX = laneAware && state.playfield.active ? clampToLane(state.playfield, x, radius + 10) : x;
+
   return addEntity(
     state,
     createEntity("pickup", {
-      position: position(x, y),
+      position: position(spawnX, y),
       velocity: velocity(overrides.vx || 0, overrides.vy || 54),
-      collider: collider(overrides.r || 12),
+      collider: collider(radius),
       render: render({
         color: overrides.color || definition.pickupColor,
         accent: overrides.accent || definition.pickupAccent,
-        glowColor: overrides.glowColor || "rgba(255, 255, 255, 0.24)",
+        glowColor: overrides.glowColor || definition.glowColor || style.glowColor,
       }),
       pickup: pickup({
         kind,
         duration: definition.duration,
         label: definition.label,
+        shortLabel: definition.shortLabel,
+        category: definition.category,
+        roleTag: definition.roleTag,
+        sigil: definition.sigil,
+        spawnPause: overrides.spawnPause ?? 0.24,
       }),
       reward: reward({
         elite: false,
@@ -33,27 +45,72 @@ export function spawnPickup(state, kind, x, y, overrides = {}) {
   );
 }
 
+export function spawnScoreShards(state, x, y, count = 4, options = {}, spawnOptions = {}) {
+  const shards = [];
+  const laneAware = spawnOptions.laneAware !== false;
+  const radius = options.r || 8;
+  const spawnX = laneAware && state.playfield.active ? clampToLane(state.playfield, x, radius + 6) : x;
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / Math.max(1, count) + (options.seedOffset || 0);
+    const speed = 52 + i * 12;
+    shards.push(
+      addEntity(
+        state,
+        createEntity("scoreShard", {
+          position: position(spawnX, y),
+          velocity: velocity(Math.cos(angle) * speed, Math.sin(angle) * speed - 20),
+          collider: collider(radius),
+          render: render({
+            color: options.color || "#ffd58e",
+            accent: options.accent || "#fff5d9",
+            glowColor: "rgba(255, 213, 142, 0.3)",
+          }),
+          scoreShard: scoreShard({
+            value: options.value ?? powerupTuning.scoreShardValue,
+            label: options.label || "Shard",
+            category: options.category || "utility",
+          }),
+        })
+      )
+    );
+  }
+  return shards;
+}
+
 export function updatePickups(state, player, dt) {
   for (const entity of state.entities) {
-    if (entity.type !== "pickup") continue;
+    if (entity.type !== "pickup" && entity.type !== "scoreShard") continue;
     const pos = entity.components.position;
     const vel = entity.components.velocity;
-    const item = entity.components.pickup;
+    const item = entity.components.pickup || entity.components.scoreShard;
     if (!pos || !vel || !item) continue;
 
     item.t += dt;
-    vel.vx = Math.sin(item.t * 1.8 + entity.id * 0.14) * 18;
+    if (entity.type === "pickup") {
+      vel.vx = Math.sin(item.t * 1.8 + entity.id * 0.14) * 18;
+      if (item.spawnPause > 0) {
+        item.spawnPause = Math.max(0, item.spawnPause - dt);
+        vel.vx *= 0.18;
+        vel.vy *= 0.25;
+      }
+    } else {
+      vel.vx *= 0.985;
+      vel.vy = vel.vy * 0.985 + 10 * dt;
+    }
 
     const dx = player.x - pos.x;
     const dy = player.y - pos.y;
     const distance = Math.hypot(dx, dy);
-    if (distance < 140) {
-      const pull = Math.max(0, 1 - distance / 140);
+    const pullRadius = getPickupAttractionRadius(player);
+    if (distance < pullRadius) {
+      const pull = Math.max(0, 1 - distance / pullRadius);
       vel.vx += (dx / Math.max(1, distance)) * pull * 180 * dt;
       vel.vy += (dy / Math.max(1, distance)) * pull * 240 * dt;
     }
 
-    if (pos.y > state.view.height + 90 || pos.x < -80 || pos.x > state.view.width + 80) {
+    const minX = state.playfield.active ? state.playfield.minX - 90 : -80;
+    const maxX = state.playfield.active ? state.playfield.maxX + 90 : state.view.width + 80;
+    if (pos.y > state.view.height + 90 || pos.x < minX || pos.x > maxX) {
       removeEntity(entity);
     }
   }

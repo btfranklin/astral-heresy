@@ -1,11 +1,13 @@
 import { createFrameTimer } from "./time.js";
 import { createEventBus } from "./events.js";
+import { createPlayfieldContext } from "../state/playfieldState.js";
 import { createGameState } from "../state/gameState.js";
 import { createPlayerState } from "../state/playerState.js";
 import { createRuntimeController } from "./runtimeController.js";
+import { createStageDirector, refreshDensityState } from "./director.js";
 import { createInputSystem } from "../systems/inputSystem.js";
 import { updatePlayer } from "../systems/playerSystem.js";
-import { updateBullets, cleanupBullets, spawnEnemyBullet } from "../systems/bulletSystem.js";
+import { updateBullets, cleanupBullets, spawnEnemyBullet, spawnPlayerBullet } from "../systems/bulletSystem.js";
 import { spawnEnemy, updateEnemies } from "../systems/enemySystem.js";
 import { updateMovement } from "../systems/movementSystem.js";
 import { spawnParticle, updateParticles } from "../systems/particleSystem.js";
@@ -13,7 +15,7 @@ import { handleCollisions } from "../systems/collisionSystem.js";
 import { updateStage } from "../systems/stageSystem.js";
 import { updateBoss, advanceBossPhase, defeatBoss } from "../systems/bossSystem.js";
 import { updateCombat } from "../systems/combatSystem.js";
-import { spawnPickup, updatePickups } from "../systems/pickupSystem.js";
+import { spawnPickup, spawnScoreShards, updatePickups } from "../systems/pickupSystem.js";
 import { buildEntityBuckets, createEntityBuckets } from "../entities/entityBuckets.js";
 import { stageDefinitions } from "../data/stages.js";
 import { createBackgroundRenderer } from "../rendering/glBackground.js";
@@ -49,14 +51,22 @@ export function createGame({
   const canvasRenderer = createCanvasRenderer(ctx);
   const interfaceController = createInterfaceController(documentRoot);
   const showcaseConfig = getShowcaseConfig();
+  const playfieldContext = createPlayfieldContext(state);
+  const stageDirector = createStageDirector(state);
 
   const dataContext = {
     view: state.view,
     player,
+    playfield: playfieldContext,
+    director: stageDirector,
     spawnEnemyBullet: (x, y, angle, speed, opts) =>
       spawnEnemyBullet(state, x, y, angle, speed, opts),
-    spawnEnemy: (archetypeKey, overrides) => spawnEnemy(state, archetypeKey, overrides),
-    spawnPickup: (kind, x, y, overrides) => spawnPickup(state, kind, x, y, overrides),
+    spawnEnemy: (archetypeKey, overrides, spawnOptions) =>
+      spawnEnemy(state, archetypeKey, overrides, spawnOptions),
+    spawnPickup: (kind, x, y, overrides, spawnOptions) =>
+      spawnPickup(state, kind, x, y, overrides, spawnOptions),
+    spawnScoreShards: (x, y, count, options, spawnOptions) =>
+      spawnScoreShards(state, x, y, count, options, spawnOptions),
   };
   Object.defineProperty(dataContext, "loopIndex", {
     get() {
@@ -111,6 +121,7 @@ export function createGame({
       return;
     }
 
+    refreshDensityState(state, stages[state.stageIndex]);
     updateStage(state, stages, dataContext, audio, dt);
     updatePlayer(state, player, audio, dt);
     updateCombat(state, player, dt);
@@ -139,7 +150,8 @@ export function createGame({
       advanceBossPhase,
       (innerState, innerPlayer, boss, particle, audioEngine) =>
         defeatBoss(innerState, innerPlayer, boss, particle, audioEngine, stages),
-      (kind, x, y, overrides) => spawnPickup(state, kind, x, y, overrides),
+      (kind, x, y, overrides, spawnOptions) => spawnPickup(state, kind, x, y, overrides, spawnOptions),
+      (x, y, count, options, spawnOptions) => spawnScoreShards(state, x, y, count, options, spawnOptions),
       collisionBuckets
     );
 
@@ -187,12 +199,28 @@ export function createGame({
         weaponTimer: Number(player.weaponTimer.toFixed(2)),
         burstStocks: state.burstStocks,
         grazeCharge: state.grazeCharge,
+        activePowerups: Object.fromEntries(
+          Object.entries(player.activePowerups)
+            .filter(([, timer]) => timer > 0)
+            .map(([key, timer]) => [key, Number(timer.toFixed(2))])
+        ),
       },
+      powerupNotice:
+        state.powerupNotice?.hudTimer > 0 || state.powerupNotice?.timer > 0
+          ? {
+              title: state.powerupNotice.title,
+              roleTag: state.powerupNotice.roleTag,
+              category: state.powerupNotice.category,
+              timer: Number(state.powerupNotice.timer.toFixed(2)),
+              hudTimer: Number(state.powerupNotice.hudTimer.toFixed(2)),
+            }
+          : null,
       boss: state.boss
         ? {
             key: state.boss.key,
             hp: Math.round(state.boss.hp),
             phase: state.boss.phases[state.boss.phaseIndex]?.name || "Final Form",
+            weakpointBrandTimer: Number((state.boss.weakpointBrandTimer || 0).toFixed(2)),
             weakpoint: state.boss.weakpoint
               ? {
                   x: Math.round(state.boss.weakpoint.x),
@@ -203,9 +231,26 @@ export function createGame({
           }
         : null,
       score: state.score,
+      playfield: {
+        active: state.playfield.active,
+        minX: Math.round(state.playfield.minX),
+        maxX: Math.round(state.playfield.maxX),
+        minY: Math.round(state.playfield.minY),
+        maxY: Math.round(state.playfield.maxY),
+        leftBayWidth: Math.round(state.playfield.leftBayWidth),
+        rightBayWidth: Math.round(state.playfield.rightBayWidth),
+      },
+      density: {
+        liveEnemies: state.density.liveEnemies,
+        liveEnemyBullets: state.density.liveEnemyBullets,
+        maxEnemies: state.density.maxEnemies,
+        maxEnemyBullets: state.density.maxEnemyBullets,
+        saturated: state.density.saturated,
+      },
       chainLevel: state.chainLevel,
       chainTimer: Number(state.chainTimer.toFixed(2)),
       pickups: sample(renderBuckets.pickups, 4),
+      scoreShards: sample(renderBuckets.scoreShards, 6),
       enemies: sample(renderBuckets.enemies, 6),
       enemyBullets: renderBuckets.enemyBullets.length,
       playerBullets: renderBuckets.playerBullets.length,
@@ -255,6 +300,24 @@ export function createGame({
     },
     renderGameToText() {
       return JSON.stringify(buildTextSnapshot());
+    },
+    debugSpawnPickup(kind, x, y, overrides = {}) {
+      return spawnPickup(state, kind, x, y, overrides, { laneAware: false });
+    },
+    debugSpawnEnemy(archetypeKey, overrides = {}, spawnOptions) {
+      return spawnEnemy(state, archetypeKey, overrides, spawnOptions);
+    },
+    debugSpawnScoreShards(x, y, count = 4, options = {}) {
+      return spawnScoreShards(state, x, y, count, options, { laneAware: false });
+    },
+    debugSpawnEnemyBullet(x, y, angle, speed, options = {}) {
+      return spawnEnemyBullet(state, x, y, angle, speed, options);
+    },
+    debugSpawnPlayerBullet(x, y, angle, speed, options = {}) {
+      return spawnPlayerBullet(state, x, y, angle, speed, options);
+    },
+    debugBuildBuckets() {
+      return buildEntityBuckets(state);
     },
     startGame: runtimeController.startGame,
     resetGame: runtimeController.resetGame,

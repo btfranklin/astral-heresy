@@ -1,4 +1,5 @@
 import { combatTuning, getChainMultiplier } from "../core/combat.js";
+import { listActivePowerups } from "../core/powerups.js";
 
 function formatTime(seconds) {
   const whole = Math.max(0, Math.floor(seconds));
@@ -52,6 +53,12 @@ export function createInterfaceController(documentRoot) {
     burstStocks: [...documentRoot.querySelectorAll("#burst-stocks .stock-pip")],
     weaponValue: documentRoot.getElementById("weapon-value"),
     bonusBanner: documentRoot.getElementById("bonus-banner"),
+    powerupFeed: documentRoot.getElementById("powerup-feed"),
+    powerupNoticeCategory: documentRoot.getElementById("powerup-notice-category"),
+    powerupNoticeRole: documentRoot.getElementById("powerup-notice-role"),
+    powerupNoticeSigil: documentRoot.getElementById("powerup-notice-sigil"),
+    powerupNoticeTitle: documentRoot.getElementById("powerup-notice-title"),
+    effectChips: [...documentRoot.querySelectorAll("#effect-strip .effect-chip")],
     bossPanel: documentRoot.getElementById("boss-panel"),
     bossName: documentRoot.getElementById("boss-name"),
     bossPhase: documentRoot.getElementById("boss-phase"),
@@ -152,6 +159,46 @@ export function createInterfaceController(documentRoot) {
             ? state.bonusText
             : (player.weaponMode !== "base" ? `${player.weaponLabel} online` : "Graze to refill burst stocks.")
       );
+
+      const powerupNotice = state.powerupNotice;
+      const showPowerupFeed = powerupNotice && powerupNotice.hudTimer > 0;
+      toggleClass(elements.powerupFeed, "hidden", !showPowerupFeed);
+      if (showPowerupFeed) {
+        setText(elements.powerupNoticeCategory, powerupNotice.category.toUpperCase());
+        setText(elements.powerupNoticeRole, powerupNotice.roleTag);
+        setText(elements.powerupNoticeTitle, powerupNotice.title);
+        setText(
+          elements.powerupNoticeSigil,
+          powerupNotice.sigil === "diamond" ? "◇" : powerupNotice.sigil === "seal" ? "✦" : "⬡"
+        );
+        if (elements.powerupNoticeRole) {
+          elements.powerupNoticeRole.style.color = powerupNotice.color;
+        }
+        if (elements.powerupNoticeSigil) {
+          elements.powerupNoticeSigil.style.color = powerupNotice.color;
+          elements.powerupNoticeSigil.style.boxShadow = `0 0 18px ${powerupNotice.color}44`;
+        }
+      }
+
+      const activePowerups = listActivePowerups(player);
+      elements.effectChips.forEach((chip, index) => {
+        const effect = activePowerups[index];
+        chip.classList.toggle("hidden", !effect);
+        if (!effect) return;
+        chip.textContent = `${effect.label} ${effect.timer.toFixed(1)}s`;
+        chip.style.borderColor =
+          effect.category === "risk"
+            ? "rgba(255, 143, 143, 0.28)"
+            : effect.category === "weapon"
+              ? "rgba(158, 251, 255, 0.32)"
+              : "rgba(121, 255, 225, 0.28)";
+        chip.style.color =
+          effect.category === "risk"
+            ? "#ffd2b8"
+            : effect.category === "weapon"
+              ? "#e9ffff"
+              : "#e6fff8";
+      });
 
       if (state.boss) {
         elements.bossPanel.classList.remove("hidden");

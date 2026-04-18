@@ -3,8 +3,8 @@
 import { bossDefinitions, createBossInstance, getBossDefinition, listBossShowcaseEntries } from "../src/data/bosses.js";
 import { enemyArchetypes, getEnemyArchetype, listEnemyShowcaseEntries } from "../src/data/enemies.js";
 import { listPatternHelpers } from "../src/data/patterns.js";
+import { getPowerupDefinition, listPowerupKeys } from "../src/data/powerups.js";
 import { stageDefinitions } from "../src/data/stages.js";
-import { listWeaponModes } from "../src/data/weapons.js";
 import { listBossRendererKeys } from "../src/rendering/bossRenderers.js";
 import { listEnemyRendererKeys } from "../src/rendering/enemyRenderers.js";
 
@@ -32,6 +32,22 @@ function makeContentContext() {
   const spawnEnemyBulletCalls = [];
   const spawnEnemyCalls = [];
   const spawnPickupCalls = [];
+  const playfield = {
+    active: true,
+    leftEdge: 280,
+    rightEdge: 1000,
+    minY: 30,
+    maxY: 690,
+    laneX(fraction) {
+      return 280 + (1000 - 280) * fraction;
+    },
+    randomX(padding = 0) {
+      return 280 + padding + (1000 - 560 - padding * 2) * 0.5;
+    },
+    clampX(x, padding = 0) {
+      return Math.max(280 + padding, Math.min(1000 - padding, x));
+    },
+  };
   return {
     view: {
       width: 1280,
@@ -46,6 +62,12 @@ function makeContentContext() {
     spawnEnemyCalls,
     spawnPickupCalls,
     loopIndex: 1,
+    playfield,
+    director: {
+      gateWave() {
+        return { allow: true, delay: 0, bulletScale: 1, escortScale: 1 };
+      },
+    },
     spawnEnemyBullet(x, y, angle, speed, opts = {}) {
       spawnEnemyBulletCalls.push({ x, y, angle, speed, opts });
       return { x, y, angle, speed, opts };
@@ -152,6 +174,9 @@ function validateStage(stage, ctx) {
   assert(typeof stage.bossKey === "string" && getBossDefinition(stage.bossKey), `${stage.key} must reference a known bossKey.`);
   assert(typeof stage.init === "function", `${stage.key} must define init().`);
   assert(typeof stage.update === "function", `${stage.key} must define update(stageState, t, dt, ctx).`);
+  if (stage.densityTiers) {
+    assert(Array.isArray(stage.densityTiers) && stage.densityTiers.length > 0, `${stage.key} densityTiers must be a non-empty array.`);
+  }
 
   const stageState = stage.init();
   assert(
@@ -163,12 +188,15 @@ function validateStage(stage, ctx) {
   stage.update(stageState, stage.duration * 0.5, 0.016, ctx);
   stage.update(stageState, stage.duration * 0.8, 0.016, ctx);
 
-  const validPickupKeys = new Set(listWeaponModes().filter((key) => key !== "base"));
+  const validPickupKeys = new Set(listPowerupKeys());
   for (const { overrides } of ctx.spawnEnemyCalls) {
     if (!overrides) continue;
     if (overrides.dropKey) {
       assert(validPickupKeys.has(overrides.dropKey), `${stage.key} references unknown dropKey ${overrides.dropKey}.`);
-      assert(Boolean(overrides.elite), `${stage.key} dropKey ${overrides.dropKey} should be attached to an elite encounter.`);
+      const definition = getPowerupDefinition(overrides.dropKey);
+      if (definition?.category === "weapon") {
+        assert(Boolean(overrides.elite), `${stage.key} weapon dropKey ${overrides.dropKey} should be attached to an elite encounter.`);
+      }
     }
   }
 }

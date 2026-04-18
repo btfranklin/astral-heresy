@@ -1,4 +1,6 @@
 import { rand, TAU } from "../core/math.js";
+import { getOrbitalOffsets } from "../core/orbitals.js";
+import { powerupTuning } from "../core/powerups.js";
 import { drawGlowCircle } from "./drawHelpers.js";
 import { drawBossByKey } from "./bossRenderers.js";
 import { drawBossUI, drawBossWeakpoint, drawPlayerUI } from "./hudRenderer.js";
@@ -90,6 +92,54 @@ function drawBullets(ctx, bullets, spriteCache, detail) {
   ctx.restore();
 }
 
+function drawPlayfieldFrame(ctx, state) {
+  if (!state.playfield.active) return;
+
+  const left = state.playfield.minX;
+  const right = state.playfield.maxX;
+  const height = state.view.height;
+  const leftWidth = left;
+  const rightWidth = Math.max(0, state.view.width - right);
+
+  ctx.save();
+
+  const leftGrad = ctx.createLinearGradient(0, 0, left, 0);
+  leftGrad.addColorStop(0, "rgba(4, 8, 18, 0.78)");
+  leftGrad.addColorStop(0.82, "rgba(8, 18, 28, 0.48)");
+  leftGrad.addColorStop(1, "rgba(12, 28, 34, 0.12)");
+  ctx.fillStyle = leftGrad;
+  ctx.fillRect(0, 0, leftWidth, height);
+
+  const rightGrad = ctx.createLinearGradient(right, 0, state.view.width, 0);
+  rightGrad.addColorStop(0, "rgba(12, 28, 34, 0.12)");
+  rightGrad.addColorStop(0.18, "rgba(8, 18, 28, 0.48)");
+  rightGrad.addColorStop(1, "rgba(4, 8, 18, 0.78)");
+  ctx.fillStyle = rightGrad;
+  ctx.fillRect(right, 0, rightWidth, height);
+
+  ctx.strokeStyle = "rgba(184, 243, 255, 0.24)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(left + 0.5, 0);
+  ctx.lineTo(left + 0.5, height);
+  ctx.moveTo(right - 0.5, 0);
+  ctx.lineTo(right - 0.5, height);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(255, 213, 142, 0.12)";
+  ctx.lineWidth = 1;
+  for (let y = 42; y < height; y += 76) {
+    ctx.beginPath();
+    ctx.moveTo(Math.max(18, left - 42), y);
+    ctx.lineTo(left - 8, y + 12);
+    ctx.moveTo(right + 8, y + 12);
+    ctx.lineTo(Math.min(state.view.width - 18, right + 42), y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 function drawEnemies(ctx, enemies, state) {
   for (const enemy of enemies) {
     drawEnemy(ctx, enemy, state);
@@ -106,22 +156,106 @@ function drawPickups(ctx, pickups, state) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(state.time * 1.6 + pickup.t * 2.8 + entity.id * 0.12);
+    if (pickup.spawnPause > 0) {
+      ctx.fillStyle = "rgba(4, 8, 18, 0.3)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 34, 0, TAU);
+      ctx.fill();
+      const beamAlpha = pickup.spawnPause / 0.24;
+      ctx.fillStyle = render.glowColor || "rgba(255,255,255,0.2)";
+      ctx.globalAlpha = beamAlpha * 0.7;
+      ctx.fillRect(-8, -120, 16, 240);
+      ctx.globalAlpha = 1;
+    }
     drawGlowCircle(ctx, 0, 0, 28, render.color, 0.22);
     ctx.strokeStyle = render.accent;
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 12 + Math.sin(state.time * 6 + entity.id) * 1.5, 0, TAU);
-    ctx.stroke();
-    ctx.fillStyle = render.color;
-    ctx.beginPath();
-    ctx.moveTo(0, -10);
-    ctx.lineTo(9, 0);
-    ctx.lineTo(0, 10);
-    ctx.lineTo(-9, 0);
-    ctx.closePath();
-    ctx.fill();
+    if (pickup.category === "weapon") {
+      ctx.beginPath();
+      ctx.moveTo(0, -13);
+      ctx.lineTo(11, 0);
+      ctx.lineTo(0, 13);
+      ctx.lineTo(-11, 0);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = render.color;
+      ctx.beginPath();
+      ctx.moveTo(0, -9);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(0, 9);
+      ctx.lineTo(-8, 0);
+      ctx.closePath();
+      ctx.fill();
+    } else if (pickup.category === "risk") {
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const angle = (TAU * i) / 8;
+        const radius = i % 2 === 0 ? 12 : 6;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = render.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, TAU);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (TAU * i) / 6;
+        const x = Math.cos(angle) * 11;
+        const y = Math.sin(angle) * 11;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = render.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, 6, 0, TAU);
+      ctx.fill();
+    }
     ctx.restore();
   }
+}
+
+function drawScoreShards(ctx, scoreShards, player) {
+  ctx.save();
+  for (const entity of scoreShards) {
+    const pos = entity.components.position;
+    const render = entity.components.render;
+    const shard = entity.components.scoreShard;
+    if (!pos || !render || !shard) continue;
+    const dx = player.x - pos.x;
+    const dy = player.y - pos.y;
+    const distance = Math.hypot(dx, dy);
+    if (player.activePowerups.magnetCore > 0 && distance < powerupTuning.magnetRadius) {
+      ctx.strokeStyle = "rgba(143, 232, 255, 0.22)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.quadraticCurveTo(
+        pos.x + dx * 0.35 + dy * 0.08,
+        pos.y + dy * 0.35 - dx * 0.08,
+        player.x,
+        player.y
+      );
+      ctx.stroke();
+    }
+    drawGlowCircle(ctx, pos.x, pos.y, 12, render.color, 0.18);
+    ctx.fillStyle = render.color;
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y - 6);
+    ctx.lineTo(pos.x + 5, pos.y);
+    ctx.lineTo(pos.x, pos.y + 6);
+    ctx.lineTo(pos.x - 5, pos.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawParticles(ctx, particles, spriteCache, detail) {
@@ -145,14 +279,24 @@ function drawParticles(ctx, particles, spriteCache, detail) {
   ctx.restore();
 }
 
-function drawPlayer(ctx, player, input) {
+function drawPlayer(ctx, player, state) {
   ctx.save();
   ctx.translate(player.x, player.y);
 
   drawGlowCircle(ctx, 0, 20, 18, "rgba(121, 255, 225, 0.5)", 0.45);
 
-  if (input.ShiftLeft || input.ShiftRight) {
+  if (state.input.ShiftLeft || state.input.ShiftRight) {
     drawGlowCircle(ctx, 0, 0, 34, "rgba(120, 255, 225, 0.6)", 0.35);
+  }
+
+  if (player.weaponMode === "orbitals") {
+    for (const orbital of getOrbitalOffsets(state.time, Boolean(state.input.ShiftLeft || state.input.ShiftRight))) {
+      drawGlowCircle(ctx, orbital.x, orbital.y, 10, "rgba(158, 251, 255, 0.4)", 0.18);
+      ctx.fillStyle = "#d9fbff";
+      ctx.beginPath();
+      ctx.arc(orbital.x, orbital.y, 4.4, 0, TAU);
+      ctx.fill();
+    }
   }
 
   ctx.fillStyle = "rgba(126, 212, 255, 0.92)";
@@ -202,12 +346,14 @@ export function createCanvasRenderer(ctx) {
     const detail = bulletCount > 420 ? "minimal" : bulletCount > 220 ? "medium" : "high";
     state.renderDetail = detail;
 
+    drawPlayfieldFrame(ctx, state);
     drawParticles(ctx, buckets.particles, particleSpriteCache, detail === "minimal" ? "minimal" : "high");
     drawBulletTrails(ctx, buckets.enemyBullets, detail);
     drawBullets(ctx, buckets.enemyBullets, bulletSpriteCache, detail);
     drawBulletTrails(ctx, buckets.playerBullets, detail === "high" ? "medium" : detail);
     drawBullets(ctx, buckets.playerBullets, bulletSpriteCache, detail);
     drawPickups(ctx, buckets.pickups, state);
+    drawScoreShards(ctx, buckets.scoreShards, player);
     drawEnemies(ctx, buckets.enemies, state);
 
     if (state.boss) {
@@ -218,7 +364,7 @@ export function createCanvasRenderer(ctx) {
 
     if (!state.over || player.hp > 0) {
       if (player.invuln <= 0 || Math.floor(state.time * 10) % 2 === 0) {
-        drawPlayer(ctx, player, state.input);
+        drawPlayer(ctx, player, state);
       }
     }
 

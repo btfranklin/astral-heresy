@@ -1,3 +1,5 @@
+import { getOrbitalOffsets } from "../core/orbitals.js";
+
 function emitVolley(spawnBullet, player, count, spread, speed, attack) {
   for (let i = 0; i < count; i++) {
     const angle = -Math.PI / 2 + (i - (count - 1) / 2) * spread;
@@ -93,6 +95,65 @@ const weaponDefinitions = {
       });
     },
   },
+  orbitals: {
+    key: "orbitals",
+    label: "Censer Orbitals",
+    shortLabel: "Orbitals",
+    duration: 10,
+    pickupColor: "#9efbff",
+    pickupAccent: "#fff7d5",
+    cooldown(focus) {
+      return focus ? 0.08 : 0.11;
+    },
+    fire({ spawnBullet, player, focus, state }) {
+      const orbitals = getOrbitalOffsets(state.time, focus);
+      emitVolley(spawnBullet, player, focus ? 2 : 3, focus ? 0.06 : 0.12, 520, {
+        damage: 0.85,
+        pierce: 0,
+        weaponMode: "orbitals",
+        color: "#9efbff",
+        trail: 0.5,
+        glow: 1.04,
+      });
+      for (const orbital of orbitals) {
+        const sweep = Math.sin(state.time * 3.4 + orbital.angle) * (focus ? 0.08 : 0.18);
+        spawnBullet(player.x + orbital.x, player.y + orbital.y, -Math.PI / 2 + sweep, 510, {
+          damage: 0.8,
+          pierce: 0,
+          weaponMode: "orbitals",
+          color: "#d9fbff",
+          trail: 1.08,
+          glow: 1.2,
+          r: 3.4,
+        });
+      }
+    },
+  },
+  amplifier: {
+    key: "amplifier",
+    label: "Weakpoint Amplifier",
+    shortLabel: "Amplify",
+    duration: 8,
+    pickupColor: "#ffd58e",
+    pickupAccent: "#fff7d8",
+    cooldown(focus) {
+      return focus ? 0.055 : 0.075;
+    },
+    fire({ spawnBullet, player, focus }) {
+      emitVolley(spawnBullet, player, focus ? 2 : 3, focus ? 0.018 : 0.04, 690, {
+        damage: focus ? 1.15 : 1,
+        pierce: 1,
+        weaponMode: "amplifier",
+        color: "#fff1ad",
+        trail: 1.32,
+        glow: 1.4,
+        r: 3.1,
+        bodyDamageMultiplier: 0.6,
+        weakpointDamageMultiplier: 2.8,
+        weakpointBrandDuration: 1.25,
+      });
+    },
+  },
 };
 
 export function getWeaponDefinition(key) {
@@ -101,11 +162,6 @@ export function getWeaponDefinition(key) {
 
 export function listWeaponModes() {
   return Object.keys(weaponDefinitions);
-}
-
-export function getPickupDefinition(key) {
-  if (key === "base") return null;
-  return weaponDefinitions[key] || null;
 }
 
 export function fireWeapon(key, args) {

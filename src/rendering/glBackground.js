@@ -12,6 +12,8 @@ const fsSource = `
   uniform float u_time;
   uniform vec2 u_player;
   uniform float u_pulse;
+  uniform vec2 u_lane;
+  uniform float u_laneActive;
 
   float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -62,6 +64,24 @@ const fsSource = `
 
     base += vec3(0.8, 0.2, 0.5) * u_pulse * 0.25;
 
+    if (u_laneActive > 0.5) {
+      float laneMin = u_lane.x / u_resolution.x;
+      float laneMax = u_lane.y / u_resolution.x;
+      float laneMask =
+        smoothstep(laneMin - 0.015, laneMin + 0.025, uv.x) *
+        (1.0 - smoothstep(laneMax - 0.025, laneMax + 0.015, uv.x));
+      float bayMask = 1.0 - laneMask;
+      float panelLeft = 0.5 + 0.5 * sin(uv.y * 30.0 + u_time * 0.55 + 0.8);
+      float panelRight = 0.5 + 0.5 * sin(uv.y * 26.0 - u_time * 0.45 + 2.1);
+      vec3 bayTint = mix(vec3(0.02, 0.05, 0.08), vec3(0.12, 0.17, 0.13), panelLeft * panelRight);
+      float innerGlow =
+        smoothstep(0.06, 0.0, abs(uv.x - laneMin)) +
+        smoothstep(0.06, 0.0, abs(uv.x - laneMax));
+      base = mix(base, bayTint, bayMask * 0.72);
+      base *= 1.0 - bayMask * 0.14;
+      base += vec3(0.24, 0.34, 0.32) * innerGlow * 0.26;
+    }
+
     float vignette = smoothstep(1.1, 0.3, length(p));
     base *= vignette;
 
@@ -106,6 +126,8 @@ export function createBackgroundRenderer(gl) {
     u_time: gl.getUniformLocation(program, "u_time"),
     u_player: gl.getUniformLocation(program, "u_player"),
     u_pulse: gl.getUniformLocation(program, "u_pulse"),
+    u_lane: gl.getUniformLocation(program, "u_lane"),
+    u_laneActive: gl.getUniformLocation(program, "u_laneActive"),
   };
 
   const buffer = gl.createBuffer();
@@ -130,6 +152,12 @@ export function createBackgroundRenderer(gl) {
     gl.uniform1f(uniforms.u_time, state.time);
     gl.uniform2f(uniforms.u_player, player.x * state.view.dpr, player.y * state.view.dpr);
     gl.uniform1f(uniforms.u_pulse, state.pulse);
+    gl.uniform2f(
+      uniforms.u_lane,
+      state.playfield.minX * state.view.dpr,
+      state.playfield.maxX * state.view.dpr
+    );
+    gl.uniform1f(uniforms.u_laneActive, state.playfield.active ? 1 : 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }

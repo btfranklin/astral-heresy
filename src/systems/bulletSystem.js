@@ -1,4 +1,5 @@
 import { wrapAngle } from "../core/math.js";
+import { getBulletEnvelope } from "../state/playfieldState.js";
 import { addEntity, createEntity, removeEntity } from "../entities/entityFactory.js";
 import { attack, bulletMotion, collider, lifetime, position, render, velocity } from "../entities/components.js";
 
@@ -46,6 +47,9 @@ export function spawnPlayerBullet(state, x, y, angle, speed, opts = {}) {
         damage: opts.damage ?? 1,
         pierce: opts.pierce ?? 0,
         weaponMode: opts.weaponMode ?? "base",
+        bodyDamageMultiplier: opts.bodyDamageMultiplier,
+        weakpointDamageMultiplier: opts.weakpointDamageMultiplier,
+        weakpointBrandDuration: opts.weakpointBrandDuration,
         source: "player",
       }),
       bullet: bulletMotion({}),
@@ -93,8 +97,8 @@ export function updateBullets(state, player, dt) {
 
 export function cleanupBullets(state) {
   const margin = 80;
-  const width = state.view.width;
   const height = state.view.height;
+  const envelope = getBulletEnvelope(state.playfield, state.view.width);
 
   for (const entity of state.entities) {
     if (entity.type !== "enemyBullet" && entity.type !== "playerBullet") continue;
@@ -104,8 +108,8 @@ export function cleanupBullets(state) {
 
     if (
       life.age > life.life ||
-      pos.x < -margin ||
-      pos.x > width + margin ||
+      pos.x < envelope.minX ||
+      pos.x > envelope.maxX ||
       pos.y < -margin ||
       pos.y > height + margin
     ) {

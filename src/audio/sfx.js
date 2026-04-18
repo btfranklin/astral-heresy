@@ -179,13 +179,26 @@ export function sfxBossDefeat(audio) {
   });
 }
 
-export function sfxPickup(audio) {
-  audio.playChord([392, 523, 659], 0.22, {
-    type: "sine",
+export function sfxPickup(audio, category = "utility") {
+  const chord =
+    category === "risk"
+      ? [330, 440, 554]
+      : category === "weapon"
+        ? [392, 523, 698]
+        : [392, 523, 659];
+  audio.playChord(chord, 0.22, {
+    type: category === "risk" ? "triangle" : "sine",
     amp: 0.12,
     spread: 4,
     attack: 0.01,
     release: 0.16,
+    filter: category === "risk" ? 1800 : 2200,
+  });
+  audio.playTone(category === "weapon" ? "triangle" : "sine", category === "risk" ? 248 : 780, 0.18, {
+    amp: 0.04,
+    slide: category === "risk" ? 0.92 : 1.08,
+    attack: 0.01,
+    release: 0.14,
     filter: 2200,
   });
 }

@@ -28,6 +28,9 @@ export function attack(options = {}) {
     pierce: options.pierce ?? 0,
     weaponMode: options.weaponMode ?? "base",
     source: options.source ?? "neutral",
+    bodyDamageMultiplier: options.bodyDamageMultiplier ?? 1,
+    weakpointDamageMultiplier: options.weakpointDamageMultiplier ?? null,
+    weakpointBrandDuration: options.weakpointBrandDuration ?? 0,
     grazed: false,
   };
 }
@@ -56,15 +59,31 @@ export function pickup(options = {}) {
     kind: options.kind ?? "base",
     duration: options.duration ?? 0,
     label: options.label ?? options.kind ?? "Pickup",
+    shortLabel: options.shortLabel ?? options.label ?? options.kind ?? "Pickup",
+    category: options.category ?? "utility",
+    roleTag: options.roleTag ?? "",
+    sigil: options.sigil ?? "hex",
+    spawnPause: options.spawnPause ?? 0.24,
     t: 0,
+  };
+}
+
+export function scoreShard(options = {}) {
+  return {
+    value: options.value ?? 0,
+    label: options.label ?? "Shard",
+    t: 0,
+    category: options.category ?? "utility",
   };
 }
 
 export function reward(options = {}) {
   return {
     elite: Boolean(options.elite),
+    risk: Boolean(options.risk),
     dropKey: options.dropKey ?? null,
     scoreBonus: options.scoreBonus ?? 0,
+    scoreShardCount: options.scoreShardCount ?? 0,
     label: options.label ?? "",
   };
 }

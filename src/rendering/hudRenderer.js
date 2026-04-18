@@ -64,6 +64,13 @@ export function drawBossWeakpoint(ctx, boss, state) {
   ctx.moveTo(weakpoint.x, weakpoint.y + weakpoint.radius * 0.7);
   ctx.lineTo(weakpoint.x, weakpoint.y + weakpoint.radius * 1.6);
   ctx.stroke();
+  if (boss.weakpointBrandTimer > 0) {
+    ctx.strokeStyle = `rgba(255, 213, 142, ${0.55 + boss.weakpointBrandTimer * 0.22})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(weakpoint.x, weakpoint.y, weakpoint.radius * (1.3 + Math.sin(state.time * 14) * 0.08), 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -97,6 +104,90 @@ export function drawPlayerUI(ctx, player, state, stages) {
     ctx.restore();
   }
 
+  if (player.activePowerups.haloShield > 0 && !state.over) {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    const pulse = 0.9 + Math.sin(state.time * 7.8) * 0.08;
+    drawGlowCircle(ctx, 0, 0, 34, "rgba(189, 253, 255, 0.4)", 0.22);
+    ctx.strokeStyle = "rgba(221, 252, 255, 0.86)";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(0, 0, 24 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 30 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (state.feedback.shield > 0 && state.shieldOrigin) {
+    ctx.save();
+    const alpha = state.feedback.shield;
+    ctx.translate(state.shieldOrigin.x, state.shieldOrigin.y);
+    ctx.strokeStyle = `rgba(221, 252, 255, ${alpha})`;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) {
+      const angle = state.time * 3 + (i * Math.PI * 2) / 5;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * 12, Math.sin(angle) * 12);
+      ctx.lineTo(Math.cos(angle) * (22 + alpha * 12), Math.sin(angle) * (22 + alpha * 12));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (player.activePowerups.chainSigil > 0 && !state.over) {
+    ctx.save();
+    ctx.translate(player.x, player.y + 18);
+    ctx.strokeStyle = `rgba(255, 213, 142, ${0.32 + player.activePowerups.chainSigil * 0.03})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(0, 16);
+    ctx.lineTo(-16, 2);
+    ctx.lineTo(0, -14);
+    ctx.lineTo(16, 2);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (player.activePowerups.grazeBloom > 0 && !state.over) {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    drawGlowCircle(ctx, 0, 0, 38, "rgba(255, 159, 218, 0.22)", 0.18);
+    ctx.strokeStyle = "rgba(255, 196, 232, 0.55)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      const angle = state.time * 2 + i * (Math.PI / 2);
+      ctx.beginPath();
+      ctx.ellipse(Math.cos(angle) * 12, Math.sin(angle) * 12, 7, 12, angle, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (player.activePowerups.magnetCore > 0 && !state.over) {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.strokeStyle = "rgba(143, 232, 255, 0.46)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 46 + Math.sin(state.time * 4.8) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (player.activePowerups.pointBlankSeal > 0 && !state.over) {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.strokeStyle = "rgba(255, 180, 110, 0.62)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 28 + Math.sin(state.time * 9) * 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   if ((state.input.ShiftLeft || state.input.ShiftRight) && !state.over) {
     ctx.save();
     ctx.translate(player.x, player.y);
@@ -113,6 +204,43 @@ export function drawPlayerUI(ctx, player, state, stages) {
     ctx.moveTo(0, 26);
     ctx.lineTo(0, 12);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  if (state.powerupNotice?.ribbonTimer > 0 && !state.over) {
+    const notice = state.powerupNotice;
+    const alpha = Math.min(1, notice.ribbonTimer / 0.55);
+    ctx.save();
+    ctx.strokeStyle = `${notice.color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(notice.x, notice.y);
+    ctx.lineTo(player.x, player.y - 18);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (state.powerupNotice?.timer > 0 && !state.over) {
+    const notice = state.powerupNotice;
+    const alpha = Math.min(1, notice.timer / 0.9);
+    const lift = (1 - alpha) * 18;
+    const x = player.x;
+    const y = player.y - 58 - lift;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.globalAlpha = alpha;
+    drawGlowCircle(ctx, x, y - 8, 90, `${notice.color}33`, 0.18);
+    ctx.strokeStyle = notice.color;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, 26 + (1 - alpha) * 12, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#f7ffff";
+    ctx.font = "700 22px 'Avenir Next', 'Trebuchet MS', sans-serif";
+    ctx.fillText(notice.title.toUpperCase(), x, y);
+    ctx.fillStyle = notice.color;
+    ctx.font = "12px 'Avenir Next', 'Trebuchet MS', sans-serif";
+    ctx.fillText(notice.roleTag, x, y + 18);
     ctx.restore();
   }
 
