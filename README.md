@@ -46,37 +46,51 @@ Refresh the generated gameplay inventory:
 python3 scripts/generate_content_inventory.py
 ```
 
+Run the default fast validation gate:
+
+```bash
+node scripts/validate_fast.mjs
+```
+
+Run only the deterministic behavioral suite:
+
+```bash
+node scripts/run_fast_tests.mjs all
+```
+
 Run the repo-legibility checks:
 
 ```bash
 python3 scripts/check_repo_legibility.py
 ```
 
-That command also runs the structural import-boundary check for `src/`.
+That command validates docs, local links, generated references, and the structural import-boundary rules for `src/`.
 
-Run only the executable stage/boss contract check:
-
-```bash
-node scripts/check_content_contract.mjs
-```
-
-Run the runtime smoke harness:
+Run only the stage/boss fast-test group:
 
 ```bash
-node scripts/check_runtime_smoke.mjs
+node scripts/run_fast_tests.mjs content
 ```
 
-Run the combat-economy smoke harness:
+Run the combat-economy fast-test group:
 
 ```bash
-node scripts/check_combat_smoke.mjs
+node scripts/run_fast_tests.mjs combat
 ```
 
-Run the dedicated powerup smoke harness:
+Run the dedicated powerup fast-test group:
 
 ```bash
-node scripts/check_powerup_smoke.mjs
+node scripts/run_fast_tests.mjs powerups
 ```
+
+Run the runtime and UI fast-test group:
+
+```bash
+node scripts/run_fast_tests.mjs runtime
+```
+
+The legacy `check_content_contract`, `check_combat_smoke`, `check_powerup_smoke`, and `check_runtime_smoke` scripts remain as compatibility wrappers over those groups.
 
 Run the real-browser smoke lane and capture screenshots under `output/playwright/`:
 

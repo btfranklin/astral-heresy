@@ -116,7 +116,13 @@ Run this after gameplay, UI, or content edits:
 12. Visit at least one enemy render-study URL and one boss render-study URL.
 13. Confirm the page still initializes on a browser with WebGL enabled.
 
-For a mechanical approximation of these flows without a real browser, run:
+For the primary browserless runtime lane, run:
+
+```bash
+node scripts/run_fast_tests.mjs runtime
+```
+
+The legacy runtime wrapper is still available:
 
 ```bash
 node scripts/check_runtime_smoke.mjs
@@ -125,13 +131,13 @@ node scripts/check_runtime_smoke.mjs
 For combat-economy-specific verification without the DOM harness, run:
 
 ```bash
-node scripts/check_combat_smoke.mjs
+node scripts/run_fast_tests.mjs combat
 ```
 
 For dedicated powerup verification without the DOM harness, run:
 
 ```bash
-node scripts/check_powerup_smoke.mjs
+node scripts/run_fast_tests.mjs powerups
 ```
 
 That harness validates:

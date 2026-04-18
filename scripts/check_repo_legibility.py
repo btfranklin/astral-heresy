@@ -21,12 +21,20 @@ REQUIRED_FILES = [
     "docs/content/stages-bosses.md",
     "docs/generated/content-inventory.md",
     "scripts/generate_content_inventory.py",
+    "scripts/run_fast_tests.mjs",
+    "scripts/validate_fast.mjs",
     "scripts/check_structure.py",
     "scripts/check_content_contract.mjs",
     "scripts/check_combat_smoke.mjs",
     "scripts/check_powerup_smoke.mjs",
     "scripts/check_runtime_smoke.mjs",
     "scripts/check_runtime_browser_smoke.mjs",
+    "tests/helpers/fixtures.mjs",
+    "tests/helpers/runtimeFixture.mjs",
+    "tests/contract/content/content-contract.test.mjs",
+    "tests/scenario/combat/combat-scenarios.test.mjs",
+    "tests/scenario/powerups/powerup-scenarios.test.mjs",
+    "tests/scenario/runtime/runtime-scenarios.test.mjs",
 ]
 
 MARKDOWN_FILES = [
@@ -81,77 +89,12 @@ def check_generated_inventory() -> list[str]:
         ]
     return []
 
-
-def check_content_contract() -> list[str]:
-    result = subprocess.run(
-        ["node", "scripts/check_content_contract.mjs"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode == 0:
-        return []
-
-    message = result.stderr.strip() or result.stdout.strip() or "Content contract check failed."
-    return [message]
-
-
-def check_runtime_smoke() -> list[str]:
-    result = subprocess.run(
-        ["node", "scripts/check_runtime_smoke.mjs"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode == 0:
-        return []
-
-    message = result.stderr.strip() or result.stdout.strip() or "Runtime smoke check failed."
-    return [message]
-
-
-def check_combat_smoke() -> list[str]:
-    result = subprocess.run(
-        ["node", "scripts/check_combat_smoke.mjs"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode == 0:
-        return []
-
-    message = result.stderr.strip() or result.stdout.strip() or "Combat smoke check failed."
-    return [message]
-
-
-def check_powerup_smoke() -> list[str]:
-    result = subprocess.run(
-        ["node", "scripts/check_powerup_smoke.mjs"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode == 0:
-        return []
-
-    message = result.stderr.strip() or result.stdout.strip() or "Powerup smoke check failed."
-    return [message]
-
-
 def main() -> int:
     errors = []
     errors.extend(require_files())
     errors.extend(check_markdown_links())
     errors.extend(check_generated_inventory())
     errors.extend(check_structure())
-    errors.extend(check_content_contract())
-    errors.extend(check_combat_smoke())
-    errors.extend(check_powerup_smoke())
-    errors.extend(check_runtime_smoke())
 
     if errors:
         print("Repo legibility checks failed:\n")

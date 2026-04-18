@@ -27,17 +27,29 @@ Use this file as a router. The durable source of truth for non-trivial repo know
   [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md)
 - Refreshing generated references:
   `python3 scripts/generate_content_inventory.py`
+- Running the default fast validation gate:
+  `node scripts/validate_fast.mjs`
+- Running the full deterministic behavioral suite:
+  `node scripts/run_fast_tests.mjs all`
 - Verifying the repo-legibility checks:
   `python3 scripts/check_repo_legibility.py`
 - Running only the structural boundary check:
   `python3 scripts/check_structure.py`
-- Running only the stage/boss content contract check:
+- Running only the stage/boss fast-test group:
+  `node scripts/run_fast_tests.mjs content`
+- Running only the combat-economy fast-test group:
+  `node scripts/run_fast_tests.mjs combat`
+- Running only the powerup fast-test group:
+  `node scripts/run_fast_tests.mjs powerups`
+- Running the runtime fast-test group:
+  `node scripts/run_fast_tests.mjs runtime`
+- Legacy wrapper for the content group:
   `node scripts/check_content_contract.mjs`
-- Running only the combat-economy smoke lane:
+- Legacy wrapper for the combat group:
   `node scripts/check_combat_smoke.mjs`
-- Running only the powerup smoke lane:
+- Legacy wrapper for the powerup group:
   `node scripts/check_powerup_smoke.mjs`
-- Running the runtime smoke harness:
+- Legacy wrapper for the runtime group:
   `node scripts/check_runtime_smoke.mjs`
 - Running the real-browser smoke lane:
   `node scripts/check_runtime_browser_smoke.mjs`
