@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090511" />
+    <title>Astral Heresy</title>
+    <link
+      rel="icon"
+      href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Cdefs%3E%3CradialGradient id="g" cx="50%25" cy="40%25" r="70%25"%3E%3Cstop offset="0%25" stop-color="%23effdff"/%3E%3Cstop offset="55%25" stop-color="%2379ffe1"/%3E%3Cstop offset="100%25" stop-color="%23090511"/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width="64" height="64" rx="14" fill="%23090511"/%3E%3Cpath d="M32 9l8 21 14 4-14 6-8 15-8-15-14-6 14-4 8-21z" fill="url(%23g)" stroke="%23ffd8f4" stroke-width="2"/%3E%3C/svg%3E'
+    />
+    <link rel="stylesheet" href="style.css?v=20260308a" />
+  </head>
+  <body>
+    <div id="wrap">
+      <canvas id="bg" aria-hidden="true"></canvas>
+      <canvas id="game" aria-label="Astral Heresy"></canvas>
+      <div id="interface">
+        <section class="panel brand-panel">
+          <div class="panel-kicker">Choirbreaker Interceptor</div>
+          <div class="panel-title">Astral Heresy</div>
+          <div class="panel-copy" id="status-copy">Awaiting launch clearance</div>
+        </section>
+
+        <section class="panel mission-panel">
+          <div class="panel-kicker" id="stage-label">Act I</div>
+          <div class="panel-value" id="stage-name">Nebula Gate</div>
+          <div class="meter">
+            <div id="stage-progress" class="meter-fill"></div>
+          </div>
+          <div class="meta-row">
+            <span>Runtime</span>
+            <strong id="run-time">00:00</strong>
+          </div>
+        </section>
+
+        <section id="boss-panel" class="panel boss-panel hidden">
+          <div class="panel-kicker">Opposition</div>
+          <div class="panel-value" id="boss-name">Seraph of Orbits</div>
+          <div class="panel-copy" id="boss-phase">Crown Spiral</div>
+          <div class="meter boss-meter">
+            <div id="boss-progress" class="meter-fill boss-fill"></div>
+          </div>
+        </section>
+
+        <section class="panel telemetry-panel">
+          <div class="stat">
+            <span>Score</span>
+            <strong id="score-value">0</strong>
+          </div>
+          <div class="stat">
+            <span>Purged</span>
+            <strong id="kill-value">0</strong>
+          </div>
+          <div class="stat">
+            <span>Accuracy</span>
+            <strong id="accuracy-value">0%</strong>
+          </div>
+        </section>
+
+        <section class="panel controls-panel">
+          <div class="panel-kicker">Combat Inputs</div>
+          <div class="control-chips">
+            <span class="chip active" id="move-chip">Move</span>
+            <span class="chip" id="fire-chip">Fire</span>
+            <span class="chip" id="focus-chip">Focus</span>
+            <span class="chip info-chip">R Restart</span>
+          </div>
+        </section>
+
+        <section class="panel hull-panel">
+          <div class="panel-kicker">Hull Integrity</div>
+          <div id="hull-pips" class="hull-pips" aria-hidden="true">
+            <span class="hull-pip is-full"></span>
+            <span class="hull-pip is-full"></span>
+            <span class="hull-pip is-full"></span>
+            <span class="hull-pip is-full"></span>
+            <span class="hull-pip is-full"></span>
+          </div>
+        </section>
+      </div>
+
+      <div id="start-screen" role="dialog" aria-modal="true" aria-labelledby="start-title">
+        <div id="start-card">
+          <div class="start-copy">
+            <div class="panel-kicker">Sanctioned Sortie</div>
+            <h1 id="start-title">Astral Heresy</h1>
+            <div id="start-text">Pierce three celestial fronts, break the choir, and survive the leviathans.</div>
+            <div class="start-flavor">
+              <span>Three fronts</span>
+              <span>Celestial resistance</span>
+              <span>One ship</span>
+            </div>
+          </div>
+          <div class="start-actions">
+            <div class="feature-grid">
+              <div class="feature-card">
+                <span>Steer</span>
+                <strong>Pointer first. WASD if needed.</strong>
+              </div>
+              <div class="feature-card">
+                <span>Fire</span>
+                <strong>Z, Space, or hold click.</strong>
+              </div>
+              <div class="feature-card">
+                <span>Focus</span>
+                <strong>Shift for tight dodges.</strong>
+              </div>
+            </div>
+            <button id="start-button" type="button">Launch Sortie</button>
+            <div id="start-hint">Press Enter to launch. Press M to silence pointer steering while testing. Press R to redeploy after a loss.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="end-screen" class="hidden" role="dialog" aria-modal="true" aria-labelledby="end-title">
+        <div id="end-card">
+          <div class="panel-kicker" id="end-kicker">Mission Failed</div>
+          <h2 id="end-title">Ship Lost</h2>
+          <div id="end-text">The choir still sings. Re-arm and strike again.</div>
+          <div class="feature-grid results-grid">
+            <div class="feature-card">
+              <span>Score</span>
+              <strong id="end-score">0</strong>
+            </div>
+            <div class="feature-card">
+              <span>Purged</span>
+              <strong id="end-kills">0</strong>
+            </div>
+            <div class="feature-card">
+              <span>Accuracy</span>
+              <strong id="end-accuracy">0%</strong>
+            </div>
+            <div class="feature-card">
+              <span>Runtime</span>
+              <strong id="end-time">00:00</strong>
+            </div>
+          </div>
+          <button id="restart-button" type="button">Fly Again</button>
+          <div id="end-hint">Press Enter or R to restart immediately.</div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="src/index.js?v=20260308a"></script>
+  </body>
+</html>
