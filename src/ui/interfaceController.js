@@ -1,3 +1,5 @@
+import { combatTuning, getChainMultiplier } from "../core/combat.js";
+
 function formatTime(seconds) {
   const whole = Math.max(0, Math.floor(seconds));
   const mins = String(Math.floor(whole / 60)).padStart(2, "0");
@@ -17,6 +19,11 @@ function setText(node, value) {
   }
 }
 
+function toggleClass(node, className, force) {
+  if (!node) return;
+  node.classList.toggle(className, force);
+}
+
 function setMeter(node, ratio) {
   if (!node) return;
   node.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
@@ -33,10 +40,18 @@ export function createInterfaceController(documentRoot) {
     scoreValue: documentRoot.getElementById("score-value"),
     killValue: documentRoot.getElementById("kill-value"),
     accuracyValue: documentRoot.getElementById("accuracy-value"),
+    chainValue: documentRoot.getElementById("chain-value"),
+    loopValue: documentRoot.getElementById("loop-value"),
     moveChip: documentRoot.getElementById("move-chip"),
     fireChip: documentRoot.getElementById("fire-chip"),
     focusChip: documentRoot.getElementById("focus-chip"),
+    burstChip: documentRoot.getElementById("burst-chip"),
     hullPips: [...documentRoot.querySelectorAll("#hull-pips .hull-pip")],
+    grazeProgress: documentRoot.getElementById("graze-progress"),
+    grazeValue: documentRoot.getElementById("graze-value"),
+    burstStocks: [...documentRoot.querySelectorAll("#burst-stocks .stock-pip")],
+    weaponValue: documentRoot.getElementById("weapon-value"),
+    bonusBanner: documentRoot.getElementById("bonus-banner"),
     bossPanel: documentRoot.getElementById("boss-panel"),
     bossName: documentRoot.getElementById("boss-name"),
     bossPhase: documentRoot.getElementById("boss-phase"),
@@ -84,7 +99,7 @@ export function createInterfaceController(documentRoot) {
           ? "Render Study"
           : state.over
             ? (state.victory ? "Run Complete" : "Run Failed")
-            : `Act ${Math.min(state.stageIndex + 1, stages.length)}`
+            : `${state.loopIndex > 0 ? "Loop II · " : ""}Act ${Math.min(state.stageIndex + 1, stages.length)}`
       );
       setText(
         elements.stageName,
@@ -95,28 +110,57 @@ export function createInterfaceController(documentRoot) {
       setText(elements.scoreValue, formatNumber(state.score));
       setText(elements.killValue, formatNumber(state.kills));
       setText(elements.accuracyValue, `${accuracy}%`);
+      setText(elements.chainValue, `x${getChainMultiplier(state.chainLevel).toFixed(2)}`);
+      setText(elements.loopValue, state.loopIndex > 0 ? "II" : "I");
 
-      elements.moveChip.classList.add("active");
-      elements.moveChip.textContent = state.input.pointerEnabled === false ? "Keys" : "Pointer";
-      elements.fireChip.classList.toggle(
+      if (elements.moveChip) {
+        elements.moveChip.classList.add("active");
+        elements.moveChip.textContent = state.input.pointerEnabled === false ? "Keys" : "Pointer";
+      }
+      toggleClass(
+        elements.fireChip,
         "active",
         Boolean(state.input.KeyZ || state.input.Space || state.input.PointerFire)
       );
-      elements.focusChip.classList.toggle(
+      toggleClass(
+        elements.focusChip,
         "active",
         Boolean(state.input.ShiftLeft || state.input.ShiftRight)
       );
+      toggleClass(elements.burstChip, "active", Boolean(state.input.KeyX || state.feedback.burst > 0));
+      setText(elements.burstChip, `Burst ${state.burstStocks}/${combatTuning.maxBurstStocks}`);
 
       elements.hullPips.forEach((pip, index) => {
         pip.classList.toggle("is-full", index < player.hp);
       });
+      elements.burstStocks.forEach((pip, index) => {
+        pip.classList.toggle("is-full", index < state.burstStocks);
+      });
+      setMeter(elements.grazeProgress, state.grazeCharge / combatTuning.maxGrazeCharge);
+      setText(elements.grazeValue, `${state.grazeCharge}%`);
+      setText(
+        elements.weaponValue,
+        player.weaponMode === "base"
+          ? player.weaponLabel
+          : `${player.weaponLabel} ${player.weaponTimer.toFixed(1)}s`
+      );
+      setText(
+        elements.bonusBanner,
+        state.loopTimer > 0
+          ? "Second loop engaged. Choir patterns sharpen."
+          : state.bonusTimer > 0
+            ? state.bonusText
+            : (player.weaponMode !== "base" ? `${player.weaponLabel} online` : "Graze to refill burst stocks.")
+      );
 
       if (state.boss) {
         elements.bossPanel.classList.remove("hidden");
         setText(elements.bossName, state.boss.name);
         setText(
           elements.bossPhase,
-          state.boss.phases[state.boss.phaseIndex]?.name || "Final Form"
+          state.boss.weakpoint
+            ? `${state.boss.phases[state.boss.phaseIndex]?.name || "Final Form"} · Weakpoint Open`
+            : (state.boss.phases[state.boss.phaseIndex]?.name || "Final Form")
         );
         setMeter(elements.bossProgress, state.boss.hp / state.boss.maxHp);
       } else {
@@ -130,7 +174,7 @@ export function createInterfaceController(documentRoot) {
         setText(
           elements.endText,
           state.victory
-            ? "Every celestial front has broken. Ride the quiet while it lasts."
+            ? "Two full loops have broken. Ride the quiet while it lasts."
             : "The choir still sings. Re-arm, re-enter, and cut deeper next run."
         );
         setText(elements.endScore, formatNumber(state.score));

@@ -23,6 +23,23 @@ export function sfxShoot(audio) {
   });
 }
 
+export function sfxGraze(audio) {
+  audio.playNoise(0.04, {
+    amp: 0.04,
+    filter: 3200,
+    filterType: "bandpass",
+    q: 1.6,
+    attack: 0.003,
+    release: 0.035,
+  });
+  audio.playTone("sine", 1040, 0.08, {
+    amp: 0.03,
+    slide: 1.08,
+    attack: 0.003,
+    release: 0.05,
+  });
+}
+
 export function sfxEnemyPop(audio) {
   audio.playNoise(0.18, {
     amp: 0.14,
@@ -43,6 +60,17 @@ export function sfxEnemyPop(audio) {
     slide: 0.72,
     attack: 0.008,
     release: 0.11,
+  });
+}
+
+export function sfxChain(audio) {
+  audio.playChord([312, 468, 624], 0.18, {
+    type: "triangle",
+    amp: 0.1,
+    spread: 8,
+    attack: 0.01,
+    release: 0.12,
+    filter: 1800,
   });
 }
 
@@ -70,6 +98,26 @@ export function sfxPlayerHit(audio) {
   });
 }
 
+export function sfxBurst(audio) {
+  audio.playNoise(0.28, {
+    amp: 0.2,
+    filter: 1500,
+    filterType: "bandpass",
+    q: 1,
+    attack: 0.004,
+    release: 0.22,
+  });
+  audio.playChord([120, 180, 270], 0.36, {
+    type: "sawtooth",
+    amp: 0.18,
+    spread: 10,
+    slide: 1.9,
+    attack: 0.008,
+    release: 0.24,
+    filter: 1200,
+  });
+}
+
 export function sfxBossPhase(audio) {
   audio.playChord([156, 234, 312], 0.78, {
     type: "sine",
@@ -85,6 +133,23 @@ export function sfxBossPhase(audio) {
     filterType: "bandpass",
     attack: 0.01,
     release: 0.18,
+  });
+}
+
+export function sfxWeakpoint(audio) {
+  audio.playTone("square", 680, 0.12, {
+    amp: 0.05,
+    slide: 1.3,
+    attack: 0.004,
+    release: 0.08,
+    filter: 2200,
+    filterType: "bandpass",
+  });
+  audio.playTone("sine", 1320, 0.08, {
+    amp: 0.025,
+    slide: 0.92,
+    attack: 0.004,
+    release: 0.05,
   });
 }
 
@@ -111,6 +176,17 @@ export function sfxBossDefeat(audio) {
     slide: 1.6,
     attack: 0.03,
     release: 0.8,
+  });
+}
+
+export function sfxPickup(audio) {
+  audio.playChord([392, 523, 659], 0.22, {
+    type: "sine",
+    amp: 0.12,
+    spread: 4,
+    attack: 0.01,
+    release: 0.16,
+    filter: 2200,
   });
 }
 

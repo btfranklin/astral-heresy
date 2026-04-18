@@ -3,6 +3,7 @@ export function createEntityBuckets() {
     enemies: [],
     enemyBullets: [],
     playerBullets: [],
+    pickups: [],
     particles: [],
   };
 }
@@ -22,6 +23,9 @@ export function buildEntityBuckets(state) {
         break;
       case "playerBullet":
         buckets.playerBullets.push(entity);
+        break;
+      case "pickup":
+        buckets.pickups.push(entity);
         break;
       case "particle":
         buckets.particles.push(entity);

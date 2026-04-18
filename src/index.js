@@ -19,5 +19,7 @@ const game = createGame({
 
 if (game) {
   window.__astralHeresy = game;
+  window.render_game_to_text = () => game.renderGameToText();
+  window.advanceTime = (ms) => game.advanceTime(ms);
   game.init();
 }

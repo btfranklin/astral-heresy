@@ -29,8 +29,10 @@ Each stage object currently provides:
 
 - `view`
 - `player`
+- `loopIndex`
 - `spawnEnemyBullet(x, y, angle, speed, opts)`
 - `spawnEnemy(archetypeKey, overrides)`
+- `spawnPickup(kind, x, y, overrides)`
 
 Stage `update()` owns:
 
@@ -58,6 +60,12 @@ Useful override fields:
 - `wobble`
 - `behavior(enemy, dt, state)`
 - `fire(enemy, dt, state)`
+- `elite`
+- `dropKey`
+- `scoreBonus`
+- `label`
+
+Elite encounters should carry their pickup reward through `dropKey`. Current scripted rewards are the non-base weapon keys from `src/data/weapons.js`.
 
 The concrete entity/component shell is assembled by the enemy system and entity/component helpers. Stage code should define behavior, not entity bookkeeping.
 
@@ -90,7 +98,20 @@ Each phase provides:
 
 - `name`
 - `hp`
+- optional `weakpoint`
 - `pattern(boss, dt, ctx)`
+
+`weakpoint`, when present, currently supports:
+
+- `radius`
+- `interval`
+- `duration`
+- `offset`
+- `damageMultiplier`
+- `bonusScore`
+- optional `rotationSpeed`
+- optional `timeOffset`
+- optional `color`
 
 Boss phase progression and defeat handling live in [`../../src/systems/bossSystem.js`](../../src/systems/bossSystem.js). Boss authoring should not duplicate that lifecycle logic.
 
@@ -106,6 +127,8 @@ Boss phase progression and defeat handling live in [`../../src/systems/bossSyste
 
 Use these first before inventing one-off projectile loops in stage or boss code. If a pattern becomes reusable across more than one fight, promote it into `patterns.js`.
 
+For player-facing weapon modulation, use the pickup and weapon definitions in [`../../src/data/weapons.js`](../../src/data/weapons.js) instead of duplicating duration or label values in stage files.
+
 ## Authoring Workflow
 
 ### Add A Stage
@@ -115,7 +138,8 @@ Use these first before inventing one-off projectile loops in stage or boss code.
 3. Point the stage at a `bossKey`.
 4. Refresh the generated inventory with `python3 scripts/generate_content_inventory.py`.
 5. Run `node scripts/check_content_contract.mjs`.
-6. Run `python3 scripts/check_repo_legibility.py`.
+6. Run `node scripts/check_combat_smoke.mjs` if the stage changes pickup rewards, graze windows, or loop-two density.
+7. Run `python3 scripts/check_repo_legibility.py`.
 
 ### Add A Boss
 
@@ -124,7 +148,8 @@ Use these first before inventing one-off projectile loops in stage or boss code.
 3. Ensure the boss has a `showcaseLabel`; render-study keys are derived from the registries.
 4. Refresh the generated inventory.
 5. Run `node scripts/check_content_contract.mjs`.
-6. Run the repo checks.
+6. Run `node scripts/check_combat_smoke.mjs` if weakpoints or bonus-score behavior change.
+7. Run the repo checks.
 
 ### Add An Enemy Family
 

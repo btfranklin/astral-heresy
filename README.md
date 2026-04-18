@@ -24,7 +24,7 @@ Then open `http://127.0.0.1:7666/`.
 
 - [`AGENTS.md`](./AGENTS.md): short task router for coding agents
 - [`docs/index.md`](./docs/index.md): documentation index and system of record
-- [`ROADMAP.md`](./ROADMAP.md): prioritized player-facing backlog focused on increasing fun
+- [`ROADMAP.md`](./ROADMAP.md): live player-facing backlog focused on future fun work
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md): game loop, domains, and dependency rules
 - [`docs/RUNTIME.md`](./docs/RUNTIME.md): runbook, debug surfaces, and smoke-test flow
 - [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md): content authoring contract
@@ -63,6 +63,12 @@ Run the runtime smoke harness:
 
 ```bash
 node scripts/check_runtime_smoke.mjs
+```
+
+Run the combat-economy smoke harness:
+
+```bash
+node scripts/check_combat_smoke.mjs
 ```
 
 Run the real-browser smoke lane and capture screenshots under `output/playwright/`:

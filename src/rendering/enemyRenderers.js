@@ -237,6 +237,7 @@ export function drawEnemy(ctx, enemy, state) {
   const col = enemy.components.collider;
   const render = enemy.components.render;
   const ai = enemy.components.ai;
+  const reward = enemy.components.reward;
   if (!pos || !col || !render) return;
 
   const time = (ai?.t || 0) + state.time * 0.5 + enemy.id * 0.12;
@@ -245,6 +246,21 @@ export function drawEnemy(ctx, enemy, state) {
   ctx.translate(pos.x, pos.y);
   const renderer = enemyRenderers[render.renderKey] || enemyRenderers.cherub;
   renderer(ctx, col.r, render.color, render.accent, time);
+
+  if (reward?.elite) {
+    ctx.strokeStyle = "rgba(255, 213, 142, 0.9)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, col.r + 6 + Math.sin(time * 3) * 1.5, 0, TAU);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255, 213, 142, 0.9)";
+    for (let i = 0; i < 3; i++) {
+      const angle = -Math.PI / 2 + (i - 1) * 0.28;
+      ctx.beginPath();
+      ctx.arc(Math.cos(angle) * (col.r + 8), Math.sin(angle) * (col.r + 8), 2.2, 0, TAU);
+      ctx.fill();
+    }
+  }
 
   ctx.restore();
 }

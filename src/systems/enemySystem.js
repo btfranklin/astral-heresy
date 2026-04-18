@@ -1,5 +1,5 @@
 import { addEntity, createEntity, removeEntity } from "../entities/entityFactory.js";
-import { ai, collider, health, position, render, velocity } from "../entities/components.js";
+import { ai, collider, health, position, render, reward, velocity } from "../entities/components.js";
 import { getEnemyArchetype } from "../data/enemies.js";
 
 export function spawnEnemy(state, archetypeKey, overrides = {}) {
@@ -22,6 +22,15 @@ export function spawnEnemy(state, archetypeKey, overrides = {}) {
         renderKey: opts.renderKey || archetype.renderKey,
         glowColor: opts.glowColor || "rgba(120, 255, 230, 0.4)",
       }),
+      reward:
+        opts.elite || opts.dropKey || opts.scoreBonus
+          ? reward({
+              elite: opts.elite,
+              dropKey: opts.dropKey,
+              scoreBonus: opts.scoreBonus,
+              label: opts.label,
+            })
+          : null,
       ai: ai({
         behavior: opts.behavior || null,
         fire: opts.fire || null,

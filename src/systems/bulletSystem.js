@@ -1,6 +1,6 @@
 import { wrapAngle } from "../core/math.js";
 import { addEntity, createEntity, removeEntity } from "../entities/entityFactory.js";
-import { bulletMotion, collider, lifetime, position, render, velocity } from "../entities/components.js";
+import { attack, bulletMotion, collider, lifetime, position, render, velocity } from "../entities/components.js";
 
 export function spawnEnemyBullet(state, x, y, angle, speed, opts = {}) {
   const vx = Math.cos(angle) * speed;
@@ -17,12 +17,16 @@ export function spawnEnemyBullet(state, x, y, angle, speed, opts = {}) {
         trail: opts.trail || 0.5,
         glow: opts.glow || 1,
       }),
+      attack: attack({
+        damage: opts.damage ?? 1,
+        source: "enemy",
+      }),
       bullet: bulletMotion(opts),
     })
   );
 }
 
-export function spawnPlayerBullet(state, x, y, angle, speed) {
+export function spawnPlayerBullet(state, x, y, angle, speed, opts = {}) {
   const vx = Math.cos(angle) * speed;
   const vy = Math.sin(angle) * speed;
   state.shotsFired += 1;
@@ -31,10 +35,18 @@ export function spawnPlayerBullet(state, x, y, angle, speed) {
     createEntity("playerBullet", {
       position: position(x, y),
       velocity: velocity(vx, vy),
-      collider: collider(3),
-      lifetime: lifetime(2.6),
+      collider: collider(opts.r || 3),
+      lifetime: lifetime(opts.life || 2.6),
       render: render({
-        color: "#79ffe1",
+        color: opts.color || "#79ffe1",
+        trail: opts.trail || 0.5,
+        glow: opts.glow || 1,
+      }),
+      attack: attack({
+        damage: opts.damage ?? 1,
+        pierce: opts.pierce ?? 0,
+        weaponMode: opts.weaponMode ?? "base",
+        source: "player",
       }),
       bullet: bulletMotion({}),
     })

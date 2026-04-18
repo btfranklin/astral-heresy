@@ -56,6 +56,14 @@
             <span>Accuracy</span>
             <strong id="accuracy-value">0%</strong>
           </div>
+          <div class="stat">
+            <span>Chain</span>
+            <strong id="chain-value">x1.00</strong>
+          </div>
+          <div class="stat">
+            <span>Loop</span>
+            <strong id="loop-value">I</strong>
+          </div>
         </section>
 
         <section class="panel controls-panel">
@@ -64,6 +72,7 @@
             <span class="chip active" id="move-chip">Move</span>
             <span class="chip" id="fire-chip">Fire</span>
             <span class="chip" id="focus-chip">Focus</span>
+            <span class="chip" id="burst-chip">Burst 1/2</span>
             <span class="chip info-chip">R Restart</span>
           </div>
         </section>
@@ -76,6 +85,29 @@
             <span class="hull-pip is-full"></span>
             <span class="hull-pip is-full"></span>
             <span class="hull-pip is-full"></span>
+          </div>
+          <div class="systems-stack">
+            <div class="systems-label-row">
+              <span class="systems-label">Graze Reservoir</span>
+              <strong id="graze-value">0%</strong>
+            </div>
+            <div class="meter graze-meter">
+              <div id="graze-progress" class="meter-fill graze-fill"></div>
+            </div>
+            <div class="systems-row">
+              <div class="system-stat">
+                <span>Burst</span>
+                <div id="burst-stocks" class="stock-pips" aria-hidden="true">
+                  <span class="stock-pip is-full"></span>
+                  <span class="stock-pip"></span>
+                </div>
+              </div>
+              <div class="system-stat">
+                <span>Weapon</span>
+                <strong id="weapon-value">Standard</strong>
+              </div>
+            </div>
+            <div id="bonus-banner" class="bonus-banner">Graze to refill burst stocks.</div>
           </div>
         </section>
       </div>
@@ -104,11 +136,15 @@
               </div>
               <div class="feature-card">
                 <span>Focus</span>
-                <strong>Shift for tight dodges.</strong>
+                <strong>Shift for concentrated fire when the lane is stable.</strong>
+              </div>
+              <div class="feature-card">
+                <span>Burst</span>
+                <strong>X clears nearby fire and buys breathing room.</strong>
               </div>
             </div>
             <button id="start-button" type="button">Launch Sortie</button>
-            <div id="start-hint">Press Enter to launch. Press M to silence pointer steering while testing. Press R to redeploy after a loss.</div>
+            <div id="start-hint">Press Enter to launch. Press X to burst. Press M to silence pointer steering while testing. Press R to redeploy after a loss.</div>
           </div>
         </div>
       </div>

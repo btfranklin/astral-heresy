@@ -102,9 +102,9 @@ async function main() {
     }
 
     const afterLaunch = evalJson(
-      "(() => { document.getElementById('start-button').click(); return JSON.stringify({ started: window.__astralHeresy.state.started, startHidden: document.getElementById('start-screen').classList.contains('hidden') }); })()"
+      "(() => { document.getElementById('start-button').click(); return JSON.stringify({ started: window.__astralHeresy.state.started, startHidden: document.getElementById('start-screen').classList.contains('hidden'), textState: Boolean(window.render_game_to_text), advanceTime: Boolean(window.advanceTime) }); })()"
     );
-    if (!afterLaunch.started || !afterLaunch.startHidden) {
+    if (!afterLaunch.started || !afterLaunch.startHidden || !afterLaunch.textState || !afterLaunch.advanceTime) {
       throw new Error(`Unexpected launch state: ${JSON.stringify(afterLaunch)}`);
     }
 
@@ -115,6 +115,30 @@ async function main() {
       throw new Error(`Unexpected restart state: ${JSON.stringify(afterRestart)}`);
     }
 
+    runPwcli("screenshot");
+
+    const burstState = evalJson(
+      "(() => { window.__astralHeresy.state.burstStocks = 2; document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyX', bubbles: true, cancelable: true })); window.advanceTime(50); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyX', bubbles: true, cancelable: true })); return JSON.stringify({ burstStocks: window.__astralHeresy.state.burstStocks, burstFeedback: window.__astralHeresy.state.feedback.burst > 0, textState: JSON.parse(window.render_game_to_text()) }); })()"
+    );
+    if (burstState.burstStocks !== 1 || !burstState.burstFeedback || typeof burstState.textState.player?.burstStocks !== "number") {
+      throw new Error(`Unexpected burst state: ${JSON.stringify(burstState)}`);
+    }
+    runPwcli("screenshot");
+
+    const pickupHud = evalJson(
+      "(() => { window.__astralHeresy.player.weaponMode = 'spread'; window.__astralHeresy.player.weaponLabel = 'Spread'; window.__astralHeresy.player.weaponTimer = 8.4; window.__astralHeresy.state.grazeCharge = 60; window.__astralHeresy.state.burstStocks = 2; window.advanceTime(16); return JSON.stringify({ weaponText: document.getElementById('weapon-value').textContent, grazeText: document.getElementById('graze-value').textContent }); })()"
+    );
+    if (!pickupHud.weaponText.includes("Spread") || pickupHud.grazeText !== "60%") {
+      throw new Error(`Unexpected pickup HUD state: ${JSON.stringify(pickupHud)}`);
+    }
+    runPwcli("screenshot");
+
+    const loopHud = evalJson(
+      "(() => { window.__astralHeresy.state.loopIndex = 1; window.__astralHeresy.state.loopTimer = 1.8; window.advanceTime(16); return JSON.stringify({ stageLabel: document.getElementById('stage-label').textContent, loopValue: document.getElementById('loop-value').textContent }); })()"
+    );
+    if (!loopHud.stageLabel.includes('Loop II') || loopHud.loopValue !== 'II') {
+      throw new Error(`Unexpected loop HUD state: ${JSON.stringify(loopHud)}`);
+    }
     runPwcli("screenshot");
     runPwcli("close");
 

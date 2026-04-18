@@ -1,6 +1,7 @@
 import { clamp } from "../core/math.js";
 import { spawnPlayerBullet } from "./bulletSystem.js";
 import { sfxShoot } from "../audio/sfx.js";
+import { fireWeapon } from "../data/weapons.js";
 import { getPlayerBounds } from "../state/playerState.js";
 
 export function updatePlayer(state, player, audio, dt) {
@@ -40,17 +41,17 @@ export function updatePlayer(state, player, audio, dt) {
 
   player.fireCooldown -= dt;
   if ((input.KeyZ || input.Space || input.PointerFire) && player.fireCooldown <= 0 && !state.over) {
-    const spread = focus ? 0.08 : 0.16;
-    const count = focus ? 2 : 3;
-    for (let i = 0; i < count; i++) {
-      const ang = -Math.PI / 2 + (i - (count - 1) / 2) * spread;
-      spawnPlayerBullet(state, player.x, player.y - 12, ang, 520);
-    }
+    const weapon = fireWeapon(player.weaponMode, {
+      focus,
+      player,
+      spawnBullet: (x, y, angle, speed, opts) => spawnPlayerBullet(state, x, y, angle, speed, opts),
+    });
     if (state.time - audio.engine.lastShot > 0.07) {
       sfxShoot(audio);
       audio.engine.lastShot = state.time;
     }
-    player.fireCooldown = focus ? 0.11 : 0.18;
+    player.fireCooldown = weapon.cooldown(focus);
+    player.weaponLabel = weapon.shortLabel;
   }
 
   if (player.invuln > 0) {

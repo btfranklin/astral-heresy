@@ -8,6 +8,8 @@
   --panel-line: rgba(125, 220, 255, 0.26);
   --panel-shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
   --panel-glow: 0 0 28px rgba(121, 255, 225, 0.16);
+  --hud-rail-left: clamp(228px, 22vw, 292px);
+  --hud-rail-right: clamp(216px, 20vw, 276px);
 }
 
 * {
@@ -57,8 +59,8 @@ canvas {
   pointer-events: none;
   z-index: 2;
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: var(--hud-rail-left) minmax(0, 1fr) var(--hud-rail-right);
+  grid-template-rows: auto auto 1fr auto;
   gap: 14px;
   padding:
     max(18px, env(safe-area-inset-top))
@@ -105,37 +107,42 @@ canvas {
 }
 
 .brand-panel {
-  grid-column: 1 / span 4;
+  grid-column: 1;
+  grid-row: 1;
   align-self: start;
 }
 
 .mission-panel {
-  grid-column: 10 / span 3;
+  grid-column: 3;
+  grid-row: 1;
   align-self: start;
 }
 
 .boss-panel {
-  grid-column: 10 / span 3;
+  grid-column: 3;
+  grid-row: 2;
   align-self: start;
-  margin-top: 106px;
 }
 
 .telemetry-panel {
-  grid-column: 1 / span 3;
-  grid-row: 3;
+  grid-column: 1;
+  grid-row: 2;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  align-content: start;
 }
 
 .controls-panel {
-  grid-column: 4 / span 6;
-  grid-row: 3;
+  grid-column: 1;
+  grid-row: 4;
+  align-self: end;
 }
 
 .hull-panel {
-  grid-column: 10 / span 3;
-  grid-row: 3;
+  grid-column: 3;
+  grid-row: 4;
+  align-self: end;
 }
 
 .panel-kicker {
@@ -233,6 +240,10 @@ canvas {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(231, 243, 255, 0.64);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
 }
 
 .stat:first-child {
@@ -251,6 +262,84 @@ canvas {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.systems-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.systems-label-row,
+.systems-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.systems-label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(231, 243, 255, 0.64);
+}
+
+.graze-meter {
+  margin-top: 0;
+}
+
+.graze-fill {
+  background: linear-gradient(90deg, rgba(255, 213, 142, 0.96), rgba(255, 143, 216, 0.92));
+  box-shadow: 0 0 18px rgba(255, 213, 142, 0.28);
+}
+
+.system-stat {
+  min-width: 0;
+}
+
+.system-stat span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(231, 243, 255, 0.64);
+}
+
+.system-stat strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  color: #f7ffff;
+}
+
+.stock-pips {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stock-pip {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.stock-pip.is-full {
+  background: radial-gradient(circle at 35% 35%, #f7ffff, #79ffe1 60%, #2f6f83 100%);
+  box-shadow: 0 0 16px rgba(121, 255, 225, 0.22);
+}
+
+.bonus-banner {
+  min-height: 20px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffe6b7;
 }
 
 .chip {

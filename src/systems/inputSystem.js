@@ -12,6 +12,7 @@ const controlKeys = new Set([
   "KeyS",
   "KeyD",
   "KeyM",
+  "KeyX",
 ]);
 
 export function createInputSystem(state, gameCanvas) {

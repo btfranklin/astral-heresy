@@ -4,6 +4,7 @@ import { bossDefinitions, createBossInstance, getBossDefinition, listBossShowcas
 import { enemyArchetypes, getEnemyArchetype, listEnemyShowcaseEntries } from "../src/data/enemies.js";
 import { listPatternHelpers } from "../src/data/patterns.js";
 import { stageDefinitions } from "../src/data/stages.js";
+import { listWeaponModes } from "../src/data/weapons.js";
 import { listBossRendererKeys } from "../src/rendering/bossRenderers.js";
 import { listEnemyRendererKeys } from "../src/rendering/enemyRenderers.js";
 
@@ -30,6 +31,7 @@ function assertUniqueKeys(items, label) {
 function makeContentContext() {
   const spawnEnemyBulletCalls = [];
   const spawnEnemyCalls = [];
+  const spawnPickupCalls = [];
   return {
     view: {
       width: 1280,
@@ -42,6 +44,8 @@ function makeContentContext() {
     },
     spawnEnemyBulletCalls,
     spawnEnemyCalls,
+    spawnPickupCalls,
+    loopIndex: 1,
     spawnEnemyBullet(x, y, angle, speed, opts = {}) {
       spawnEnemyBulletCalls.push({ x, y, angle, speed, opts });
       return { x, y, angle, speed, opts };
@@ -50,6 +54,10 @@ function makeContentContext() {
       assert(getEnemyArchetype(archetypeKey), `Unknown enemy archetype requested by content: ${archetypeKey}.`);
       spawnEnemyCalls.push({ archetypeKey, overrides });
       return { archetypeKey, overrides };
+    },
+    spawnPickup(kind, x, y, overrides = {}) {
+      spawnPickupCalls.push({ kind, x, y, overrides });
+      return { kind, x, y, overrides };
     },
   };
 }
@@ -74,6 +82,24 @@ function validatePhase(phase, bossName, phaseIndex, ctx) {
   assert(typeof phase.name === "string" && phase.name.length > 0, `${bossName} phase ${phaseIndex + 1} is missing a name.`);
   assert(isFiniteNumber(phase.hp) && phase.hp > 0, `${bossName} phase ${phaseIndex + 1} must declare a positive hp value.`);
   assert(typeof phase.pattern === "function", `${bossName} phase ${phaseIndex + 1} must expose pattern(boss, dt, ctx).`);
+  if (phase.weakpoint) {
+    const weakpoint = phase.weakpoint;
+    assert(isFiniteNumber(weakpoint.radius) && weakpoint.radius > 0, `${bossName} phase ${phaseIndex + 1} weakpoint must define positive radius.`);
+    assert(isFiniteNumber(weakpoint.interval) && weakpoint.interval > 0, `${bossName} phase ${phaseIndex + 1} weakpoint must define positive interval.`);
+    assert(isFiniteNumber(weakpoint.duration) && weakpoint.duration > 0, `${bossName} phase ${phaseIndex + 1} weakpoint must define positive duration.`);
+    assert(
+      weakpoint.offset && typeof weakpoint.offset === "object",
+      `${bossName} phase ${phaseIndex + 1} weakpoint must define an offset object.`
+    );
+    assert(
+      isFiniteNumber(weakpoint.damageMultiplier) && weakpoint.damageMultiplier > 1,
+      `${bossName} phase ${phaseIndex + 1} weakpoint must define damageMultiplier > 1.`
+    );
+    assert(
+      isFiniteNumber(weakpoint.bonusScore) && weakpoint.bonusScore >= 0,
+      `${bossName} phase ${phaseIndex + 1} weakpoint bonusScore must be numeric.`
+    );
+  }
 
   const before = ctx.spawnEnemyBulletCalls.length;
   const fakeBossState = {
@@ -135,6 +161,16 @@ function validateStage(stage, ctx) {
 
   stage.update(stageState, 0, 0.016, ctx);
   stage.update(stageState, stage.duration * 0.5, 0.016, ctx);
+  stage.update(stageState, stage.duration * 0.8, 0.016, ctx);
+
+  const validPickupKeys = new Set(listWeaponModes().filter((key) => key !== "base"));
+  for (const { overrides } of ctx.spawnEnemyCalls) {
+    if (!overrides) continue;
+    if (overrides.dropKey) {
+      assert(validPickupKeys.has(overrides.dropKey), `${stage.key} references unknown dropKey ${overrides.dropKey}.`);
+      assert(Boolean(overrides.elite), `${stage.key} dropKey ${overrides.dropKey} should be attached to an elite encounter.`);
+    }
+  }
 }
 
 function validateShowcaseCoverage() {

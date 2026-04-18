@@ -27,6 +27,15 @@ export const bossDefinitionCathedral = {
             wobble: 3.8,
           });
         });
+        if (ctx.loopIndex > 0) {
+          runCooldown(boss, "chorus-of-fangs-loop", 2.1, dt, () => {
+            emitRadial(ctx.spawnEnemyBullet, boss.x, boss.y, 14, 185, {
+              r: 3,
+              color: "#ffd4c8",
+              homing: 0.25,
+            });
+          });
+        }
       },
     },
     {
@@ -50,11 +59,29 @@ export const bossDefinitionCathedral = {
             });
           }
         });
+        if (ctx.loopIndex > 0) {
+          runCooldown(boss, "spine-cathedral-loop", 1.6, dt, () => {
+            emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, boss.x, boss.y, 7, 0.46, 230, {
+              r: 3,
+              color: "#ffd5ff",
+            });
+          });
+        }
       },
     },
     {
       name: "Maw Singularity",
       hp: 240,
+      weakpoint: {
+        radius: 18,
+        interval: 1,
+        duration: 0.34,
+        timeOffset: 0.14,
+        offset: { x: 0, y: 34 },
+        damageMultiplier: 3,
+        bonusScore: 26,
+        color: "#fff0c9",
+      },
       pattern(boss, dt, ctx) {
         runCooldown(boss, "maw-singularity-radial", 1.8, dt, () => {
           emitRadial(ctx.spawnEnemyBullet, boss.x, boss.y, 30, 150, {
@@ -74,6 +101,15 @@ export const bossDefinitionCathedral = {
             });
           }
         });
+        if (ctx.loopIndex > 0) {
+          runCooldown(boss, "maw-singularity-loop", 1.45, dt, () => {
+            emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, boss.x, boss.y + 24, 5, 0.28, 250, {
+              r: 4,
+              color: "#ffe6a8",
+              wobble: 2.4,
+            });
+          });
+        }
       },
     },
   ],

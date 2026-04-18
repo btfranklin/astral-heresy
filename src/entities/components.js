@@ -22,6 +22,16 @@ export function render(style) {
   return { ...style };
 }
 
+export function attack(options = {}) {
+  return {
+    damage: options.damage ?? 1,
+    pierce: options.pierce ?? 0,
+    weaponMode: options.weaponMode ?? "base",
+    source: options.source ?? "neutral",
+    grazed: false,
+  };
+}
+
 export function bulletMotion(options) {
   return {
     turn: options.turn || 0,
@@ -38,5 +48,23 @@ export function ai(options = {}) {
     fire: options.fire || null,
     wobble: options.wobble || 0,
     nextShot: 0,
+  };
+}
+
+export function pickup(options = {}) {
+  return {
+    kind: options.kind ?? "base",
+    duration: options.duration ?? 0,
+    label: options.label ?? options.kind ?? "Pickup",
+    t: 0,
+  };
+}
+
+export function reward(options = {}) {
+  return {
+    elite: Boolean(options.elite),
+    dropKey: options.dropKey ?? null,
+    scoreBonus: options.scoreBonus ?? 0,
+    label: options.label ?? "",
   };
 }

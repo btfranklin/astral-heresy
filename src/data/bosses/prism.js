@@ -27,11 +27,28 @@ export const bossDefinitionPrism = {
             wobble: 2.6,
           });
         });
+        if (ctx.loopIndex > 0) {
+          runCooldown(boss, "crystal-lattice-loop", 1.7, dt, () => {
+            emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, boss.x, boss.y, 5, 0.4, 225, {
+              r: 3,
+              color: "#ffd480",
+            });
+          });
+        }
       },
     },
     {
       name: "Refraction Choir",
       hp: 200,
+      weakpoint: {
+        radius: 16,
+        interval: 2.9,
+        duration: 0.95,
+        offset: { x: 0, y: 0 },
+        damageMultiplier: 3,
+        bonusScore: 24,
+        color: "#f4fff7",
+      },
       pattern(boss, dt, ctx) {
         runCooldown(boss, "refraction-choir-aimed", 1.2, dt, () => {
           emitAimedBurst(ctx.spawnEnemyBullet, ctx.player, boss.x, boss.y, 9, 0.75, 230, {
@@ -47,6 +64,15 @@ export const bossDefinitionPrism = {
             turn: -0.6,
           });
         });
+        if (ctx.loopIndex > 0) {
+          runCooldown(boss, "refraction-choir-loop", 1.8, dt, () => {
+            emitSpiral(ctx.spawnEnemyBullet, boss.x, boss.y, 14, 175, -0.4, {
+              r: 3,
+              color: "#ffd5ff",
+              wobble: 2.4,
+            });
+          });
+        }
       },
     },
     {
@@ -72,6 +98,15 @@ export const bossDefinitionPrism = {
             homing: 0.25,
           });
         });
+        if (ctx.loopIndex > 0) {
+          runCooldown(boss, "prismatic-tide-loop", 1.5, dt, () => {
+            emitRadial(ctx.spawnEnemyBullet, boss.x, boss.y, 18, 165, {
+              r: 3,
+              color: "#9efbff",
+              turn: 0.35,
+            });
+          });
+        }
       },
     },
   ],

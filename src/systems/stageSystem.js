@@ -19,7 +19,12 @@ export function updateStage(state, stages, contentContext, audio, dt) {
     if (state.stageTime >= stage.duration) {
       state.boss = createBossInstance(stage.bossKey, contentContext);
       for (const entity of state.entities) {
-        if (entity.type === "enemy" || entity.type === "enemyBullet" || entity.type === "playerBullet") {
+        if (
+          entity.type === "enemy" ||
+          entity.type === "enemyBullet" ||
+          entity.type === "playerBullet" ||
+          entity.type === "pickup"
+        ) {
           removeEntity(entity);
         }
       }

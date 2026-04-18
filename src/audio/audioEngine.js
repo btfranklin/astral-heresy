@@ -3,8 +3,51 @@ export function createAudioEngine() {
     ctx: null,
     master: null,
     sfx: null,
+    music: null,
+    musicLayers: null,
     lastShot: 0,
   };
+
+  function setValue(param, value) {
+    if (!param) return;
+    if (typeof param.setValueAtTime === "function" && engine.ctx) {
+      param.setValueAtTime(value, engine.ctx.currentTime);
+    } else {
+      param.value = value;
+    }
+  }
+
+  function createMusicLayer(type, freq, filter, filterType = "lowpass") {
+    const ctx = engine.ctx;
+    const osc = ctx.createOscillator();
+    const filterNode = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    osc.type = type;
+    setValue(osc.frequency, freq);
+    filterNode.type = filterType;
+    setValue(filterNode.frequency, filter);
+    setValue(gain.gain, 0.0001);
+    osc.connect(filterNode);
+    filterNode.connect(gain);
+    gain.connect(engine.music);
+    osc.start(ctx.currentTime);
+    return { osc, filter: filterNode, gain };
+  }
+
+  function initMusic() {
+    if (!engine.ctx || engine.musicLayers) return;
+    engine.music = engine.ctx.createGain();
+    engine.music.gain.value = 0.7;
+    engine.music.connect(engine.master);
+    engine.musicLayers = {
+      padRoot: createMusicLayer("triangle", 164.81, 680),
+      padThird: createMusicLayer("sine", 206.01, 920),
+      padFifth: createMusicLayer("triangle", 247.22, 820),
+      pulse: createMusicLayer("square", 329.63, 1200, "bandpass"),
+      danger: createMusicLayer("sawtooth", 523.25, 1800, "highpass"),
+      loop: createMusicLayer("sine", 392, 1500),
+    };
+  }
 
   function init() {
     if (engine.ctx) return;
@@ -17,6 +60,7 @@ export function createAudioEngine() {
     engine.sfx = engine.ctx.createGain();
     engine.sfx.gain.value = 0.9;
     engine.sfx.connect(engine.master);
+    initMusic();
   }
 
   function resume() {
@@ -111,5 +155,35 @@ export function createAudioEngine() {
     }
   }
 
-  return { engine, init, resume, playTone, playNoise, playChord };
+  function updateMusic(state, player) {
+    if (!engine.ctx || !engine.musicLayers) return;
+    const active = state.started && !state.showcase && !state.over ? 1 : 0;
+    const rootTable = [164.81, 196.0, 146.83];
+    const stageRoot = rootTable[Math.min(rootTable.length - 1, state.stageIndex)] || rootTable[0];
+    const root = stageRoot * (state.loopIndex > 0 ? 1.06 : 1);
+    const third = root * 1.25;
+    const fifth = root * 1.5;
+    const bossWeight = state.boss ? 1 : 0;
+    const lowHpWeight = player.hp <= 2 ? 1 : player.hp === 3 ? 0.45 : 0;
+    const loopWeight = state.loopIndex > 0 ? 1 : 0;
+    const pulseWave = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(state.time * (state.boss ? 5.4 : 2.7)));
+    const dangerWave = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(state.time * 8.2));
+
+    setValue(engine.musicLayers.padRoot.osc.frequency, root);
+    setValue(engine.musicLayers.padThird.osc.frequency, third);
+    setValue(engine.musicLayers.padFifth.osc.frequency, fifth);
+    setValue(engine.musicLayers.pulse.osc.frequency, root * (state.boss ? 2.4 : 1.8));
+    setValue(engine.musicLayers.danger.osc.frequency, root * 3.2);
+    setValue(engine.musicLayers.loop.osc.frequency, root * 2.1);
+
+    setValue(engine.musicLayers.padRoot.gain.gain, active * 0.022);
+    setValue(engine.musicLayers.padThird.gain.gain, active * 0.018);
+    setValue(engine.musicLayers.padFifth.gain.gain, active * 0.014);
+    setValue(engine.musicLayers.pulse.gain.gain, active * (0.012 + bossWeight * 0.055 * pulseWave));
+    setValue(engine.musicLayers.danger.gain.gain, active * lowHpWeight * 0.05 * dangerWave);
+    setValue(engine.musicLayers.loop.gain.gain, active * loopWeight * 0.03 * (0.4 + 0.6 * pulseWave));
+    setValue(engine.music.gain, active ? 0.7 : 0.0001);
+  }
+
+  return { engine, init, resume, playTone, playNoise, playChord, updateMusic };
 }

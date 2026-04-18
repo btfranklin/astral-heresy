@@ -237,9 +237,10 @@ class FakeCanvas extends FakeElement {
 }
 
 class FakeDocument {
-  constructor(elements, hullPips) {
+  constructor(elements, hullPips, burstStockPips) {
     this.elements = elements;
     this.hullPips = hullPips;
+    this.burstStockPips = burstStockPips;
     this.listeners = new Map();
   }
 
@@ -250,6 +251,9 @@ class FakeDocument {
   querySelectorAll(selector) {
     if (selector === "#hull-pips .hull-pip") {
       return this.hullPips;
+    }
+    if (selector === "#burst-stocks .stock-pip") {
+      return this.burstStockPips;
     }
     return [];
   }
@@ -290,6 +294,9 @@ function getListenerCount(listenerMap, type) {
 
 function createRuntimeFixture(search = "") {
   const hullPips = Array.from({ length: 5 }, () => new FakeElement(null, ["hull-pip", "is-full"]));
+  const burstStockPips = Array.from({ length: 2 }, (_, index) =>
+    new FakeElement(null, index === 0 ? ["stock-pip", "is-full"] : ["stock-pip"])
+  );
   const elements = {
     bg: new FakeCanvas("bg", (type) => (type === "webgl" ? createFakeWebGLContext() : null)),
     game: new FakeCanvas("game", (type) => (type === "2d" ? createFake2dContext() : null)),
@@ -306,10 +313,18 @@ function createRuntimeFixture(search = "") {
     "score-value": new FakeElement("score-value"),
     "kill-value": new FakeElement("kill-value"),
     "accuracy-value": new FakeElement("accuracy-value"),
+    "chain-value": new FakeElement("chain-value"),
+    "loop-value": new FakeElement("loop-value"),
     "move-chip": new FakeElement("move-chip"),
     "fire-chip": new FakeElement("fire-chip"),
     "focus-chip": new FakeElement("focus-chip"),
+    "burst-chip": new FakeElement("burst-chip"),
     "hull-pips": new FakeElement("hull-pips"),
+    "graze-progress": new FakeElement("graze-progress"),
+    "graze-value": new FakeElement("graze-value"),
+    "burst-stocks": new FakeElement("burst-stocks"),
+    "weapon-value": new FakeElement("weapon-value"),
+    "bonus-banner": new FakeElement("bonus-banner"),
     "boss-panel": new FakeElement("boss-panel", ["hidden"]),
     "boss-name": new FakeElement("boss-name"),
     "boss-phase": new FakeElement("boss-phase"),
@@ -323,7 +338,7 @@ function createRuntimeFixture(search = "") {
     "end-time": new FakeElement("end-time"),
   };
 
-  const document = new FakeDocument(elements, hullPips);
+  const document = new FakeDocument(elements, hullPips, burstStockPips);
   const windowListeners = new Map();
   const rafQueue = [];
   let nextFrameId = 1;
@@ -389,6 +404,7 @@ function createRuntimeFixture(search = "") {
     windowListeners,
     elements,
     hullPips,
+    burstStockPips,
     requestAnimationFrame,
     cancelAnimationFrame,
     runNextAnimationFrame,
@@ -454,6 +470,10 @@ function testGameStartRestartAndDisposeFlow() {
     );
     assert.equal(fixture.elements["stage-label"].textContent, "Act 1");
     assert.equal(fixture.elements["stage-name"].textContent, "Nebula Gate");
+    assert.equal(fixture.elements["chain-value"].textContent, "x1.00");
+    assert.equal(fixture.elements["loop-value"].textContent, "I");
+    assert.equal(fixture.elements["weapon-value"].textContent, "Standard");
+    assert.equal(fixture.elements["burst-chip"].textContent, "Burst 1/2");
     assert.equal(
       fixture.elements["start-screen"].classList.contains("hidden"),
       false,
@@ -468,6 +488,21 @@ function testGameStartRestartAndDisposeFlow() {
       true,
       "Starting should hide the start screen."
     );
+    assert.equal(typeof game.advanceTime, "function", "The runtime should expose deterministic stepping.");
+    assert.equal(typeof game.renderGameToText, "function", "The runtime should expose text-state rendering.");
+
+    fixture.document.dispatchEvent({ type: "keydown", code: "KeyX", preventDefault() {} });
+    fixture.runNextAnimationFrame(33);
+    fixture.document.dispatchEvent({ type: "keyup", code: "KeyX", preventDefault() {} });
+
+    assert.equal(game.state.feedback.burst > 0, true, "KeyX should trigger burst feedback after launch.");
+    assert.equal(game.state.burstStocks, 0, "Burst should spend the starting stock.");
+    assert.equal(game.renderGameToText().includes("\"grazeCharge\""), true, "Text-state output should include combat economy fields.");
+
+    game.state.loopIndex = 1;
+    game.state.loopTimer = 1.5;
+    fixture.runNextAnimationFrame(48);
+    assert.equal(fixture.elements["stage-label"].textContent.includes("Loop II"), true, "Loop two should be reflected in the HUD.");
 
     game.state.over = true;
     game.player.hp = 0;
@@ -485,6 +520,7 @@ function testGameStartRestartAndDisposeFlow() {
     assert.equal(game.state.over, false, "Restart should clear the game-over state.");
     assert.equal(game.state.started, true, "Restart should relaunch immediately.");
     assert.equal(game.player.hp, 5, "Restart should restore player hp.");
+    assert.equal(game.state.loopIndex, 0, "Restart should clear loop state.");
 
     const startedBeforeDispose = game.state.started;
     game.dispose();
@@ -531,7 +567,11 @@ function testShowcaseAndInterfaceFlows() {
       "Render study mode. Use direct URLs to inspect silhouettes and boss phases."
     );
     assert.equal(fixture.elements["boss-panel"].classList.contains("hidden"), false);
-    assert.equal(fixture.elements["boss-phase"].textContent, "Refraction Choir");
+    assert.equal(
+      fixture.elements["boss-phase"].textContent.startsWith("Refraction Choir"),
+      true,
+      "Boss showcase HUD should reflect the selected phase."
+    );
 
     const prevPhaseTime = state.boss.phaseTime;
     state.time = 1;

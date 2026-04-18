@@ -42,6 +42,7 @@ export function createBossInstance(key, ctx) {
     phaseTime: 0,
     phaseHp: definition.phases[0].hp,
     pulseCooldown: 0,
+    weakpoint: null,
     phases: definition.phases,
     cooldowns: Object.create(null),
   };

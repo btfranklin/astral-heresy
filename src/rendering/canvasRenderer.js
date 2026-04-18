@@ -1,7 +1,7 @@
 import { rand, TAU } from "../core/math.js";
 import { drawGlowCircle } from "./drawHelpers.js";
 import { drawBossByKey } from "./bossRenderers.js";
-import { drawBossUI, drawPlayerUI } from "./hudRenderer.js";
+import { drawBossUI, drawBossWeakpoint, drawPlayerUI } from "./hudRenderer.js";
 import { drawEnemy } from "./enemyRenderers.js";
 
 function createSpriteCache() {
@@ -96,6 +96,34 @@ function drawEnemies(ctx, enemies, state) {
   }
 }
 
+function drawPickups(ctx, pickups, state) {
+  for (const entity of pickups) {
+    const pos = entity.components.position;
+    const render = entity.components.render;
+    const pickup = entity.components.pickup;
+    if (!pos || !render || !pickup) continue;
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(state.time * 1.6 + pickup.t * 2.8 + entity.id * 0.12);
+    drawGlowCircle(ctx, 0, 0, 28, render.color, 0.22);
+    ctx.strokeStyle = render.accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 12 + Math.sin(state.time * 6 + entity.id) * 1.5, 0, TAU);
+    ctx.stroke();
+    ctx.fillStyle = render.color;
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(9, 0);
+    ctx.lineTo(0, 10);
+    ctx.lineTo(-9, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 function drawParticles(ctx, particles, spriteCache, detail) {
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -179,10 +207,12 @@ export function createCanvasRenderer(ctx) {
     drawBullets(ctx, buckets.enemyBullets, bulletSpriteCache, detail);
     drawBulletTrails(ctx, buckets.playerBullets, detail === "high" ? "medium" : detail);
     drawBullets(ctx, buckets.playerBullets, bulletSpriteCache, detail);
+    drawPickups(ctx, buckets.pickups, state);
     drawEnemies(ctx, buckets.enemies, state);
 
     if (state.boss) {
       drawBossByKey(ctx, state, state.boss);
+      drawBossWeakpoint(ctx, state.boss, state);
       drawBossUI(ctx, state.boss, state);
     }
 
@@ -197,6 +227,15 @@ export function createCanvasRenderer(ctx) {
     if (state.over) {
       ctx.save();
       ctx.fillStyle = "rgba(4, 6, 14, 0.42)";
+      ctx.fillRect(0, 0, state.view.width, state.view.height);
+      ctx.restore();
+    }
+
+    if (state.feedback.phase > 0 || state.feedback.loop > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(255, 245, 214, ${state.feedback.phase * 0.08})`;
+      ctx.fillRect(0, 0, state.view.width, state.view.height);
+      ctx.fillStyle = `rgba(121, 255, 225, ${state.feedback.loop * 0.06})`;
       ctx.fillRect(0, 0, state.view.width, state.view.height);
       ctx.restore();
     }
