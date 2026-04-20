@@ -8,6 +8,10 @@ function formatTime(seconds) {
   return `${mins}:${secs}`;
 }
 
+function getDisplayedRunTime(state) {
+  return state.finalRunTime ?? state.time;
+}
+
 const numberFormatter = new Intl.NumberFormat("en-US");
 
 function formatNumber(value) {
@@ -113,7 +117,7 @@ export function createInterfaceController(documentRoot) {
         state.showcase?.label || stage?.name || (state.victory ? "Convergence" : "Last Stand")
       );
       setMeter(elements.stageProgress, progress);
-      setText(elements.runTime, formatTime(state.time));
+      setText(elements.runTime, formatTime(getDisplayedRunTime(state)));
       setText(elements.scoreValue, formatNumber(state.score));
       setText(elements.killValue, formatNumber(state.kills));
       setText(elements.accuracyValue, `${accuracy}%`);
@@ -227,7 +231,7 @@ export function createInterfaceController(documentRoot) {
         setText(elements.endScore, formatNumber(state.score));
         setText(elements.endKills, formatNumber(state.kills));
         setText(elements.endAccuracy, `${accuracy}%`);
-        setText(elements.endTime, formatTime(state.time));
+        setText(elements.endTime, formatTime(getDisplayedRunTime(state)));
       } else {
         elements.endScreen.classList.add("hidden");
       }

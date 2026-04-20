@@ -61,6 +61,7 @@ else
 fi
 
 URL="http://127.0.0.1:${PORT}/"
+OPEN_URL="${URL}?play_run=$(date +%s)"
 
 if [[ "$PYTHON_MAJOR" == "3" ]]; then
   SERVER_ARGS=(-m http.server "$PORT" --directory "$ROOT_DIR")
@@ -81,11 +82,11 @@ sleep 0.3
 OPENED_BROWSER=false
 
 if command -v open >/dev/null 2>&1; then
-  if open "$URL"; then
+  if open "$OPEN_URL"; then
     OPENED_BROWSER=true
   fi
 elif command -v xdg-open >/dev/null 2>&1; then
-  if xdg-open "$URL"; then
+  if xdg-open "$OPEN_URL"; then
     OPENED_BROWSER=true
   fi
 fi

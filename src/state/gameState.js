@@ -54,6 +54,7 @@ function createPowerupNotice() {
 function createDefaults(width = 0, height = 0) {
   return {
     time: 0,
+    finalRunTime: null,
     stageIndex: 0,
     stageTime: 0,
     stageState: null,

@@ -121,6 +121,42 @@ test("runtime geometry, HUD sync, and render-study parsing stay stable across vi
   });
 });
 
+test("displayed runtime freezes at the loss moment even if simulation frames continue", async () => {
+  await withDomFixture("", (fixture) => {
+    const game = createGame({
+      bgCanvas: fixture.elements.bg,
+      gameCanvas: fixture.elements.game,
+      startScreen: fixture.elements["start-screen"],
+      startButton: fixture.elements["start-button"],
+      endScreen: fixture.elements["end-screen"],
+      restartButton: fixture.elements["restart-button"],
+      documentRoot: fixture.document,
+    });
+
+    game.init();
+    fixture.elements["start-button"].click();
+
+    game.state.time = 61;
+    game.player.hp = 1;
+    game.player.invuln = 0;
+    game.debugSpawnEnemyBullet(game.player.x, game.player.y, 0, 0, { life: 1 });
+    game.advanceTime(16);
+
+    const frozenRunTime = game.state.finalRunTime;
+    const frozenDisplay = "01:01";
+    assert.notEqual(frozenRunTime, null);
+    assert.equal(fixture.elements["run-time"].textContent, frozenDisplay);
+    assert.equal(fixture.elements["end-time"].textContent, frozenDisplay);
+
+    game.advanceTime(5_000);
+
+    assert.equal(game.state.finalRunTime, frozenRunTime);
+    assert.equal(game.state.time, frozenRunTime);
+    assert.equal(fixture.elements["run-time"].textContent, frozenDisplay);
+    assert.equal(fixture.elements["end-time"].textContent, frozenDisplay);
+  });
+});
+
 test("showcase scene bootstraps enemy and boss studies without a browser", async () => {
   await withDomFixture("?mode=render&enemy=cherub", (fixture) => {
     const config = getShowcaseConfig(fixture.window.location.search);

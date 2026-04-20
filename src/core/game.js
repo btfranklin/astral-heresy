@@ -98,6 +98,12 @@ export function createGame({
   let rafId = null;
   let renderBuckets = createEntityBuckets();
 
+  function latchFinalRunTime() {
+    if (state.over && state.finalRunTime === null) {
+      state.finalRunTime = state.time;
+    }
+  }
+
   function update(dt) {
     if (!state.started) {
       renderBuckets = buildEntityBuckets(state);
@@ -105,14 +111,17 @@ export function createGame({
       return;
     }
 
-    state.time += dt;
-    state.pulse = Math.max(0, state.pulse - dt * 0.7);
     if (state.showcase) {
+      state.time += dt;
+      state.pulse = Math.max(0, state.pulse - dt * 0.7);
       updateShowcaseScene(state, dt);
       renderBuckets = buildEntityBuckets(state);
       audio.updateMusic(state, player);
       return;
     }
+
+    latchFinalRunTime();
+
     if (state.over) {
       updateParticles(state, dt);
       flushEntities(state);
@@ -120,6 +129,9 @@ export function createGame({
       audio.updateMusic(state, player);
       return;
     }
+
+    state.time += dt;
+    state.pulse = Math.max(0, state.pulse - dt * 0.7);
 
     refreshDensityState(state, stages[state.stageIndex]);
     stageDirector.beginFrame();
@@ -158,6 +170,7 @@ export function createGame({
 
     cleanupBullets(state);
     flushEntities(state);
+    latchFinalRunTime();
     renderBuckets = buildEntityBuckets(state);
     audio.updateMusic(state, player);
   }
