@@ -914,3 +914,200 @@ canvas {
     filter: none;
   }
 }
+
+/* Combat HUD diet: active play keeps only compact, glanceable instruments. */
+#interface[data-mode="combat"] {
+  display: block;
+  padding: 0;
+}
+
+#interface[data-mode="combat"] .brand-panel,
+#interface[data-mode="combat"] .boss-panel,
+#interface[data-mode="combat"] .controls-panel,
+#interface[data-mode="combat"] .telemetry-panel .stat:not(:first-child),
+#interface[data-mode="combat"] .bonus-banner,
+#interface[data-mode="combat"] .powerup-feed,
+#interface[data-mode="combat"] .effects-stack {
+  display: none;
+}
+
+#interface[data-mode="combat"] .panel {
+  padding: 9px 12px;
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(8, 12, 22, 0.64), rgba(5, 8, 16, 0.44)),
+    rgba(5, 8, 16, 0.42);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.22),
+    0 0 18px rgba(121, 255, 225, 0.08);
+  backdrop-filter: blur(9px);
+}
+
+#interface[data-mode="combat"] .panel::before {
+  opacity: 0.22;
+}
+
+#interface[data-mode="combat"] .mission-panel {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  width: min(520px, calc(100vw - 260px));
+  min-width: 300px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+#interface[data-mode="combat"] .mission-panel .panel-kicker,
+#interface[data-mode="combat"] .mission-panel .meta-row {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+#interface[data-mode="combat"] .mission-panel .panel-value {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+}
+
+#interface[data-mode="combat"] .mission-panel .meter {
+  grid-column: 1 / -1;
+  height: 5px;
+  margin: 0;
+}
+
+#interface[data-mode="combat"] .telemetry-panel {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  display: block;
+  min-width: 116px;
+}
+
+#interface[data-mode="combat"] .telemetry-panel .stat {
+  padding: 0;
+  border: 0;
+  gap: 4px;
+}
+
+#interface[data-mode="combat"] .telemetry-panel .stat strong {
+  font-size: 20px;
+}
+
+#interface[data-mode="combat"] .hull-panel {
+  position: absolute;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  width: min(560px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#interface[data-mode="combat"] .hull-panel .panel-kicker {
+  display: none;
+}
+
+#interface[data-mode="combat"] .hull-pips {
+  flex: 0 0 auto;
+  margin: 0;
+  gap: 8px;
+}
+
+#interface[data-mode="combat"] .hull-pip {
+  width: 14px;
+  height: 14px;
+}
+
+#interface[data-mode="combat"] .systems-stack {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(132px, 1fr) auto;
+  align-items: center;
+  gap: 6px 14px;
+  margin: 0;
+}
+
+#interface[data-mode="combat"] .systems-label-row {
+  grid-column: 1;
+  gap: 8px;
+}
+
+#interface[data-mode="combat"] .systems-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+#interface[data-mode="combat"] .graze-meter {
+  grid-column: 1;
+  height: 6px;
+}
+
+#interface[data-mode="combat"] .systems-row {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  gap: 16px;
+}
+
+#interface[data-mode="combat"] .system-stat span {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+#interface[data-mode="combat"] .system-stat strong {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+#interface[data-mode="combat"] .stock-pips {
+  margin-top: 5px;
+  gap: 6px;
+}
+
+#interface[data-mode="combat"] .stock-pip {
+  width: 13px;
+  height: 13px;
+}
+
+@media (max-width: 760px) {
+  #interface[data-mode="combat"] .mission-panel {
+    right: max(12px, env(safe-area-inset-right));
+    left: max(12px, env(safe-area-inset-left));
+    width: auto;
+    min-width: 0;
+    transform: none;
+  }
+
+  #interface[data-mode="combat"] .telemetry-panel {
+    top: calc(max(14px, env(safe-area-inset-top)) + 74px);
+    left: max(12px, env(safe-area-inset-left));
+    min-width: 104px;
+  }
+
+  #interface[data-mode="combat"] .hull-panel {
+    right: max(12px, env(safe-area-inset-right));
+    left: max(12px, env(safe-area-inset-left));
+    width: auto;
+    transform: none;
+    gap: 12px;
+  }
+
+  #interface[data-mode="combat"] .systems-stack {
+    grid-template-columns: minmax(118px, 1fr);
+  }
+
+  #interface[data-mode="combat"] .systems-row {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: space-between;
+  }
+}

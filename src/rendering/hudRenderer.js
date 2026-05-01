@@ -1,5 +1,170 @@
-import { combatTuning } from "../core/combat.js";
+import { combatTuning, getChainMultiplier } from "../core/combat.js";
 import { drawGlowCircle } from "./drawHelpers.js";
+
+const effectSigils = [
+  {
+    key: "haloShield",
+    color: "#bdfdff",
+    duration: 12,
+    sides: 6,
+  },
+  {
+    key: "chainSigil",
+    color: "#ffb356",
+    duration: 10,
+    sides: 4,
+  },
+  {
+    key: "grazeBloom",
+    color: "#ff9fda",
+    duration: 10,
+    sides: 8,
+  },
+  {
+    key: "magnetCore",
+    color: "#8fe8ff",
+    duration: 10,
+    sides: 6,
+  },
+  {
+    key: "pointBlankSeal",
+    color: "#ff8f8f",
+    duration: 10,
+    sides: 3,
+  },
+];
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function drawPolygon(ctx, radius, sides, rotation = -Math.PI / 2) {
+  ctx.beginPath();
+  for (let i = 0; i < sides; i++) {
+    const angle = rotation + (Math.PI * 2 * i) / sides;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
+function drawTimedSigil(ctx, x, y, effect, state) {
+  const ratio = clamp01(effect.timer / effect.duration);
+  const pulse = 1 + Math.sin(state.time * 7 + effect.index) * 0.05;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(state.time * 0.6 + effect.index * 0.4);
+  drawGlowCircle(ctx, 0, 0, 14, `${effect.color}44`, 0.16);
+  ctx.strokeStyle = `${effect.color}cc`;
+  ctx.fillStyle = `${effect.color}1f`;
+  ctx.lineWidth = 1.4;
+  drawPolygon(ctx, 8 * pulse, effect.sides);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = `${effect.color}e6`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function getActiveEffectSigils(player) {
+  const effects = [];
+  if (player.weaponMode !== "base" && player.weaponTimer > 0) {
+    effects.push({
+      key: "weapon",
+      color: player.weaponMode === "amplifier" ? "#ffd58e" : "#9efbff",
+      duration: 10,
+      timer: player.weaponTimer,
+      sides: 4,
+    });
+  }
+  for (const definition of effectSigils) {
+    const timer = player.activePowerups[definition.key] || 0;
+    if (timer > 0) {
+      effects.push({ ...definition, timer });
+    }
+  }
+  return effects
+    .sort((a, b) => b.timer - a.timer)
+    .slice(0, 6)
+    .map((effect, index) => ({ ...effect, index }));
+}
+
+function drawActiveEffectSigils(ctx, player, state) {
+  const effects = getActiveEffectSigils(player);
+  if (effects.length === 0 || state.over) return;
+  const spread = effects.length === 1 ? 0 : Math.min(1.35, 0.38 * (effects.length - 1));
+  const start = -spread * 0.5;
+  const step = effects.length === 1 ? 0 : spread / (effects.length - 1);
+  const radius = 48;
+  for (let i = 0; i < effects.length; i++) {
+    const angle = start + step * i;
+    drawTimedSigil(
+      ctx,
+      player.x + Math.cos(angle) * radius,
+      player.y + Math.sin(angle) * radius,
+      effects[i],
+      state
+    );
+  }
+}
+
+function drawGrazeChargeCue(ctx, player, state) {
+  const ratio = clamp01(state.grazeCharge / combatTuning.maxGrazeCharge);
+  const ready = ratio >= 1 || state.burstStocks >= combatTuning.maxBurstStocks;
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.strokeStyle = ready ? "rgba(255, 213, 142, 0.88)" : "rgba(255, 213, 142, 0.42)";
+  ctx.lineWidth = ready ? 2.4 : 1.8;
+  ctx.beginPath();
+  ctx.arc(0, 0, player.radius + 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+  ctx.stroke();
+  if (ready) {
+    drawGlowCircle(ctx, 0, 0, 42, "rgba(255, 213, 142, 0.22)", 0.12);
+  }
+  ctx.restore();
+}
+
+function drawBurstPips(ctx, player, state) {
+  if (state.over) return;
+  const spacing = 12;
+  const originX = player.x - ((combatTuning.maxBurstStocks - 1) * spacing) / 2;
+  const y = player.y + 31;
+  ctx.save();
+  for (let i = 0; i < combatTuning.maxBurstStocks; i++) {
+    const full = i < state.burstStocks;
+    const x = originX + i * spacing;
+    drawGlowCircle(ctx, x, y, full ? 10 : 6, full ? "rgba(121, 255, 225, 0.48)" : "rgba(255,255,255,0.12)", 0.12);
+    ctx.fillStyle = full ? "#79ffe1" : "rgba(255,255,255,0.12)";
+    ctx.strokeStyle = full ? "rgba(247,255,255,0.78)" : "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, full ? 4.6 : 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawChainCue(ctx, player, state) {
+  if (state.over || state.chainLevel <= 0 || state.chainTimer <= 0) return;
+  const alpha = clamp01(state.chainTimer / 2.25);
+  ctx.save();
+  ctx.globalAlpha = 0.35 + alpha * 0.45;
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffd58e";
+  ctx.font = "700 12px 'Avenir Next', 'Trebuchet MS', sans-serif";
+  ctx.fillText(`x${getChainMultiplier(state.chainLevel).toFixed(2)}`, player.x, player.y + 48);
+  ctx.restore();
+}
 
 export function drawBossUI(ctx, boss, state) {
   const phase = boss.phases[boss.phaseIndex];
@@ -102,6 +267,8 @@ export function drawPlayerUI(ctx, player, state, stages) {
     ctx.arc(0, 0, player.radius + combatTuning.grazeInnerOffset, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
+    drawGrazeChargeCue(ctx, player, state);
+    drawBurstPips(ctx, player, state);
   }
 
   if (player.activePowerups.haloShield > 0 && !state.over) {
@@ -243,6 +410,9 @@ export function drawPlayerUI(ctx, player, state, stages) {
     ctx.fillText(notice.roleTag, x, y + 18);
     ctx.restore();
   }
+
+  drawActiveEffectSigils(ctx, player, state);
+  drawChainCue(ctx, player, state);
 
   if (state.feedback.burst > 0 && state.burstOrigin) {
     ctx.save();

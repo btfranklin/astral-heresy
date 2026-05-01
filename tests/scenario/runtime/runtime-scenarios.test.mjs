@@ -31,6 +31,7 @@ test("game start, burst, blur reset, restart, and dispose flow stay deterministi
     assert.equal(fixture.elements["weapon-value"].textContent, "Standard");
     assert.equal(fixture.elements["burst-chip"].textContent, "Burst 1/2");
     assert.equal(game.state.playfield.active, true);
+    assert.equal(fixture.elements.interface.dataset.mode, "idle");
     assert.equal(fixture.pendingAnimationFrames(), 1);
 
     fixture.elements["start-button"].click();
@@ -41,6 +42,7 @@ test("game start, burst, blur reset, restart, and dispose flow stay deterministi
     fixture.document.dispatchEvent({ type: "keydown", code: "KeyX", preventDefault() {} });
     fixture.runNextAnimationFrame(33);
     fixture.document.dispatchEvent({ type: "keyup", code: "KeyX", preventDefault() {} });
+    assert.equal(fixture.elements.interface.dataset.mode, "combat");
     assert.equal(game.state.feedback.burst > 0, true);
     assert.equal(game.state.burstStocks, 0);
     assert.equal(game.renderGameToText().includes("\"grazeCharge\""), true);
@@ -106,6 +108,10 @@ test("runtime geometry, HUD sync, and render-study parsing stay stable across vi
     });
     game.init();
     assert.equal(game.state.playfield.active, true);
+    assert.equal(game.state.playfield.leftBayWidth, 0);
+    assert.equal(game.state.playfield.rightBayWidth, 0);
+    assert.equal(game.state.playfield.minX <= 80, true);
+    assert.equal(game.state.playfield.maxX >= fixture.window.innerWidth - 80, true);
     assert.equal(game.player.x >= game.state.playfield.minX && game.player.x <= game.state.playfield.maxX, true);
 
     fixture.window.innerWidth = 900;

@@ -49,7 +49,7 @@ If you change ordering, document why here. Collision timing, boss defeat timing,
 
 - [`../src/state/gameState.js`](../src/state/gameState.js): global run state, input flags, entity list, viewport metrics, scoring, boss/run lifecycle
 - [`../src/state/playerState.js`](../src/state/playerState.js): player position, speed, fire cadence, invulnerability, hit points, burst state, weapon mode, and viewport-derived movement bounds
-- [`../src/state/playfieldState.js`](../src/state/playfieldState.js): shared combat-lane geometry for desktop side bays, player bounds, and stage-safe playfield helpers
+- [`../src/state/playfieldState.js`](../src/state/playfieldState.js): shared combat-lane geometry for open desktop play, player bounds, and stage-safe playfield helpers
 - [`../src/entities/entityFactory.js`](../src/entities/entityFactory.js): entity IDs, lifecycle, and deferred deletion
 - [`../src/entities/components.js`](../src/entities/components.js): component payload shapes used by systems and renderers
 - [`../src/entities/entityBuckets.js`](../src/entities/entityBuckets.js): frame-local typed views used by collision and rendering

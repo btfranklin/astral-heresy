@@ -67,19 +67,10 @@ const fsSource = `
     if (u_laneActive > 0.5) {
       float laneMin = u_lane.x / u_resolution.x;
       float laneMax = u_lane.y / u_resolution.x;
-      float laneMask =
-        smoothstep(laneMin - 0.015, laneMin + 0.025, uv.x) *
-        (1.0 - smoothstep(laneMax - 0.025, laneMax + 0.015, uv.x));
-      float bayMask = 1.0 - laneMask;
-      float panelLeft = 0.5 + 0.5 * sin(uv.y * 30.0 + u_time * 0.55 + 0.8);
-      float panelRight = 0.5 + 0.5 * sin(uv.y * 26.0 - u_time * 0.45 + 2.1);
-      vec3 bayTint = mix(vec3(0.02, 0.05, 0.08), vec3(0.12, 0.17, 0.13), panelLeft * panelRight);
       float innerGlow =
         smoothstep(0.06, 0.0, abs(uv.x - laneMin)) +
         smoothstep(0.06, 0.0, abs(uv.x - laneMax));
-      base = mix(base, bayTint, bayMask * 0.72);
-      base *= 1.0 - bayMask * 0.14;
-      base += vec3(0.24, 0.34, 0.32) * innerGlow * 0.26;
+      base += vec3(0.24, 0.34, 0.32) * innerGlow * 0.1;
     }
 
     float vignette = smoothstep(1.1, 0.3, length(p));

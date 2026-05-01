@@ -137,9 +137,16 @@ test("showcase config, interface controller, and rendering helpers expose determ
     };
     player.activePowerups.haloShield = 10;
     controller.sync(state, player, stageDefinitions);
+    assert.equal(fixture.elements.interface.dataset.mode, "showcase");
     assert.equal(fixture.elements["boss-panel"].classList.contains("hidden"), false);
     assert.equal(fixture.elements["powerup-feed"].classList.contains("hidden"), false);
     assert.equal(fixture.elements["stage-name"].textContent.length > 0, true);
+
+    state.showcase = null;
+    controller.sync(state, player, stageDefinitions);
+    assert.equal(fixture.elements.interface.dataset.mode, "combat");
+    assert.equal(fixture.elements["boss-panel"].classList.contains("hidden"), true);
+    assert.equal(fixture.elements["powerup-feed"].classList.contains("hidden"), true);
 
     const ctx = createRecording2dContext();
     drawGlowCircle(ctx, 10, 20, 30, "#fff", 0.5);

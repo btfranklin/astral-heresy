@@ -104,14 +104,14 @@ Run this after gameplay, UI, or content edits:
 
 1. Start the local server.
 2. Load `/` and confirm the start dialog is visible.
-3. Launch a run and confirm the HUD updates from `Awaiting launch clearance` to active combat text.
+3. Launch a run and confirm the active HUD collapses to compact score, stage, runtime, hull, graze, burst, and weapon instruments.
 4. Fire, focus, burst with `X`, and toggle pointer steering with `M`.
-5. Confirm the desktop side bays read as non-playable space and the center lane is visually framed apart from them.
-6. Confirm graze, burst stock, weapon, chain, and loop HUD fields update without layout breakage.
-7. Collect at least one pickup and confirm the ephemeral acquisition text plus HUD feed entry appear immediately.
-8. Confirm the active-effects strip updates with weapon and timed utility/risk effects.
+5. Confirm the desktop playfield uses most of the viewport while preserving safe edge margins.
+6. Confirm graze, burst stock, weapon, chain, and loop cues update without layout breakage.
+7. Collect at least one pickup and confirm the in-world acquisition callout appears immediately.
+8. Confirm timed weapon and utility/risk effects appear as player-local canvas sigils.
 9. Hold movement or fire, blur the window or hide the tab, then return and confirm the ship is idle until new input is pressed.
-10. Force-spawn or wait for an enemy near the side boundary and confirm it never lives behind the HUD bay.
+10. Force-spawn or wait for an enemy near the playfield boundary and confirm it stays inside the playable envelope.
 11. Confirm restart behavior after a loss with `Enter` or `R`.
 12. Visit at least one enemy render-study URL and one boss render-study URL.
 13. Confirm the page still initializes on a browser with WebGL enabled.
@@ -144,8 +144,8 @@ That harness validates:
 
 - start-screen visibility before launch
 - launch and restart wiring
-- playfield geometry for desktop and tablet widths
-- interface copy and boss-panel sync
+- open playfield geometry for desktop and tablet widths
+- compact interface mode and render-study boss-panel sync
 - deterministic step and text-state hooks
 - burst input wiring and loop HUD reset
 - input reset on blur and visibility loss
@@ -154,7 +154,7 @@ That harness validates:
 
 The dedicated powerup lane validates:
 
-- acquisition notice and HUD feed timing
+- acquisition notice and in-world callout timing
 - `Burst Cell`, `Halo Shield`, `Chain Sigil`, `Graze Bloom`, `Magnet Core`
 - `Orbitals`, `Weakpoint Amplifier`, and `Point-Blank Seal`
 - score-shard routing and weakpoint-brand damage behavior
@@ -169,10 +169,10 @@ That lane validates:
 
 - page boot in a real browser
 - launch flow and restart wiring
-- side-bay framing and playfield geometry in the real browser
-- enemy clamping away from the HUD bay area
+- open playfield geometry in the real browser
+- enemy clamping inside the playable envelope
 - pickup acquisition callout visibility
-- active-effect HUD state
+- player-local active-effect cue state
 - shield-break, orbitals, amplifier-brand, and magnet-core scenes
 - one enemy render-study URL
 - one boss render-study URL

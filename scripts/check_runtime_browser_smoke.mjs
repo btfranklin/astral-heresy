@@ -116,9 +116,15 @@ async function main() {
     }
 
     const playfieldState = evalJson(
-      "(() => { const textState = JSON.parse(window.render_game_to_text()); return JSON.stringify({ active: textState.playfield.active, leftBayWidth: textState.playfield.leftBayWidth, rightBayWidth: textState.playfield.rightBayWidth, minX: textState.playfield.minX, maxX: textState.playfield.maxX, density: textState.density }); })()"
+      "(() => { const textState = JSON.parse(window.render_game_to_text()); return JSON.stringify({ active: textState.playfield.active, leftBayWidth: textState.playfield.leftBayWidth, rightBayWidth: textState.playfield.rightBayWidth, minX: textState.playfield.minX, maxX: textState.playfield.maxX, viewWidth: window.innerWidth, density: textState.density }); })()"
     );
-    if (!playfieldState.active || playfieldState.leftBayWidth <= 0 || playfieldState.rightBayWidth <= 0) {
+    if (
+      !playfieldState.active ||
+      playfieldState.leftBayWidth !== 0 ||
+      playfieldState.rightBayWidth !== 0 ||
+      playfieldState.minX > 80 ||
+      playfieldState.maxX < playfieldState.viewWidth - 80
+    ) {
       throw new Error(`Unexpected desktop playfield state: ${JSON.stringify(playfieldState)}`);
     }
     runPwcli("screenshot");
@@ -148,9 +154,9 @@ async function main() {
     runPwcli("screenshot");
 
     const pickupNotice = evalJson(
-      "(() => { const game = window.__astralHeresy; game.debugSpawnPickup('halo-shield', game.player.x, game.player.y, {}); window.advanceTime(16); return JSON.stringify({ noticeTitle: document.getElementById('powerup-notice-title').textContent, feedVisible: !document.getElementById('powerup-feed').classList.contains('hidden'), textState: JSON.parse(window.render_game_to_text()) }); })()"
+      "(() => { const game = window.__astralHeresy; game.debugSpawnPickup('halo-shield', game.player.x, game.player.y, {}); window.advanceTime(16); return JSON.stringify({ feedVisible: !document.getElementById('powerup-feed').classList.contains('hidden'), textState: JSON.parse(window.render_game_to_text()) }); })()"
     );
-    if (pickupNotice.noticeTitle !== "Halo Shield" || !pickupNotice.feedVisible || pickupNotice.textState.powerupNotice?.title !== "Halo Shield") {
+    if (pickupNotice.feedVisible || pickupNotice.textState.powerupNotice?.title !== "Halo Shield") {
       throw new Error(`Unexpected pickup notice state: ${JSON.stringify(pickupNotice)}`);
     }
     runPwcli("screenshot");

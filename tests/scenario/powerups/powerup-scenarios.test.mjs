@@ -14,7 +14,7 @@ import { updateMovement } from "../../../src/systems/movementSystem.js";
 import { updatePlayer } from "../../../src/systems/playerSystem.js";
 import { handleWithBuckets, makeAudioSpy, makeBossContext, makeState } from "../../helpers/fixtures.mjs";
 
-test("powerup notice and hud feed expiry are deterministic", () => {
+test("powerup notice and secondary callout timers are deterministic", () => {
   const { state, player } = makeState();
   const audio = makeAudioSpy();
   spawnPickup(state, "halo-shield", player.x, player.y, {});

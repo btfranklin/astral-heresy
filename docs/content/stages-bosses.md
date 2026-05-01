@@ -54,7 +54,7 @@ Stage `update()` owns:
 - `randomX(padding)`
 - `clampX(x, padding)`
 
-Use it instead of raw `view.width * 0.2..0.8` math so desktop side bays remain non-playable and enemy entries start just outside the combat lane instead of behind the HUD.
+Use it instead of raw `view.width * 0.2..0.8` math so authored content follows the current open desktop combat envelope and enemy entries start just outside the safe playfield edge.
 
 `director.gateWave({ enemyCost, bulletCost, priority })` is the shared soft-density gate for stage waves. It returns:
 

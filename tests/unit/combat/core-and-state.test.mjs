@@ -246,6 +246,10 @@ test("playfield helpers compute lane geometry, envelopes, and context projection
   const compact = createPlayfield(520, 900);
 
   assert.equal(desktop.active, true);
+  assert.equal(desktop.leftBayWidth, 0);
+  assert.equal(desktop.rightBayWidth, 0);
+  assert.equal(desktop.minX, 48);
+  assert.equal(desktop.maxX, 1232);
   assert.equal(tablet.active, false);
   assert.equal(compact.compactPortrait, true);
   assert.equal(getPlayfieldCenter(desktop), (desktop.minX + desktop.maxX) / 2);

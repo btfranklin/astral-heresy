@@ -88,8 +88,10 @@ export function createInterfaceController(documentRoot) {
           : stage
             ? state.stageTime / stage.duration
             : 1;
+      const interfaceMode = state.showcase ? "showcase" : state.over ? "over" : state.started ? "combat" : "idle";
 
       elements.shell.dataset.started = state.started ? "true" : "false";
+      elements.shell.dataset.mode = interfaceMode;
       setText(
         elements.statusCopy,
         state.showcase
@@ -165,7 +167,7 @@ export function createInterfaceController(documentRoot) {
       );
 
       const powerupNotice = state.powerupNotice;
-      const showPowerupFeed = powerupNotice && powerupNotice.hudTimer > 0;
+      const showPowerupFeed = state.showcase && powerupNotice && powerupNotice.hudTimer > 0;
       toggleClass(elements.powerupFeed, "hidden", !showPowerupFeed);
       if (showPowerupFeed) {
         setText(elements.powerupNoticeCategory, powerupNotice.category.toUpperCase());
@@ -204,7 +206,7 @@ export function createInterfaceController(documentRoot) {
               : "#e6fff8";
       });
 
-      if (state.boss) {
+      if (state.boss && state.showcase) {
         elements.bossPanel.classList.remove("hidden");
         setText(elements.bossName, state.boss.name);
         setText(

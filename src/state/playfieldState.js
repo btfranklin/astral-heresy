@@ -1,10 +1,6 @@
 const BASE_MARGIN_X = 20;
 const MIN_Y = 30;
-const DESKTOP_PLAYER_MARGIN_X = 34;
-const DESKTOP_RAIL_LEFT_MIN = 228;
-const DESKTOP_RAIL_LEFT_MAX = 292;
-const DESKTOP_RAIL_RIGHT_MIN = 216;
-const DESKTOP_RAIL_RIGHT_MAX = 276;
+const DESKTOP_SAFE_MARGIN_X = 48;
 const ENEMY_ENTRY_PADDING = 54;
 const BULLET_LANE_MARGIN = 72;
 
@@ -14,15 +10,15 @@ function clamp(value, min, max) {
 
 function getDesktopHudRails(width) {
   return {
-    left: Math.min(DESKTOP_RAIL_LEFT_MAX, Math.max(DESKTOP_RAIL_LEFT_MIN, width * 0.22)),
-    right: Math.min(DESKTOP_RAIL_RIGHT_MAX, Math.max(DESKTOP_RAIL_RIGHT_MIN, width * 0.2)),
+    left: 0,
+    right: 0,
   };
 }
 
 function buildVerticalBounds(width, height, compactPortrait, tabletHud) {
   const maxY = compactPortrait
     ? Math.max(MIN_Y, height - Math.max(260, height * 0.4))
-    : height - (tabletHud ? Math.max(150, height * 0.22) : 30);
+    : height - (tabletHud ? Math.max(150, height * 0.22) : Math.max(96, height * 0.12));
   return { minY: MIN_Y, maxY };
 }
 
@@ -32,8 +28,8 @@ export function createPlayfield(width, height) {
   const active = !compactPortrait && !tabletHud;
   const rails = active ? getDesktopHudRails(width) : { left: 0, right: 0 };
   const vertical = buildVerticalBounds(width, height, compactPortrait, tabletHud);
-  const minX = active ? rails.left + DESKTOP_PLAYER_MARGIN_X : BASE_MARGIN_X;
-  const maxX = active ? width - rails.right - DESKTOP_PLAYER_MARGIN_X : width - BASE_MARGIN_X;
+  const minX = active ? DESKTOP_SAFE_MARGIN_X : BASE_MARGIN_X;
+  const maxX = active ? width - DESKTOP_SAFE_MARGIN_X : width - BASE_MARGIN_X;
 
   return {
     active,

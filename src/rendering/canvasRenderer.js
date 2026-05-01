@@ -98,27 +98,10 @@ function drawPlayfieldFrame(ctx, state) {
   const left = state.playfield.minX;
   const right = state.playfield.maxX;
   const height = state.view.height;
-  const leftWidth = left;
-  const rightWidth = Math.max(0, state.view.width - right);
 
   ctx.save();
-
-  const leftGrad = ctx.createLinearGradient(0, 0, left, 0);
-  leftGrad.addColorStop(0, "rgba(4, 8, 18, 0.78)");
-  leftGrad.addColorStop(0.82, "rgba(8, 18, 28, 0.48)");
-  leftGrad.addColorStop(1, "rgba(12, 28, 34, 0.12)");
-  ctx.fillStyle = leftGrad;
-  ctx.fillRect(0, 0, leftWidth, height);
-
-  const rightGrad = ctx.createLinearGradient(right, 0, state.view.width, 0);
-  rightGrad.addColorStop(0, "rgba(12, 28, 34, 0.12)");
-  rightGrad.addColorStop(0.18, "rgba(8, 18, 28, 0.48)");
-  rightGrad.addColorStop(1, "rgba(4, 8, 18, 0.78)");
-  ctx.fillStyle = rightGrad;
-  ctx.fillRect(right, 0, rightWidth, height);
-
-  ctx.strokeStyle = "rgba(184, 243, 255, 0.24)";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(184, 243, 255, 0.13)";
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(left + 0.5, 0);
   ctx.lineTo(left + 0.5, height);
@@ -126,14 +109,14 @@ function drawPlayfieldFrame(ctx, state) {
   ctx.lineTo(right - 0.5, height);
   ctx.stroke();
 
-  ctx.strokeStyle = "rgba(255, 213, 142, 0.12)";
+  ctx.strokeStyle = "rgba(255, 213, 142, 0.08)";
   ctx.lineWidth = 1;
-  for (let y = 42; y < height; y += 76) {
+  for (let y = 52; y < height; y += 104) {
     ctx.beginPath();
-    ctx.moveTo(Math.max(18, left - 42), y);
-    ctx.lineTo(left - 8, y + 12);
-    ctx.moveTo(right + 8, y + 12);
-    ctx.lineTo(Math.min(state.view.width - 18, right + 42), y);
+    ctx.moveTo(Math.max(12, left - 20), y);
+    ctx.lineTo(left - 4, y + 8);
+    ctx.moveTo(right + 4, y + 8);
+    ctx.lineTo(Math.min(state.view.width - 12, right + 20), y);
     ctx.stroke();
   }
 
