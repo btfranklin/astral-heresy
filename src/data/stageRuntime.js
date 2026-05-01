@@ -22,3 +22,29 @@ export function resolveOneShotWave(stageState, key, t, ctx, options) {
   stageState[key] = t + gate.delay;
   return null;
 }
+
+export function runOneShotEncounter(
+  stageState,
+  t,
+  ctx,
+  { doneKey, retryKey, startTime, gate: gateOptions },
+  spawnEncounter
+) {
+  if (stageState[doneKey] || t < startTime) {
+    return null;
+  }
+
+  const wave = resolveOneShotWave(stageState, retryKey, t, ctx, gateOptions);
+  if (!wave) {
+    return null;
+  }
+
+  stageState[doneKey] = true;
+  spawnEncounter({
+    gate: wave.gate,
+    wave,
+    isFull: wave.mode === "full",
+    spawnEscorts: wave.mode === "full" && wave.gate.escortScale > 0.5,
+  });
+  return wave;
+}

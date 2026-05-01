@@ -17,7 +17,7 @@ import {
   powerupDefinitions,
 } from "../../../src/data/powerups.js";
 import { fireWeapon, getWeaponDefinition, listWeaponModes } from "../../../src/data/weapons.js";
-import { gateRecurringWave, resolveOneShotWave } from "../../../src/data/stageRuntime.js";
+import { gateRecurringWave, resolveOneShotWave, runOneShotEncounter } from "../../../src/data/stageRuntime.js";
 import { createBossInstance, getBossDefinition, listBossShowcaseEntries } from "../../../src/data/bosses.js";
 import { getEnemyArchetype, listEnemyShowcaseEntries } from "../../../src/data/enemies.js";
 import { getStageDefinition, stageDefinitions } from "../../../src/data/stages.js";
@@ -172,6 +172,79 @@ test("stage runtime helpers encode defer, full, and anchor fallback behavior", (
   }, { enemyCost: 3 });
   assert.equal(waitingOneShot, null);
   assert.equal(deferCalls, 1);
+
+  const encounterState = {};
+  const earlyEncounter = runOneShotEncounter(encounterState, 2.5, {
+    director: {
+      gateWave() {
+        throw new Error("Encounters should not gate before their start time.");
+      },
+    },
+  }, {
+    doneKey: "eliteDone",
+    retryKey: "nextEliteRetry",
+    startTime: 3,
+    gate: { enemyCost: 3 },
+  }, () => {});
+  assert.equal(earlyEncounter, null);
+
+  const deferredEncounter = runOneShotEncounter(encounterState, 3.1, {
+    director: {
+      gateWave() {
+        return { allow: false, delay: 0.75, bulletScale: 0.7, escortScale: 0, anchorOnly: false };
+      },
+    },
+  }, {
+    doneKey: "eliteDone",
+    retryKey: "nextEliteRetry",
+    startTime: 3,
+    gate: { enemyCost: 3 },
+  }, () => {
+    throw new Error("Deferred encounters should not run spawn callbacks.");
+  });
+  assert.equal(deferredEncounter, null);
+  assert.equal(encounterState.eliteDone, undefined);
+  assert.equal(encounterState.nextEliteRetry, 3.85);
+
+  const anchorState = {};
+  let anchorResult = null;
+  runOneShotEncounter(anchorState, 5, {
+    director: {
+      gateWave() {
+        return { allow: false, delay: 0.5, bulletScale: 0.72, escortScale: 0, anchorOnly: true };
+      },
+    },
+  }, {
+    doneKey: "eliteDone",
+    retryKey: "nextEliteRetry",
+    startTime: 5,
+    gate: { enemyCost: 3 },
+  }, (result) => {
+    anchorResult = result;
+  });
+  assert.equal(anchorState.eliteDone, true);
+  assert.equal(anchorResult.isFull, false);
+  assert.equal(anchorResult.spawnEscorts, false);
+
+  const fullState = {};
+  let fullResult = null;
+  runOneShotEncounter(fullState, 7, {
+    director: {
+      gateWave() {
+        return { allow: true, delay: 0, bulletScale: 1, escortScale: 1, anchorOnly: false };
+      },
+    },
+  }, {
+    doneKey: "setpieceDone",
+    retryKey: "nextSetpieceRetry",
+    startTime: 7,
+    gate: { enemyCost: 3 },
+  }, (result) => {
+    fullResult = result;
+  });
+  assert.equal(fullState.setpieceDone, true);
+  assert.equal(fullResult.isFull, true);
+  assert.equal(fullResult.spawnEscorts, true);
 });
 
 test("content registries expose keyed lookups, showcase listings, and boss instantiation", () => {

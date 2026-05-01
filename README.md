@@ -27,7 +27,6 @@ Then open `http://127.0.0.1:7666/`.
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md): game loop, domains, and dependency rules
 - [`docs/QUALITY.md`](./docs/QUALITY.md): verification matrix and quality invariants
 - [`docs/RUNTIME.md`](./docs/RUNTIME.md): runbook, debug surfaces, and smoke-test flow
-- [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md): prioritized structural debt and cleanup targets
 - [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md): content authoring contract
 - [`docs/generated/content-inventory.md`](./docs/generated/content-inventory.md): generated reference for stages, bosses, phases, and render-study keys
 

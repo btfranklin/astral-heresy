@@ -1,6 +1,6 @@
-import { resetGameState } from "../state/gameState.js";
 import { createPlayfield } from "../state/playfieldState.js";
-import { getPlayerBounds, resetPlayerState } from "../state/playerState.js";
+import { getPlayerBounds } from "../state/playerState.js";
+import { resetFreshRunState } from "../state/runReset.js";
 import { createShowcaseScene } from "../debug/showcase.js";
 import { sfxStart } from "../audio/sfx.js";
 
@@ -109,10 +109,8 @@ export function createRuntimeController({
   }
 
   function prepareFreshState() {
-    resetGameState(state);
-    resetPlayerState(player, state.view.width, state.view.height);
+    resetFreshRunState(state, player);
     audio.engine.lastShot = 0;
-    resetPointers();
   }
 
   function activateShowcase(config) {

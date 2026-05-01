@@ -72,6 +72,7 @@ Run the smallest lane that actually covers the change, then widen out if the edi
   - Compatibility wrapper for the `runtime` fast-test group.
 - `node scripts/check_runtime_browser_smoke.mjs`
   - Optional real-browser pass for browser-visible changes that need screenshot-backed confirmation.
+  - Prefer this lane for subtle visual, framing, or gameplay-readability changes that are hard to judge from browserless assertions alone.
 
 ## Repair Expectations
 
@@ -84,4 +85,3 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 - Architecture questions: [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - Runtime repros and manual smoke flow: [`RUNTIME.md`](./RUNTIME.md)
 - Stage and boss authoring rules: [`content/stages-bosses.md`](./content/stages-bosses.md)
-- Current known hotspots and cleanup priorities: [`TECH-DEBT.md`](./TECH-DEBT.md)

@@ -1,7 +1,7 @@
 import { lerp, rand } from "../../core/math.js";
 import { scaledCount } from "../../core/director.js";
 import { emitAimedBurst, emitRadial, emitSpiral } from "../patterns.js";
-import { gateRecurringWave, resolveOneShotWave } from "../stageRuntime.js";
+import { gateRecurringWave, runOneShotEncounter } from "../stageRuntime.js";
 
 export const stageAbyss = {
   key: "abyssal-cathedral",
@@ -195,16 +195,17 @@ export const stageAbyss = {
       }
     }
 
-    if (!stageState.gauntletDone && t >= 11) {
-      const wave = resolveOneShotWave(stageState, "nextGauntletRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "gauntletDone",
+      retryKey: "nextGauntletRetry",
+      startTime: 11,
+      gate: {
         enemyCost: 6,
         bulletCost: 20,
         priority: "setpiece",
-      });
-      if (wave) {
-        stageState.gauntletDone = true;
-        const gate = wave.gate;
-        if (wave.mode === "full") {
+      },
+    }, ({ gate, isFull }) => {
+        if (isFull) {
           for (const laneFraction of [0.22, 0.34, 0.5, 0.66, 0.78]) {
             ctx.spawnEnemy("spear", {
               x: lane.laneX(laneFraction),
@@ -260,18 +261,18 @@ export const stageAbyss = {
             }
           },
         });
-      }
-    }
+    });
 
-    if (!stageState.singularityDone && t >= 16) {
-      const wave = resolveOneShotWave(stageState, "nextSingularityRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "singularityDone",
+      retryKey: "nextSingularityRetry",
+      startTime: 16,
+      gate: {
         enemyCost: 3,
         bulletCost: 16,
         priority: "setpiece",
-      });
-      if (wave) {
-        stageState.singularityDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("throne", {
           x: lane.laneX(0.5),
           y: -54,
@@ -299,7 +300,7 @@ export const stageAbyss = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const side of [-1, 1]) {
             ctx.spawnEnemy("fang", {
               x: lane.laneX(0.5) + side * 132,
@@ -323,18 +324,18 @@ export const stageAbyss = {
             });
           }
         }
-      }
-    }
+    });
 
-    if (!stageState.eliteDone && t >= 20) {
-      const wave = resolveOneShotWave(stageState, "nextEliteRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "eliteDone",
+      retryKey: "nextEliteRetry",
+      startTime: 20,
+      gate: {
         enemyCost: 3,
         bulletCost: 20,
         priority: "elite",
-      });
-      if (wave) {
-        stageState.eliteDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("throne", {
           x: lane.laneX(0.5),
           y: -68,
@@ -383,7 +384,7 @@ export const stageAbyss = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const side of [-1, 1]) {
             ctx.spawnEnemy("fang", {
               x: lane.laneX(0.5) + side * 120,
@@ -408,18 +409,18 @@ export const stageAbyss = {
             });
           }
         }
-      }
-    }
+    });
 
-    if (!stageState.sealDone && t >= 25.2) {
-      const wave = resolveOneShotWave(stageState, "nextSealRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "sealDone",
+      retryKey: "nextSealRetry",
+      startTime: 25.2,
+      gate: {
         enemyCost: 3,
         bulletCost: 14,
         priority: "setpiece",
-      });
-      if (wave) {
-        stageState.sealDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("spear", {
           x: lane.laneX(0.5),
           y: -40,
@@ -446,7 +447,7 @@ export const stageAbyss = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const side of [-1, 1]) {
             ctx.spawnEnemy("throne", {
               x: lane.laneX(0.5) + side * 160,
@@ -471,7 +472,6 @@ export const stageAbyss = {
             });
           }
         }
-      }
-    }
+    });
   },
 };

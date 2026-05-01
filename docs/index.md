@@ -9,7 +9,6 @@ This directory is the system of record for repository knowledge that should surv
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md): domain map, update loop, and dependency rules
 - [`QUALITY.md`](./QUALITY.md): verification matrix and golden repo invariants
 - [`RUNTIME.md`](./RUNTIME.md): runbook, debug surfaces, and smoke-test flows
-- [`TECH-DEBT.md`](./TECH-DEBT.md): prioritized structural debt and next cleanup investments
 - [`content/stages-bosses.md`](./content/stages-bosses.md): stage and boss authoring contract
 - [`generated/content-inventory.md`](./generated/content-inventory.md): generated reference for stages, bosses, phases, showcase keys, and pattern helpers
 
@@ -18,7 +17,7 @@ This directory is the system of record for repository knowledge that should surv
 - Keep docs additive and linked. Prefer a short index plus targeted documents over one giant page.
 - When behavior depends on runtime interaction, add the repro path to [`RUNTIME.md`](./RUNTIME.md).
 - When a new recurring verification rule appears, add it to [`QUALITY.md`](./QUALITY.md).
-- When the repo accumulates structural debt that future agents would otherwise rediscover in review, record it in [`TECH-DEBT.md`](./TECH-DEBT.md).
+- When structural pressure is likely to recur, encode the intended boundary in the owning doc, helper, or test instead of leaving it as an external note.
 - When gameplay/content structure changes, refresh [`generated/content-inventory.md`](./generated/content-inventory.md) with `python3 scripts/generate_content_inventory.py`.
 - Use `node scripts/validate_fast.mjs` as the default fast verification gate before wider manual/browser checks.
 - Use `node scripts/run_fast_tests.mjs all` when you want the full deterministic behavioral suite without the repo-artifact pass.

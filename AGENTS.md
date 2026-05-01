@@ -9,7 +9,6 @@ Use this file as a router. The durable source of truth for non-trivial repo know
 - Architecture map: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
 - Quality and verification map: [`docs/QUALITY.md`](./docs/QUALITY.md)
 - Runtime inspection and smoke-test paths: [`docs/RUNTIME.md`](./docs/RUNTIME.md)
-- Known structural debt and next cleanup targets: [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md)
 - Stage and boss authoring model: [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md)
 - Generated gameplay inventory: [`docs/generated/content-inventory.md`](./docs/generated/content-inventory.md)
 
@@ -23,8 +22,6 @@ Use this file as a router. The durable source of truth for non-trivial repo know
   [`docs/RUNTIME.md`](./docs/RUNTIME.md)
 - Which checks to run for a change:
   [`docs/QUALITY.md`](./docs/QUALITY.md)
-- Structural debt, cleanup targets, or known hotspots:
-  [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md)
 - Refreshing generated references:
   `python3 scripts/generate_content_inventory.py`
 - Running the default fast validation gate:

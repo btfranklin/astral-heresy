@@ -44,6 +44,7 @@ import {
   getPlayerBounds,
   resetPlayerState,
 } from "../../../src/state/playerState.js";
+import { resetFreshRunState, resetLoopTransitionState } from "../../../src/state/runReset.js";
 import {
   clampToEnemyEnvelope,
   clampToLane,
@@ -238,6 +239,56 @@ test("game state and player state create and reset their defaults", () => {
   resetPlayerState(player, 1280, 720);
   assert.equal(player.hp, 5);
   assert.equal(player.weaponMode, "base");
+});
+
+test("run reset helpers centralize fresh starts and loop transitions", () => {
+  const state = createGameState();
+  state.view.width = 1280;
+  state.view.height = 720;
+  const player = createPlayerState(1280, 720);
+
+  state.started = true;
+  state.entities.push(createEntity("enemy", { position: position(0, 0) }));
+  player.hp = 1;
+  player.weaponMode = "beam";
+  player.weaponLabel = "Beam";
+  player.weaponTimer = 4;
+  resetFreshRunState(state, player);
+  assert.equal(state.started, false);
+  assert.equal(state.entities.length, 0);
+  assert.equal(player.hp, 5);
+  assert.equal(state.input.pointerX, player.x);
+  assert.equal(state.input.pointerY, player.y);
+
+  state.stageIndex = 3;
+  state.stageTime = 12;
+  state.stageState = { stale: true };
+  state.feedback.loop = 0;
+  state.burstStocks = 2;
+  state.grazeCharge = 80;
+  player.hp = 2;
+  player.invuln = 0;
+  player.weaponMode = "orbitals";
+  player.weaponLabel = "Orbitals";
+  player.weaponTimer = 6;
+  player.pendingBurst = true;
+  player.activePowerups.haloShield = 10;
+  resetLoopTransitionState(state, player);
+
+  assert.equal(state.loopIndex, 1);
+  assert.equal(state.stageIndex, 0);
+  assert.equal(state.stageTime, 0);
+  assert.equal(state.stageState, null);
+  assert.equal(state.feedback.loop, 1.2);
+  assert.equal(state.burstStocks, 1);
+  assert.equal(state.grazeCharge, 0);
+  assert.equal(player.hp, 5);
+  assert.equal(player.invuln, 1.4);
+  assert.equal(player.weaponMode, "base");
+  assert.equal(player.weaponLabel, "Standard");
+  assert.equal(player.weaponTimer, 0);
+  assert.equal(player.pendingBurst, false);
+  assert.equal(player.activePowerups.haloShield, 0);
 });
 
 test("playfield helpers compute lane geometry, envelopes, and context projections", async () => {

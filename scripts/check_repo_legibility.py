@@ -17,7 +17,6 @@ REQUIRED_FILES = [
     "docs/ARCHITECTURE.md",
     "docs/QUALITY.md",
     "docs/RUNTIME.md",
-    "docs/TECH-DEBT.md",
     "docs/content/stages-bosses.md",
     "docs/generated/content-inventory.md",
     "scripts/generate_content_inventory.py",
@@ -44,7 +43,6 @@ MARKDOWN_FILES = [
     "docs/ARCHITECTURE.md",
     "docs/QUALITY.md",
     "docs/RUNTIME.md",
-    "docs/TECH-DEBT.md",
     "docs/content/stages-bosses.md",
     "docs/generated/content-inventory.md",
 ]

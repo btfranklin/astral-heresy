@@ -183,4 +183,5 @@ That lane validates:
 - WebGL is required for the animated background. Failure is surfaced through an alert in the composition root.
 - The repo has no build step. Browser-native ES modules are the execution model.
 - Randomness is not seeded. If determinism matters, document the intended RNG boundary before changing it.
+- Subtle visual or gameplay framing changes should get a real-browser smoke pass when possible; screenshots catch readability issues that the browserless harness intentionally does not judge.
 - `window.__astralHeresy.dispose()` is available for teardown-aware debugging and tests.

@@ -1,7 +1,7 @@
 import { lerp, rand } from "../../core/math.js";
 import { scaledCount } from "../../core/director.js";
 import { emitAimedBurst, emitRadial, emitSpiral } from "../patterns.js";
-import { gateRecurringWave, resolveOneShotWave } from "../stageRuntime.js";
+import { gateRecurringWave, runOneShotEncounter } from "../stageRuntime.js";
 
 export const stageCrystal = {
   key: "crystalline-choir",
@@ -222,16 +222,17 @@ export const stageCrystal = {
       }
     }
 
-    if (!stageState.latticeDone && t >= 11) {
-      const wave = resolveOneShotWave(stageState, "nextLatticeRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "latticeDone",
+      retryKey: "nextLatticeRetry",
+      startTime: 11,
+      gate: {
         enemyCost: 7,
         bulletCost: 18,
         priority: "setpiece",
-      });
-      if (wave) {
-        stageState.latticeDone = true;
-        const gate = wave.gate;
-        const latticeFractions = wave.mode === "full" ? [0.22, 0.5, 0.78] : [0.5];
+      },
+    }, ({ gate, isFull, spawnEscorts }) => {
+        const latticeFractions = isFull ? [0.22, 0.5, 0.78] : [0.5];
         for (const laneFraction of latticeFractions) {
           ctx.spawnEnemy("weaver", {
             x: lane.laneX(laneFraction),
@@ -268,7 +269,7 @@ export const stageCrystal = {
             },
           });
         }
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (let i = 0; i < 4; i++) {
             ctx.spawnEnemy("shard", {
               x: lane.laneX((i + 0.5) / 4),
@@ -292,18 +293,18 @@ export const stageCrystal = {
             });
           }
         }
-      }
-    }
+    });
 
-    if (!stageState.eliteDone && t >= 18) {
-      const wave = resolveOneShotWave(stageState, "nextEliteRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "eliteDone",
+      retryKey: "nextEliteRetry",
+      startTime: 18,
+      gate: {
         enemyCost: 3,
         bulletCost: 18,
         priority: "elite",
-      });
-      if (wave) {
-        stageState.eliteDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("weaver", {
           x: lane.laneX(0.5),
           y: -40,
@@ -352,7 +353,7 @@ export const stageCrystal = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const offset of [-110, 110]) {
             ctx.spawnEnemy("shard", {
               x: lane.laneX(0.5) + offset,
@@ -377,18 +378,18 @@ export const stageCrystal = {
             });
           }
         }
-      }
-    }
+    });
 
-    if (!stageState.amplifierEliteDone && t >= 23) {
-      const wave = resolveOneShotWave(stageState, "nextAmplifierEliteRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "amplifierEliteDone",
+      retryKey: "nextAmplifierEliteRetry",
+      startTime: 23,
+      gate: {
         enemyCost: 3,
         bulletCost: 16,
         priority: "elite",
-      });
-      if (wave) {
-        stageState.amplifierEliteDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("harp", {
           x: lane.laneX(0.5),
           y: -46,
@@ -438,7 +439,7 @@ export const stageCrystal = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const offset of [-132, 132]) {
             ctx.spawnEnemy("shard", {
               x: lane.laneX(0.5) + offset,
@@ -462,18 +463,19 @@ export const stageCrystal = {
             });
           }
         }
-      }
-    }
+    });
 
-    if (inLoopTwo && !stageState.chainSigilDone && t >= 24.6) {
-      const wave = resolveOneShotWave(stageState, "nextChainSigilRetry", t, ctx, {
-        enemyCost: 3,
-        bulletCost: 14,
-        priority: "setpiece",
-      });
-      if (wave) {
-        stageState.chainSigilDone = true;
-        const gate = wave.gate;
+    if (inLoopTwo) {
+      runOneShotEncounter(stageState, t, ctx, {
+        doneKey: "chainSigilDone",
+        retryKey: "nextChainSigilRetry",
+        startTime: 24.6,
+        gate: {
+          enemyCost: 3,
+          bulletCost: 14,
+          priority: "setpiece",
+        },
+      }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("harp", {
           x: lane.laneX(0.5),
           y: -42,
@@ -501,7 +503,7 @@ export const stageCrystal = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const offset of [-150, 150]) {
             ctx.spawnEnemy("shard", {
               x: lane.laneX(0.5) + offset,
@@ -525,7 +527,7 @@ export const stageCrystal = {
             });
           }
         }
-      }
+      });
     }
   },
 };

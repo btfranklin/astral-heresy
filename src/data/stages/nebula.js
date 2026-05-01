@@ -1,7 +1,7 @@
 import { lerp, rand } from "../../core/math.js";
 import { scaledCount } from "../../core/director.js";
 import { emitAimedBurst, emitRadial, emitSpiral } from "../patterns.js";
-import { gateRecurringWave, resolveOneShotWave } from "../stageRuntime.js";
+import { gateRecurringWave, runOneShotEncounter } from "../stageRuntime.js";
 
 export const stageNebula = {
   key: "nebula-gate",
@@ -228,17 +228,18 @@ export const stageNebula = {
       }
     }
 
-    if (!stageState.corridorDone && t >= 12) {
-      const wave = resolveOneShotWave(stageState, "nextCorridorRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "corridorDone",
+      retryKey: "nextCorridorRetry",
+      startTime: 12,
+      gate: {
         enemyCost: 6,
         bulletCost: 18,
         priority: "setpiece",
-      });
-      if (wave) {
-        stageState.corridorDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, isFull, spawnEscorts }) => {
         const corridorCount = scaledCount(10, gate.bulletScale, 7);
-        const corridorFractions = wave.mode === "full" ? [0.24, 0.38, 0.62, 0.76] : [0.38];
+        const corridorFractions = isFull ? [0.24, 0.38, 0.62, 0.76] : [0.38];
         for (const laneFraction of corridorFractions) {
           ctx.spawnEnemy("halo", {
             x: lane.laneX(laneFraction),
@@ -266,7 +267,7 @@ export const stageNebula = {
             },
           });
         }
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const side of [-1, 1]) {
             ctx.spawnEnemy("cherub", {
               x: side < 0 ? lane.leftEdge - 44 : lane.rightEdge + 44,
@@ -298,18 +299,18 @@ export const stageNebula = {
             });
           }
         }
-      }
-    }
+    });
 
-    if (!stageState.eliteDone && t >= 17.5) {
-      const wave = resolveOneShotWave(stageState, "nextEliteRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "eliteDone",
+      retryKey: "nextEliteRetry",
+      startTime: 17.5,
+      gate: {
         enemyCost: 3,
         bulletCost: 16,
         priority: "elite",
-      });
-      if (wave) {
-        stageState.eliteDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("halo", {
           x: lane.laneX(0.5),
           y: -60,
@@ -357,7 +358,7 @@ export const stageNebula = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const side of [-1, 1]) {
             ctx.spawnEnemy("cherub", {
               x: lane.laneX(0.5) + side * 96,
@@ -389,18 +390,18 @@ export const stageNebula = {
             });
           }
         }
-      }
-    }
+    });
 
-    if (!stageState.orbitalsEliteDone && t >= 22) {
-      const wave = resolveOneShotWave(stageState, "nextOrbitalsEliteRetry", t, ctx, {
+    runOneShotEncounter(stageState, t, ctx, {
+      doneKey: "orbitalsEliteDone",
+      retryKey: "nextOrbitalsEliteRetry",
+      startTime: 22,
+      gate: {
         enemyCost: 3,
         bulletCost: 14,
         priority: "elite",
-      });
-      if (wave) {
-        stageState.orbitalsEliteDone = true;
-        const gate = wave.gate;
+      },
+    }, ({ gate, spawnEscorts }) => {
         ctx.spawnEnemy("oracle", {
           x: lane.laneX(0.5),
           y: -54,
@@ -456,7 +457,7 @@ export const stageNebula = {
             }
           },
         });
-        if (wave.mode === "full" && gate.escortScale > 0.5) {
+        if (spawnEscorts) {
           for (const side of [-1, 1]) {
             ctx.spawnEnemy("cherub", {
               x: lane.laneX(0.5) + side * 132,
@@ -488,7 +489,6 @@ export const stageNebula = {
             });
           }
         }
-      }
-    }
+    });
   },
 };

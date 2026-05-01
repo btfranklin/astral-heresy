@@ -77,6 +77,7 @@ Shared helpers in [`../../src/data/stageRuntime.js`](../../src/data/stageRuntime
 
 - `gateRecurringWave(stageState, key, t, ctx, options)` retries recurring beats after `delay` when the gate defers them.
 - `resolveOneShotWave(stageState, key, t, ctx, options)` collapses one-shot authored encounters into `full` or `anchor` spawn modes. When the gate defers the encounter, it stores `t + delay` on `stageState[key]` and returns `null`, so callers must not mark the encounter done until a wave object is returned.
+- `runOneShotEncounter(stageState, t, ctx, config, spawnEncounter)` is the preferred wrapper for authored one-shot elite and setpiece beats. It centralizes start time, retry key, done flag, density gate, anchor mode, and escort gating while leaving the actual enemy/fire closures explicit in the stage file.
 
 ## Enemy Archetype Contract
 
@@ -108,6 +109,8 @@ Useful override fields:
 `spawnOptions.laneAware` defaults to `true` in normal runtime content. Only debug/showcase paths should disable it.
 
 Weapon pickups should stay attached to elite encounters through `dropKey`. Utility and risk pickups can also be attached to non-elite setpiece anchors or exposed danger beats, but they should remain authored and non-random. `dropKey` values now come from [`../../src/data/powerups.js`](../../src/data/powerups.js), not only `src/data/weapons.js`.
+
+Balance tuning currently lives in authored content and smoke expectations, not in a formal tuning spec. If tuning rules become unstable across stages, add a dedicated design note under `docs/content/` before spreading balance policy through stage files.
 
 The concrete entity/component shell is assembled by the enemy system and entity/component helpers. Stage code should define behavior, not entity bookkeeping.
 
