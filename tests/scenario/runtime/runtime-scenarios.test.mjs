@@ -127,6 +127,37 @@ test("runtime geometry, HUD sync, and render-study parsing stay stable across vi
   });
 });
 
+test("boss-fight resize keeps player and pointer inside the active viewport bounds", async () => {
+  await withDomFixture("", (fixture) => {
+    const game = createGame({
+      bgCanvas: fixture.elements.bg,
+      gameCanvas: fixture.elements.game,
+      startScreen: fixture.elements["start-screen"],
+      startButton: fixture.elements["start-button"],
+      endScreen: fixture.elements["end-screen"],
+      restartButton: fixture.elements["restart-button"],
+      documentRoot: fixture.document,
+    });
+    game.init();
+    fixture.elements["start-button"].click();
+
+    game.state.boss = {};
+    game.player.x = 1200;
+    game.player.y = 700;
+    game.state.input.pointerX = 1200;
+    game.state.input.pointerY = 700;
+
+    fixture.window.innerWidth = 520;
+    fixture.window.innerHeight = 900;
+    fixture.window.dispatchEvent({ type: "resize" });
+
+    assert.equal(game.player.x <= game.state.playfield.maxX, true);
+    assert.equal(game.player.y <= game.state.playfield.maxY, true);
+    assert.equal(game.state.input.pointerX <= game.state.playfield.maxX, true);
+    assert.equal(game.state.input.pointerY <= game.state.playfield.maxY, true);
+  });
+});
+
 test("displayed runtime freezes at the loss moment even if simulation frames continue", async () => {
   await withDomFixture("", (fixture) => {
     const game = createGame({

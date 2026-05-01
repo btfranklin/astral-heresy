@@ -229,12 +229,12 @@ export const stageNebula = {
     }
 
     if (!stageState.corridorDone && t >= 12) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextCorridorRetry", t, ctx, {
         enemyCost: 6,
         bulletCost: 18,
         priority: "setpiece",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.corridorDone = true;
         const gate = wave.gate;
         const corridorCount = scaledCount(10, gate.bulletScale, 7);
@@ -302,12 +302,12 @@ export const stageNebula = {
     }
 
     if (!stageState.eliteDone && t >= 17.5) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextEliteRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 16,
         priority: "elite",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.eliteDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("halo", {
@@ -393,12 +393,12 @@ export const stageNebula = {
     }
 
     if (!stageState.orbitalsEliteDone && t >= 22) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextOrbitalsEliteRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 14,
         priority: "elite",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.orbitalsEliteDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("oracle", {

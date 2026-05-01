@@ -76,7 +76,7 @@ The runtime refreshes live density and resets the director's same-frame reservat
 Shared helpers in [`../../src/data/stageRuntime.js`](../../src/data/stageRuntime.js) keep these semantics consistent:
 
 - `gateRecurringWave(stageState, key, t, ctx, options)` retries recurring beats after `delay` when the gate defers them.
-- `resolveOneShotWave(ctx, options)` collapses one-shot authored encounters into `full`, `anchor`, or `defer`.
+- `resolveOneShotWave(stageState, key, t, ctx, options)` collapses one-shot authored encounters into `full` or `anchor` spawn modes. When the gate defers the encounter, it stores `t + delay` on `stageState[key]` and returns `null`, so callers must not mark the encounter done until a wave object is returned.
 
 ## Enemy Archetype Contract
 

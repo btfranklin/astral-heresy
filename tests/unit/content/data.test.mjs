@@ -135,8 +135,9 @@ test("stage runtime helpers encode defer, full, and anchor fallback behavior", (
   assert.equal(deferred, null);
   assert.equal(stageState.nextWave, 1.5);
 
+  const oneShotState = {};
   assert.deepEqual(
-    resolveOneShotWave({
+    resolveOneShotWave(oneShotState, "nextEliteRetry", 2, {
       director: {
         gateWave() {
           return { allow: false, delay: 0.5, bulletScale: 0.72, escortScale: 0, anchorOnly: true };
@@ -148,6 +149,29 @@ test("stage runtime helpers encode defer, full, and anchor fallback behavior", (
       gate: { allow: false, delay: 0.5, bulletScale: 0.72, escortScale: 0, anchorOnly: true },
     }
   );
+
+  let deferCalls = 0;
+  const deferredOneShot = resolveOneShotWave(oneShotState, "nextSetpieceRetry", 4, {
+    director: {
+      gateWave() {
+        deferCalls += 1;
+        return { allow: false, delay: 0.75, bulletScale: 0.7, escortScale: 0, anchorOnly: false };
+      },
+    },
+  }, { enemyCost: 3 });
+  assert.equal(deferredOneShot, null);
+  assert.equal(oneShotState.nextSetpieceRetry, 4.75);
+
+  const waitingOneShot = resolveOneShotWave(oneShotState, "nextSetpieceRetry", 4.2, {
+    director: {
+      gateWave() {
+        deferCalls += 1;
+        return { allow: true, delay: 0, bulletScale: 1, escortScale: 1, anchorOnly: false };
+      },
+    },
+  }, { enemyCost: 3 });
+  assert.equal(waitingOneShot, null);
+  assert.equal(deferCalls, 1);
 });
 
 test("content registries expose keyed lookups, showcase listings, and boss instantiation", () => {

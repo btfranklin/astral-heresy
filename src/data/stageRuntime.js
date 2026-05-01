@@ -7,7 +7,11 @@ export function gateRecurringWave(stageState, key, t, ctx, options) {
   return gate;
 }
 
-export function resolveOneShotWave(ctx, options) {
+export function resolveOneShotWave(stageState, key, t, ctx, options) {
+  if ((stageState[key] || 0) > t) {
+    return null;
+  }
+
   const gate = ctx.director.gateWave(options);
   if (gate.allow) {
     return { mode: "full", gate };
@@ -15,5 +19,6 @@ export function resolveOneShotWave(ctx, options) {
   if (gate.anchorOnly) {
     return { mode: "anchor", gate };
   }
-  return { mode: "defer", gate };
+  stageState[key] = t + gate.delay;
+  return null;
 }

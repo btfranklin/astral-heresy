@@ -6,6 +6,7 @@ import { combatTuning } from "../../../src/core/combat.js";
 import { createBossInstance } from "../../../src/data/bosses.js";
 import { stageDefinitions } from "../../../src/data/stages.js";
 import { stageAbyss } from "../../../src/data/stages/abyss.js";
+import { stageCrystal } from "../../../src/data/stages/crystal.js";
 import { stageNebula } from "../../../src/data/stages/nebula.js";
 import { createPlayfield, createPlayfieldContext, getBulletEnvelope } from "../../../src/state/playfieldState.js";
 import { updateBoss, defeatBoss } from "../../../src/systems/bossSystem.js";
@@ -261,6 +262,149 @@ test("stage director reservations and one-shot fallbacks stay authoritative with
   });
   assert.equal(setpieceSpawns.length, 1);
   assert.equal(setpieceSpawns[0].archetypeKey, "throne");
+});
+
+test("authored one-shot stage beats honor density retry delays", () => {
+  const cases = [
+    {
+      label: "nebula corridor",
+      stage: stageNebula,
+      time: 12.1,
+      doneKey: "corridorDone",
+    },
+    {
+      label: "nebula halo elite",
+      stage: stageNebula,
+      time: 17.6,
+      doneKey: "eliteDone",
+      setup: (stageState) => {
+        stageState.corridorDone = true;
+      },
+    },
+    {
+      label: "nebula orbitals elite",
+      stage: stageNebula,
+      time: 22.1,
+      doneKey: "orbitalsEliteDone",
+      setup: (stageState) => {
+        stageState.corridorDone = true;
+        stageState.eliteDone = true;
+      },
+    },
+    {
+      label: "crystal lattice",
+      stage: stageCrystal,
+      time: 11.1,
+      doneKey: "latticeDone",
+    },
+    {
+      label: "crystal pierce elite",
+      stage: stageCrystal,
+      time: 18.1,
+      doneKey: "eliteDone",
+      setup: (stageState) => {
+        stageState.latticeDone = true;
+      },
+    },
+    {
+      label: "crystal amplifier elite",
+      stage: stageCrystal,
+      time: 23.1,
+      doneKey: "amplifierEliteDone",
+      setup: (stageState) => {
+        stageState.latticeDone = true;
+        stageState.eliteDone = true;
+      },
+    },
+    {
+      label: "crystal chain sigil",
+      stage: stageCrystal,
+      time: 24.7,
+      doneKey: "chainSigilDone",
+      loopIndex: 1,
+      setup: (stageState) => {
+        stageState.latticeDone = true;
+        stageState.eliteDone = true;
+        stageState.amplifierEliteDone = true;
+      },
+    },
+    {
+      label: "abyss gauntlet",
+      stage: stageAbyss,
+      time: 11.1,
+      doneKey: "gauntletDone",
+    },
+    {
+      label: "abyss singularity",
+      stage: stageAbyss,
+      time: 16.1,
+      doneKey: "singularityDone",
+      setup: (stageState) => {
+        stageState.gauntletDone = true;
+      },
+    },
+    {
+      label: "abyss elite",
+      stage: stageAbyss,
+      time: 20.1,
+      doneKey: "eliteDone",
+      setup: (stageState) => {
+        stageState.gauntletDone = true;
+        stageState.singularityDone = true;
+      },
+    },
+    {
+      label: "abyss seal",
+      stage: stageAbyss,
+      time: 25.3,
+      doneKey: "sealDone",
+      setup: (stageState) => {
+        stageState.gauntletDone = true;
+        stageState.singularityDone = true;
+        stageState.eliteDone = true;
+      },
+    },
+  ];
+
+  for (const scenario of cases) {
+    const { state, player } = makeState();
+    const stageState = scenario.stage.init();
+    for (const key of Object.keys(stageState)) {
+      if (key.startsWith("next")) {
+        stageState[key] = 99;
+      }
+    }
+    scenario.setup?.(stageState);
+
+    const spawns = [];
+    let gateCalls = 0;
+    const ctx = {
+      view: state.view,
+      player,
+      playfield: createPlayfieldContext(state),
+      loopIndex: scenario.loopIndex || 0,
+      director: {
+        gateWave() {
+          gateCalls += 1;
+          return { allow: false, delay: 0.6, bulletScale: 0.7, escortScale: 0, anchorOnly: false };
+        },
+      },
+      spawnEnemy(archetypeKey, overrides = {}) {
+        spawns.push({ archetypeKey, overrides });
+      },
+      spawnEnemyBullet() {},
+      spawnPickup() {},
+      spawnScoreShards() {},
+    };
+
+    for (let frame = 0; frame < 5; frame += 1) {
+      scenario.stage.update(stageState, scenario.time + frame / 60, 1 / 60, ctx);
+    }
+
+    assert.equal(gateCalls, 1, `${scenario.label} should wait for the requested retry delay.`);
+    assert.equal(spawns.length, 0, `${scenario.label} should not spawn while deferred.`);
+    assert.equal(Boolean(stageState[scenario.doneKey]), false, `${scenario.label} should stay pending while deferred.`);
+  }
 });
 
 test("seraph starfall stays inside the desktop lane and nebula early pacing stays within budget", () => {

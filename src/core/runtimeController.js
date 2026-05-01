@@ -65,10 +65,6 @@ export function createRuntimeController({
       return;
     }
 
-    if (state.boss) {
-      return;
-    }
-
     player.x = Math.min(
       playerBounds.maxX,
       Math.max(playerBounds.minX, (player.x / previousWidth) * state.view.width)
@@ -79,7 +75,10 @@ export function createRuntimeController({
     );
 
     if (Number.isFinite(state.input.pointerX)) {
-      state.input.pointerX = (state.input.pointerX / previousWidth) * state.view.width;
+      state.input.pointerX = Math.min(
+        playerBounds.maxX,
+        Math.max(playerBounds.minX, (state.input.pointerX / previousWidth) * state.view.width)
+      );
     } else {
       state.input.pointerX = player.x;
     }

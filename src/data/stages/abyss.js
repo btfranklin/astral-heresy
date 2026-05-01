@@ -196,12 +196,12 @@ export const stageAbyss = {
     }
 
     if (!stageState.gauntletDone && t >= 11) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextGauntletRetry", t, ctx, {
         enemyCost: 6,
         bulletCost: 20,
         priority: "setpiece",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.gauntletDone = true;
         const gate = wave.gate;
         if (wave.mode === "full") {
@@ -264,12 +264,12 @@ export const stageAbyss = {
     }
 
     if (!stageState.singularityDone && t >= 16) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextSingularityRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 16,
         priority: "setpiece",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.singularityDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("throne", {
@@ -327,12 +327,12 @@ export const stageAbyss = {
     }
 
     if (!stageState.eliteDone && t >= 20) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextEliteRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 20,
         priority: "elite",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.eliteDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("throne", {
@@ -412,12 +412,12 @@ export const stageAbyss = {
     }
 
     if (!stageState.sealDone && t >= 25.2) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextSealRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 14,
         priority: "setpiece",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.sealDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("spear", {

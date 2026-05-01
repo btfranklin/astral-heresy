@@ -223,12 +223,12 @@ export const stageCrystal = {
     }
 
     if (!stageState.latticeDone && t >= 11) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextLatticeRetry", t, ctx, {
         enemyCost: 7,
         bulletCost: 18,
         priority: "setpiece",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.latticeDone = true;
         const gate = wave.gate;
         const latticeFractions = wave.mode === "full" ? [0.22, 0.5, 0.78] : [0.5];
@@ -296,12 +296,12 @@ export const stageCrystal = {
     }
 
     if (!stageState.eliteDone && t >= 18) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextEliteRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 18,
         priority: "elite",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.eliteDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("weaver", {
@@ -381,12 +381,12 @@ export const stageCrystal = {
     }
 
     if (!stageState.amplifierEliteDone && t >= 23) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextAmplifierEliteRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 16,
         priority: "elite",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.amplifierEliteDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("harp", {
@@ -466,12 +466,12 @@ export const stageCrystal = {
     }
 
     if (inLoopTwo && !stageState.chainSigilDone && t >= 24.6) {
-      const wave = resolveOneShotWave(ctx, {
+      const wave = resolveOneShotWave(stageState, "nextChainSigilRetry", t, ctx, {
         enemyCost: 3,
         bulletCost: 14,
         priority: "setpiece",
       });
-      if (wave.mode !== "defer") {
+      if (wave) {
         stageState.chainSigilDone = true;
         const gate = wave.gate;
         ctx.spawnEnemy("harp", {

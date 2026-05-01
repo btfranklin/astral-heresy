@@ -56,6 +56,7 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 
 - `node scripts/run_fast_tests.mjs combat`
   - Primary fast lane for graze, burst, chain, density gating, boss damage rules, loop transitions, and authored encounter fallback behavior.
+  - Includes coverage that every authored one-shot stage beat honors the stage director's retry delay before spawning.
 - `node scripts/check_combat_smoke.mjs`
   - Compatibility wrapper for the `combat` fast-test group.
 - `node scripts/check_powerup_smoke.mjs`

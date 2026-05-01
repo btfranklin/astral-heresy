@@ -26,10 +26,10 @@ Preferred split seams:
 
 Why it matters:
 - [`../src/data/stages/nebula.js`](../src/data/stages/nebula.js), [`../src/data/stages/crystal.js`](../src/data/stages/crystal.js), and [`../src/data/stages/abyss.js`](../src/data/stages/abyss.js) remain long even after extracting shared gating helpers.
-- The recurring structure is clearer now, but one-shot encounter scaffolding and author closures can still drift between stages.
+- The recurring structure is clearer and one-shot retry behavior is now centralized, but encounter scaffolding and author closures can still drift between stages.
 
 Preferred next step:
-- Extract one more layer of shared authored-wave helpers for elite/setpiece anchor-only fallbacks and repeated escort patterns without flattening the stages into opaque data tables.
+- Extract one more layer of shared authored-wave helpers for repeated elite/setpiece escort patterns without flattening the stages into opaque data tables.
 
 ### 3. State reset logic has duplication risk
 
@@ -44,7 +44,7 @@ Preferred next step:
 The next best investments for agent autonomy are:
 
 1. Split `collisionSystem.js` along the seams above and give each extracted path a narrow smoke assertion.
-2. Add one more shared stage-authoring helper layer so anchor-only encounter behavior cannot drift across stages.
+2. Add one more shared stage-authoring helper layer so repeated escort behavior cannot drift across stages.
 3. Keep `docs/QUALITY.md` and this file current whenever new runtime surfaces or recurring debt appear.
 
 ## Off-Repo Knowledge That Should Stay Visible
