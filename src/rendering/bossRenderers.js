@@ -12,12 +12,59 @@ function drawRing(ctx, radius, color, lineWidth = 2, alpha = 0.8) {
   ctx.restore();
 }
 
+function drawRuneOrbit(ctx, radius, count, color, rotation = 0, pulse = 0) {
+  ctx.save();
+  ctx.rotate(rotation);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1, radius * 0.018);
+  ctx.lineCap = "round";
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * TAU;
+    const inner = radius * (0.82 + (i % 2) * 0.05);
+    const outer = radius * (1 + pulse * Math.sin(rotation * 2 + i));
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+    ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+    ctx.stroke();
+    if (i % 2 === 0) {
+      ctx.beginPath();
+      ctx.arc(Math.cos(angle) * radius, Math.sin(angle) * radius, radius * 0.035, 0, TAU);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawPhaseCrown(ctx, radius, phase, color, rotation = 0) {
+  const count = 6 + phase * 2;
+  ctx.save();
+  ctx.rotate(rotation);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, radius * 0.025);
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * TAU;
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0, -radius * 0.8);
+    ctx.lineTo(0, -radius * (1.02 + (i % 2) * 0.12));
+    ctx.lineTo(radius * 0.07, -radius * 0.94);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function drawEyeCore(ctx, radius, iris, glow) {
   drawGlowCircle(ctx, 0, 0, radius * 1.9, glow, 0.28);
   ctx.fillStyle = "rgba(255,255,255,0.95)";
   ctx.beginPath();
   ctx.ellipse(0, 0, radius, radius * 0.66, 0, 0, TAU);
   ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.72)";
+  ctx.lineWidth = Math.max(1.5, radius * 0.08);
+  ctx.stroke();
   ctx.fillStyle = iris;
   ctx.beginPath();
   ctx.arc(0, 0, radius * 0.34, 0, TAU);
@@ -25,6 +72,10 @@ function drawEyeCore(ctx, radius, iris, glow) {
   ctx.fillStyle = "rgba(10, 10, 18, 0.88)";
   ctx.beginPath();
   ctx.ellipse(0, 0, radius * 0.12, radius * 0.38, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.94)";
+  ctx.beginPath();
+  ctx.arc(-radius * 0.16, -radius * 0.18, radius * 0.08, 0, TAU);
   ctx.fill();
 }
 
@@ -65,14 +116,20 @@ export function drawBossSeraph(ctx, state, boss) {
   ctx.save();
   ctx.translate(boss.x, boss.y);
   const time = state.time * 1.4;
+  const phase = Math.max(1, (boss.phaseIndex || 0) + 1);
+  const pulse = 1 + Math.sin(time * 2.2) * 0.035;
 
-  drawGlowCircle(ctx, 0, 0, boss.r * 2.2, "rgba(120, 255, 220, 0.62)", 0.5);
+  drawGlowCircle(ctx, 0, 0, boss.r * (2.2 + phase * 0.12), "rgba(120, 255, 220, 0.62)", 0.5);
   drawGlowCircle(ctx, 0, 0, boss.r * 1.45, "rgba(255, 176, 232, 0.18)", 0.5);
+
+  drawPhaseCrown(ctx, boss.r * 1.34, phase, "rgba(255,214,241,0.46)", -time * 0.13);
+  drawRuneOrbit(ctx, boss.r * 1.42, 10 + phase * 2, "rgba(159,255,235,0.5)", time * 0.16, 0.05);
 
   ctx.save();
   ctx.translate(0, -boss.r * 0.18);
-  drawFeatherArc(ctx, boss.r * 0.94, 10, "rgba(235, 248, 255, 0.32)", Math.sin(time * 0.3) * 0.08, 0.88);
-  drawFeatherArc(ctx, boss.r * 1.16, 12, "rgba(255, 191, 236, 0.16)", -time * 0.18, 0.98);
+  ctx.scale(pulse, pulse);
+  drawFeatherArc(ctx, boss.r * 1.02, 10 + phase * 2, "rgba(235, 248, 255, 0.38)", Math.sin(time * 0.3) * 0.08, 0.88);
+  drawFeatherArc(ctx, boss.r * 1.26, 12 + phase * 2, "rgba(255, 191, 236, 0.2)", -time * 0.18, 0.98);
   ctx.restore();
 
   ctx.save();
@@ -107,6 +164,10 @@ export function drawBossSeraph(ctx, state, boss) {
   ctx.closePath();
   ctx.fill();
 
+  ctx.strokeStyle = "rgba(255,255,255,0.68)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
   drawRing(ctx, boss.r * 0.7, "rgba(255,255,255,0.42)", 2, 0.7);
   drawEyeCore(ctx, boss.r * 0.4, "#ff97dd", "rgba(120,255,220,0.25)");
 
@@ -117,14 +178,18 @@ export function drawBossPrism(ctx, state, boss) {
   ctx.save();
   ctx.translate(boss.x, boss.y);
   const time = state.time * 1.2;
+  const phase = Math.max(1, (boss.phaseIndex || 0) + 1);
 
-  drawGlowCircle(ctx, 0, 0, boss.r * 2.1, "rgba(130, 210, 255, 0.64)", 0.48);
+  drawGlowCircle(ctx, 0, 0, boss.r * (2.1 + phase * 0.1), "rgba(130, 210, 255, 0.64)", 0.48);
   drawGlowCircle(ctx, 0, 0, boss.r * 1.2, "rgba(255, 153, 245, 0.14)", 0.5);
+
+  drawPhaseCrown(ctx, boss.r * 1.46, phase, "rgba(216,185,255,0.48)", time * 0.11);
+  drawRuneOrbit(ctx, boss.r * 1.34, 8 + phase * 2, "rgba(158,251,255,0.56)", -time * 0.2, 0.06);
 
   ctx.save();
   ctx.rotate(time * 0.36);
-  for (let i = 0; i < 6; i++) {
-    const angle = (i / 6) * TAU;
+  for (let i = 0; i < 6 + phase; i++) {
+    const angle = (i / (6 + phase)) * TAU;
     ctx.save();
     ctx.rotate(angle);
     ctx.translate(0, -boss.r * 0.98);
@@ -144,6 +209,9 @@ export function drawBossPrism(ctx, state, boss) {
   }
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.54)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
   ctx.restore();
 
   const prism = ctx.createLinearGradient(-boss.r, -boss.r, boss.r, boss.r);
@@ -158,6 +226,10 @@ export function drawBossPrism(ctx, state, boss) {
   ctx.lineTo(-boss.r * 0.5, 0);
   ctx.closePath();
   ctx.fill();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.82)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
   ctx.strokeStyle = "rgba(255,255,255,0.78)";
   ctx.lineWidth = 2;
@@ -181,9 +253,13 @@ export function drawBossCathedral(ctx, state, boss) {
   ctx.save();
   ctx.translate(boss.x, boss.y);
   const time = state.time * 1.1;
+  const phase = Math.max(1, (boss.phaseIndex || 0) + 1);
 
-  drawGlowCircle(ctx, 0, 0, boss.r * 2.15, "rgba(255, 110, 90, 0.56)", 0.45);
+  drawGlowCircle(ctx, 0, 0, boss.r * (2.15 + phase * 0.12), "rgba(255, 110, 90, 0.56)", 0.45);
   drawGlowCircle(ctx, 0, boss.r * 0.12, boss.r * 1.28, "rgba(255, 207, 132, 0.14)", 0.5);
+
+  drawPhaseCrown(ctx, boss.r * 1.42, phase, "rgba(255,155,128,0.5)", -time * 0.1);
+  drawRuneOrbit(ctx, boss.r * 1.34, 9 + phase, "rgba(255,218,170,0.5)", time * 0.14, 0.05);
 
   ctx.save();
   ctx.rotate(-time * 0.18);
@@ -196,6 +272,9 @@ export function drawBossCathedral(ctx, state, boss) {
   }
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "rgba(255,226,200,0.62)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
   ctx.restore();
 
   ctx.fillStyle = "rgba(255, 214, 190, 0.34)";
@@ -207,6 +286,10 @@ export function drawBossCathedral(ctx, state, boss) {
   ctx.closePath();
   ctx.fill();
 
+  ctx.strokeStyle = "rgba(255,110,90,0.62)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
   ctx.fillStyle = "rgba(20, 10, 18, 0.78)";
   ctx.beginPath();
   ctx.moveTo(-boss.r * 0.5, boss.r * 0.52);
@@ -216,8 +299,8 @@ export function drawBossCathedral(ctx, state, boss) {
   ctx.fill();
 
   ctx.fillStyle = "rgba(255, 236, 220, 0.9)";
-  for (let i = -3; i <= 3; i++) {
-    const x = i * boss.r * 0.12;
+  for (let i = -(3 + phase); i <= 3 + phase; i++) {
+    const x = i * boss.r * (0.42 / (3 + phase));
     ctx.beginPath();
     ctx.moveTo(x, boss.r * 0.24);
     ctx.lineTo(x + boss.r * 0.06, boss.r * 0.5);

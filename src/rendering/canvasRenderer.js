@@ -265,15 +265,30 @@ function drawParticles(ctx, particles, spriteCache, detail) {
 function drawPlayer(ctx, player, state) {
   ctx.save();
   ctx.translate(player.x, player.y);
+  const focused = Boolean(state.input.ShiftLeft || state.input.ShiftRight);
+  const pulse = 1 + Math.sin(state.time * 5.2) * 0.04;
 
-  drawGlowCircle(ctx, 0, 20, 18, "rgba(121, 255, 225, 0.5)", 0.45);
+  drawGlowCircle(ctx, 0, 15, 30, "rgba(121, 255, 225, 0.55)", 0.42);
+  drawGlowCircle(ctx, 0, -2, 24, "rgba(126, 170, 255, 0.35)", 0.28);
 
-  if (state.input.ShiftLeft || state.input.ShiftRight) {
-    drawGlowCircle(ctx, 0, 0, 34, "rgba(120, 255, 225, 0.6)", 0.35);
+  if (focused) {
+    drawGlowCircle(ctx, 0, 0, 38, "rgba(120, 255, 225, 0.6)", 0.35);
+    ctx.save();
+    ctx.rotate(-state.time * 0.8);
+    ctx.strokeStyle = "rgba(158,251,255,0.66)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, -25);
+      ctx.lineTo(0, -31);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   if (player.weaponMode === "orbitals") {
-    for (const orbital of getOrbitalOffsets(state.time, Boolean(state.input.ShiftLeft || state.input.ShiftRight))) {
+    for (const orbital of getOrbitalOffsets(state.time, focused)) {
       drawGlowCircle(ctx, orbital.x, orbital.y, 10, "rgba(158, 251, 255, 0.4)", 0.18);
       ctx.fillStyle = "#d9fbff";
       ctx.beginPath();
@@ -282,31 +297,80 @@ function drawPlayer(ctx, player, state) {
     }
   }
 
-  ctx.fillStyle = "rgba(126, 212, 255, 0.92)";
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const exhaust = 22 + Math.sin(state.time * 12) * 4;
+  const exhaustGradient = ctx.createLinearGradient(0, 10, 0, exhaust + 16);
+  exhaustGradient.addColorStop(0, "rgba(255,255,255,0.9)");
+  exhaustGradient.addColorStop(0.28, "rgba(121,255,225,0.72)");
+  exhaustGradient.addColorStop(1, "rgba(105,102,255,0)");
+  ctx.fillStyle = exhaustGradient;
+  for (const x of [-7, 7]) {
+    ctx.beginPath();
+    ctx.moveTo(x - 2.4, 9);
+    ctx.quadraticCurveTo(x, exhaust, x + Math.sin(state.time * 9 + x) * 2, exhaust + 14);
+    ctx.quadraticCurveTo(x + 2.4, exhaust, x + 2.4, 9);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.scale(pulse, pulse);
+  ctx.fillStyle = "rgba(7, 19, 39, 0.94)";
+  ctx.strokeStyle = "rgba(158, 251, 255, 0.82)";
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.moveTo(0, -20);
-  ctx.lineTo(13, 12);
-  ctx.lineTo(0, 8);
-  ctx.lineTo(-13, 12);
+  ctx.moveTo(0, -25);
+  ctx.lineTo(8, -7);
+  ctx.lineTo(19, 5);
+  ctx.lineTo(11, 17);
+  ctx.lineTo(0, 11);
+  ctx.lineTo(-11, 17);
+  ctx.lineTo(-19, 5);
+  ctx.lineTo(-8, -7);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
 
-  ctx.fillStyle = "rgba(190, 247, 255, 0.84)";
+  const glass = ctx.createLinearGradient(0, -22, 0, 16);
+  glass.addColorStop(0, "rgba(238,255,255,0.98)");
+  glass.addColorStop(0.45, "rgba(108,217,255,0.88)");
+  glass.addColorStop(1, "rgba(128,107,255,0.62)");
+  ctx.fillStyle = glass;
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.scale(side, 1);
+    ctx.beginPath();
+    ctx.moveTo(0, -21);
+    ctx.lineTo(7, -5);
+    ctx.lineTo(16, 5);
+    ctx.lineTo(7, 6);
+    ctx.lineTo(3, 14);
+    ctx.lineTo(0, 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.fillStyle = player.weaponMode === "orbitals"
+    ? "rgba(255,207,247,0.92)"
+    : player.weaponMode === "spread"
+      ? "rgba(255,218,142,0.94)"
+      : "rgba(121,255,225,0.94)";
   ctx.beginPath();
-  ctx.moveTo(-16, 6);
-  ctx.lineTo(-3, -2);
-  ctx.lineTo(-6, 15);
-  ctx.closePath();
-  ctx.moveTo(16, 6);
-  ctx.lineTo(3, -2);
-  ctx.lineTo(6, 15);
+  ctx.moveTo(0, -13);
+  ctx.lineTo(4.5, 0);
+  ctx.lineTo(0, 9);
+  ctx.lineTo(-4.5, 0);
   ctx.closePath();
   ctx.fill();
 
   ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.beginPath();
-  ctx.arc(0, 0, 4, 0, TAU);
+  ctx.arc(0, -1, 2.4, 0, TAU);
   ctx.fill();
+  ctx.restore();
 
   ctx.restore();
 }
