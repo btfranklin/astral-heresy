@@ -3,11 +3,11 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 
 from generate_content_inventory import REPO_ROOT, render_inventory
-from check_structure import check_structure
 
 
 REQUIRED_FILES = [
@@ -19,10 +19,13 @@ REQUIRED_FILES = [
     "docs/RUNTIME.md",
     "docs/content/stages-bosses.md",
     "docs/generated/content-inventory.md",
+    "package.json",
+    "package-lock.json",
+    "playwright.config.mjs",
     "scripts/generate_content_inventory.py",
     "scripts/run_fast_tests.mjs",
     "scripts/validate_fast.mjs",
-    "scripts/check_structure.py",
+    "scripts/check_structure.mjs",
     "scripts/check_content_contract.mjs",
     "scripts/check_combat_smoke.mjs",
     "scripts/check_powerup_smoke.mjs",
@@ -34,6 +37,9 @@ REQUIRED_FILES = [
     "tests/scenario/combat/combat-scenarios.test.mjs",
     "tests/scenario/powerups/powerup-scenarios.test.mjs",
     "tests/scenario/runtime/runtime-scenarios.test.mjs",
+    "tests/browser/runtime-browser.spec.mjs",
+    "tests/unit/runtime/resource-cleanup.test.mjs",
+    "tests/unit/structure/module-graph.test.mjs",
 ]
 
 MARKDOWN_FILES = [
@@ -86,6 +92,23 @@ def check_generated_inventory() -> list[str]:
             "Run `python3 scripts/generate_content_inventory.py` and commit the refreshed file."
         ]
     return []
+
+
+def check_structure() -> list[str]:
+    result = subprocess.run(
+        ["node", "scripts/check_structure.mjs", "--json"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    try:
+        report = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit status {result.returncode}"
+        return [f"Structural module graph checker did not return a valid report: {detail}"]
+    return report.get("errors", [])
+
 
 def main() -> int:
     errors = []

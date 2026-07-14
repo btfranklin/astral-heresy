@@ -1,4 +1,6 @@
 export function createAudioEngine() {
+  let disposed = false;
+  const activeVoices = new Set();
   const engine = {
     ctx: null,
     master: null,
@@ -7,6 +9,35 @@ export function createAudioEngine() {
     musicLayers: null,
     lastShot: 0,
   };
+
+  function disconnect(node) {
+    if (typeof node?.disconnect === "function") {
+      node.disconnect();
+    }
+  }
+
+  function stop(node) {
+    if (typeof node?.stop !== "function") return;
+    try {
+      node.stop();
+    } catch (error) {
+      if (error?.name !== "InvalidStateError") throw error;
+    }
+  }
+
+  function releaseVoice(voice) {
+    if (!activeVoices.delete(voice)) return;
+    for (const node of voice.nodes) {
+      disconnect(node);
+    }
+  }
+
+  function trackVoice(source, nodes) {
+    const voice = { source, nodes };
+    activeVoices.add(voice);
+    source.addEventListener?.("ended", () => releaseVoice(voice), { once: true });
+    return voice;
+  }
 
   function setValue(param, value) {
     if (!param) return;
@@ -50,7 +81,7 @@ export function createAudioEngine() {
   }
 
   function init() {
-    if (engine.ctx) return;
+    if (engine.ctx || disposed) return;
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     engine.ctx = new AudioContext();
@@ -64,13 +95,13 @@ export function createAudioEngine() {
   }
 
   function resume() {
-    if (engine.ctx && engine.ctx.state === "suspended") {
+    if (!disposed && engine.ctx && engine.ctx.state === "suspended") {
       engine.ctx.resume();
     }
   }
 
   function playTone(type, freq, duration, opts = {}) {
-    if (!engine.ctx) return;
+    if (!engine.ctx || disposed) return;
     const ctx = engine.ctx;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -88,8 +119,9 @@ export function createAudioEngine() {
       osc.frequency.exponentialRampToValueAtTime(target, now + duration);
     }
     let node = osc;
+    let filter = null;
     if (opts.filter) {
-      const filter = ctx.createBiquadFilter();
+      filter = ctx.createBiquadFilter();
       filter.type = opts.filterType || "lowpass";
       filter.frequency.setValueAtTime(opts.filter, now);
       if (opts.q) {
@@ -103,12 +135,13 @@ export function createAudioEngine() {
     gain.gain.exponentialRampToValueAtTime(0.0001, now + release);
     node.connect(gain);
     gain.connect(engine.sfx);
+    trackVoice(osc, [osc, filter, gain].filter(Boolean));
     osc.start(now);
     osc.stop(now + duration + 0.02);
   }
 
   function playNoise(duration, opts = {}) {
-    if (!engine.ctx) return;
+    if (!engine.ctx || disposed) return;
     const ctx = engine.ctx;
     const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -124,8 +157,9 @@ export function createAudioEngine() {
     gain.gain.exponentialRampToValueAtTime(amp, now + (opts.attack || 0.02));
     gain.gain.exponentialRampToValueAtTime(0.0001, now + (opts.release || duration));
     let node = source;
+    let filter = null;
     if (opts.filter) {
-      const filter = ctx.createBiquadFilter();
+      filter = ctx.createBiquadFilter();
       filter.type = opts.filterType || "lowpass";
       filter.frequency.setValueAtTime(opts.filter, now);
       if (opts.q) {
@@ -136,6 +170,7 @@ export function createAudioEngine() {
     }
     node.connect(gain);
     gain.connect(engine.sfx);
+    trackVoice(source, [source, filter, gain].filter(Boolean));
     source.start(now);
     source.stop(now + duration + 0.02);
   }
@@ -156,7 +191,7 @@ export function createAudioEngine() {
   }
 
   function updateMusic(state, player) {
-    if (!engine.ctx || !engine.musicLayers) return;
+    if (!engine.ctx || !engine.musicLayers || disposed) return;
     const active = state.started && !state.showcase && !state.over ? 1 : 0;
     const rootTable = [164.81, 196.0, 146.83];
     const stageRoot = rootTable[Math.min(rootTable.length - 1, state.stageIndex)] || rootTable[0];
@@ -185,5 +220,39 @@ export function createAudioEngine() {
     setValue(engine.music.gain, active ? 0.7 : 0.0001);
   }
 
-  return { engine, init, resume, playTone, playNoise, playChord, updateMusic };
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+
+    for (const voice of [...activeVoices]) {
+      stop(voice.source);
+      releaseVoice(voice);
+    }
+
+    if (engine.musicLayers) {
+      for (const layer of Object.values(engine.musicLayers)) {
+        stop(layer.osc);
+        disconnect(layer.osc);
+        disconnect(layer.filter);
+        disconnect(layer.gain);
+      }
+    }
+
+    disconnect(engine.music);
+    disconnect(engine.sfx);
+    disconnect(engine.master);
+
+    const ctx = engine.ctx;
+    engine.musicLayers = null;
+    engine.music = null;
+    engine.sfx = null;
+    engine.master = null;
+    engine.ctx = null;
+
+    if (ctx && ctx.state !== "closed" && typeof ctx.close === "function") {
+      return ctx.close();
+    }
+  }
+
+  return { engine, init, resume, playTone, playNoise, playChord, updateMusic, dispose };
 }

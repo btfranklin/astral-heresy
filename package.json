@@ -1,0 +1,13 @@
+{
+  "name": "astral-heresy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/validate_fast.mjs",
+    "test:browser": "playwright test --config=playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": ">=1.61.1",
+    "acorn": ">=8.17.0"
+  }
+}

@@ -91,7 +91,13 @@ node scripts/run_fast_tests.mjs runtime
 
 The legacy `check_content_contract`, `check_combat_smoke`, `check_powerup_smoke`, and `check_runtime_smoke` scripts remain as compatibility wrappers over those groups.
 
-Run the real-browser smoke lane and capture screenshots under `output/playwright/`:
+Install the development-only parser and browser-test dependencies:
+
+```bash
+npm install
+```
+
+Run the real Chromium contract lane and capture current-run artifacts under `output/playwright/`:
 
 ```bash
 node scripts/check_runtime_browser_smoke.mjs

@@ -1,215 +1,195 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createGame } from "../../../src/core/game.js";
+import { createRuntimeController } from "../../../src/core/runtimeController.js";
 import { createShowcaseScene, getShowcaseConfig, updateShowcaseScene } from "../../../src/debug/showcase.js";
+import { stageDefinitions } from "../../../src/data/stages.js";
 import { createGameState } from "../../../src/state/gameState.js";
 import { createPlayerState } from "../../../src/state/playerState.js";
 import { createInterfaceController } from "../../../src/ui/interfaceController.js";
-import { stageDefinitions } from "../../../src/data/stages.js";
-import { getListenerCount, withDomFixture } from "../../helpers/runtimeFixture.mjs";
+import { makeAudioSpy } from "../../helpers/fixtures.mjs";
+import {
+  createElementRecorder,
+  createEventTargetRecorder,
+  createInterfaceProjectionFixture,
+} from "../../helpers/runtimeFixture.mjs";
 
-test("game start, burst, blur reset, restart, and dispose flow stay deterministic", async () => {
-  await withDomFixture("", (fixture) => {
-    const game = createGame({
-      bgCanvas: fixture.elements.bg,
-      gameCanvas: fixture.elements.game,
-      startScreen: fixture.elements["start-screen"],
-      startButton: fixture.elements["start-button"],
-      endScreen: fixture.elements["end-screen"],
-      restartButton: fixture.elements["restart-button"],
-      documentRoot: fixture.document,
-    });
-
-    assert(game);
-    game.init();
-    assert.equal(fixture.elements["status-copy"].textContent, "Awaiting launch clearance");
-    assert.equal(fixture.elements["stage-label"].textContent, "Act 1");
-    assert.equal(fixture.elements["stage-name"].textContent, "Nebula Gate");
-    assert.equal(fixture.elements["chain-value"].textContent, "x1.00");
-    assert.equal(fixture.elements["loop-value"].textContent, "I");
-    assert.equal(fixture.elements["weapon-value"].textContent, "Standard");
-    assert.equal(fixture.elements["burst-chip"].textContent, "Burst 1/2");
-    assert.equal(game.state.playfield.active, true);
-    assert.equal(fixture.elements.interface.dataset.mode, "idle");
-    assert.equal(fixture.pendingAnimationFrames(), 1);
-
-    fixture.elements["start-button"].click();
-    assert.equal(game.state.started, true);
-    assert.equal(typeof game.advanceTime, "function");
-    assert.equal(typeof game.renderGameToText, "function");
-
-    fixture.document.dispatchEvent({ type: "keydown", code: "KeyX", preventDefault() {} });
-    fixture.runNextAnimationFrame(33);
-    fixture.document.dispatchEvent({ type: "keyup", code: "KeyX", preventDefault() {} });
-    assert.equal(fixture.elements.interface.dataset.mode, "combat");
-    assert.equal(game.state.feedback.burst > 0, true);
-    assert.equal(game.state.burstStocks, 0);
-    assert.equal(game.renderGameToText().includes("\"grazeCharge\""), true);
-    assert.equal(game.renderGameToText().includes("\"playfield\""), true);
-    assert.equal(game.renderGameToText().includes("\"density\""), true);
-
-    fixture.document.dispatchEvent({ type: "keydown", code: "KeyZ", preventDefault() {} });
-    fixture.document.dispatchEvent({ type: "keydown", code: "KeyA", preventDefault() {} });
-    fixture.elements.game.dispatchEvent({ type: "pointerdown", clientX: 180, clientY: 320 });
-    fixture.window.dispatchEvent({ type: "blur" });
-    assert.equal(game.state.input.KeyZ, false);
-    assert.equal(game.state.input.KeyA, false);
-    assert.equal(game.state.input.PointerFire, false);
-
-    fixture.document.dispatchEvent({ type: "keydown", code: "ArrowLeft", preventDefault() {} });
-    fixture.document.hidden = true;
-    fixture.document.visibilityState = "hidden";
-    fixture.document.dispatchEvent({ type: "visibilitychange" });
-    assert.equal(game.state.input.ArrowLeft, false);
-    fixture.document.hidden = false;
-    fixture.document.visibilityState = "visible";
-
-    game.state.over = true;
-    game.player.hp = 0;
-    fixture.document.dispatchEvent({
-      type: "keydown",
-      code: "KeyR",
-      defaultPrevented: false,
-      preventDefault() {
-        this.defaultPrevented = true;
-      },
-    });
-    assert.equal(game.state.over, false);
-    assert.equal(game.state.started, true);
-    assert.equal(game.player.hp, 5);
-
-    const startedBeforeDispose = game.state.started;
-    game.dispose();
-    game.dispose();
-    game.resetGame(false);
-    assert.equal(game.state.started, startedBeforeDispose);
-    assert.equal(fixture.pendingAnimationFrames(), 0);
-    assert.equal(getListenerCount(fixture.document.listeners, "keydown"), 0);
-    assert.equal(getListenerCount(fixture.document.listeners, "keyup"), 0);
-    assert.equal(getListenerCount(fixture.document.listeners, "visibilitychange"), 0);
-    assert.equal(getListenerCount(fixture.windowListeners, "resize"), 0);
-    assert.equal(getListenerCount(fixture.windowListeners, "pointerup"), 0);
-    assert.equal(getListenerCount(fixture.windowListeners, "pointercancel"), 0);
-    assert.equal(getListenerCount(fixture.windowListeners, "blur"), 0);
+function createRuntimeScenario(width = 1280, height = 720, dpr = 1) {
+  const state = createGameState();
+  const player = createPlayerState(width, height);
+  const audio = makeAudioSpy();
+  const inputSystem = {
+    attach() {},
+    detach() {},
+  };
+  const interfaceController = {
+    syncCalls: 0,
+    sync() { this.syncCalls += 1; },
+  };
+  const backgroundRenderer = {
+    resizeCalls: [],
+    resize(...args) { this.resizeCalls.push(args); },
+  };
+  const windowTarget = Object.assign(createEventTargetRecorder(), {
+    innerWidth: width,
+    innerHeight: height,
+    devicePixelRatio: dpr,
   });
+  const documentTarget = createEventTargetRecorder();
+  const canvases = {
+    background: { width: 0, height: 0 },
+    game: { width: 0, height: 0 },
+  };
+  const overlays = {
+    start: createElementRecorder(),
+    startButton: createElementRecorder(),
+    end: createElementRecorder(),
+    restartButton: createElementRecorder(),
+  };
+  const runtime = createRuntimeController({
+    state,
+    player,
+    audio,
+    inputSystem,
+    interfaceController,
+    stages: stageDefinitions,
+    showcaseConfig: null,
+    bgCanvas: canvases.background,
+    gameCanvas: canvases.game,
+    backgroundRenderer,
+    startScreen: overlays.start,
+    startButton: overlays.startButton,
+    endScreen: overlays.end,
+    restartButton: overlays.restartButton,
+    windowObject: windowTarget,
+    documentObject: documentTarget,
+  });
+
+  return {
+    state,
+    player,
+    audio,
+    interfaceController,
+    backgroundRenderer,
+    windowTarget,
+    canvases,
+    overlays,
+    runtime,
+  };
+}
+
+test("runtime resize calculations stay deterministic across viewport modes", () => {
+  const scenario = createRuntimeScenario(1280, 720, 2);
+  scenario.runtime.init();
+
+  assert.equal(scenario.state.playfield.active, true);
+  assert.equal(scenario.state.playfield.leftBayWidth, 0);
+  assert.equal(scenario.state.playfield.rightBayWidth, 0);
+  assert.equal(scenario.state.playfield.minX <= 80, true);
+  assert.equal(scenario.state.playfield.maxX >= 1200, true);
+  assert.deepEqual(scenario.canvases.background, { width: 2560, height: 1440 });
+  assert.deepEqual(scenario.canvases.game, { width: 2560, height: 1440 });
+
+  scenario.windowTarget.innerWidth = 900;
+  scenario.windowTarget.innerHeight = 720;
+  scenario.windowTarget.devicePixelRatio = 1;
+  scenario.runtime.resize();
+
+  assert.equal(scenario.state.playfield.active, false);
+  assert.equal(scenario.state.playfield.leftBayWidth, 0);
+  assert.equal(scenario.state.playfield.rightBayWidth, 0);
+  assert.deepEqual(scenario.backgroundRenderer.resizeCalls.at(-1), [900, 720, 1]);
+  assert.deepEqual(scenario.canvases.game, { width: 900, height: 720 });
 });
 
-test("runtime geometry, HUD sync, and render-study parsing stay stable across viewport modes", async () => {
-  await withDomFixture("", (fixture) => {
-    const game = createGame({
-      bgCanvas: fixture.elements.bg,
-      gameCanvas: fixture.elements.game,
-      startScreen: fixture.elements["start-screen"],
-      startButton: fixture.elements["start-button"],
-      endScreen: fixture.elements["end-screen"],
-      restartButton: fixture.elements["restart-button"],
-      documentRoot: fixture.document,
-    });
-    game.init();
-    assert.equal(game.state.playfield.active, true);
-    assert.equal(game.state.playfield.leftBayWidth, 0);
-    assert.equal(game.state.playfield.rightBayWidth, 0);
-    assert.equal(game.state.playfield.minX <= 80, true);
-    assert.equal(game.state.playfield.maxX >= fixture.window.innerWidth - 80, true);
-    assert.equal(game.player.x >= game.state.playfield.minX && game.player.x <= game.state.playfield.maxX, true);
+test("active-run resize clamps player and pointer to calculated bounds", () => {
+  const scenario = createRuntimeScenario();
+  scenario.runtime.init();
+  scenario.runtime.startGame();
+  scenario.state.boss = {};
+  scenario.player.x = 1200;
+  scenario.player.y = 700;
+  scenario.state.input.pointerX = 1200;
+  scenario.state.input.pointerY = 700;
 
-    fixture.window.innerWidth = 900;
-    fixture.window.innerHeight = 720;
-    fixture.window.dispatchEvent({ type: "resize" });
-    assert.equal(game.state.playfield.active, false);
-    assert.equal(game.state.playfield.leftBayWidth, 0);
-    assert.equal(game.state.playfield.rightBayWidth, 0);
+  scenario.windowTarget.innerWidth = 520;
+  scenario.windowTarget.innerHeight = 900;
+  scenario.runtime.resize();
 
-    const controller = createInterfaceController(fixture.document);
-    controller.sync(game.state, game.player, stageDefinitions);
-    assert.equal(fixture.elements["status-copy"].textContent.length > 0, true);
-  });
+  assert.equal(scenario.player.x <= scenario.state.playfield.maxX, true);
+  assert.equal(scenario.player.y <= scenario.state.playfield.maxY, true);
+  assert.equal(scenario.state.input.pointerX <= scenario.state.playfield.maxX, true);
+  assert.equal(scenario.state.input.pointerY <= scenario.state.playfield.maxY, true);
+  assert.equal(scenario.player.x >= scenario.state.playfield.minX, true);
+  assert.equal(scenario.player.y >= scenario.state.playfield.minY, true);
 });
 
-test("boss-fight resize keeps player and pointer inside the active viewport bounds", async () => {
-  await withDomFixture("", (fixture) => {
-    const game = createGame({
-      bgCanvas: fixture.elements.bg,
-      gameCanvas: fixture.elements.game,
-      startScreen: fixture.elements["start-screen"],
-      startButton: fixture.elements["start-button"],
-      endScreen: fixture.elements["end-screen"],
-      restartButton: fixture.elements["restart-button"],
-      documentRoot: fixture.document,
-    });
-    game.init();
-    fixture.elements["start-button"].click();
+test("fresh-run reset restores gameplay state while keeping an auto-started run active", () => {
+  const scenario = createRuntimeScenario();
+  scenario.runtime.init();
+  scenario.runtime.startGame();
+  scenario.state.over = true;
+  scenario.state.finalRunTime = 61;
+  scenario.state.score = 9000;
+  scenario.player.hp = 0;
+  scenario.audio.engine.lastShot = 99;
 
-    game.state.boss = {};
-    game.player.x = 1200;
-    game.player.y = 700;
-    game.state.input.pointerX = 1200;
-    game.state.input.pointerY = 700;
+  scenario.runtime.resetGame(true);
 
-    fixture.window.innerWidth = 520;
-    fixture.window.innerHeight = 900;
-    fixture.window.dispatchEvent({ type: "resize" });
-
-    assert.equal(game.player.x <= game.state.playfield.maxX, true);
-    assert.equal(game.player.y <= game.state.playfield.maxY, true);
-    assert.equal(game.state.input.pointerX <= game.state.playfield.maxX, true);
-    assert.equal(game.state.input.pointerY <= game.state.playfield.maxY, true);
-  });
+  assert.equal(scenario.state.started, true);
+  assert.equal(scenario.state.over, false);
+  assert.equal(scenario.state.finalRunTime, null);
+  assert.equal(scenario.state.score, 0);
+  assert.equal(scenario.player.hp, 5);
+  assert.equal(scenario.audio.engine.lastShot, 0);
+  assert.equal(scenario.interfaceController.syncCalls, 2);
 });
 
-test("displayed runtime freezes at the loss moment even if simulation frames continue", async () => {
-  await withDomFixture("", (fixture) => {
-    const game = createGame({
-      bgCanvas: fixture.elements.bg,
-      gameCanvas: fixture.elements.game,
-      startScreen: fixture.elements["start-screen"],
-      startButton: fixture.elements["start-button"],
-      endScreen: fixture.elements["end-screen"],
-      restartButton: fixture.elements["restart-button"],
-      documentRoot: fixture.document,
-    });
+test("interface projection uses the latched final runtime after simulation time changes", () => {
+  const projection = createInterfaceProjectionFixture();
+  const controller = createInterfaceController(projection.document);
+  const state = createGameState();
+  const player = createPlayerState(1280, 720);
+  state.started = true;
+  state.over = true;
+  state.time = 61;
+  state.finalRunTime = 61;
 
-    game.init();
-    fixture.elements["start-button"].click();
+  controller.sync(state, player, stageDefinitions);
+  assert.equal(projection.elements["run-time"].textContent, "01:01");
+  assert.equal(projection.elements["end-time"].textContent, "01:01");
 
-    game.state.time = 61;
-    game.player.hp = 1;
-    game.player.invuln = 0;
-    game.debugSpawnEnemyBullet(game.player.x, game.player.y, 0, 0, { life: 1 });
-    game.advanceTime(16);
-
-    const frozenRunTime = game.state.finalRunTime;
-    const frozenDisplay = "01:01";
-    assert.notEqual(frozenRunTime, null);
-    assert.equal(fixture.elements["run-time"].textContent, frozenDisplay);
-    assert.equal(fixture.elements["end-time"].textContent, frozenDisplay);
-
-    game.advanceTime(5_000);
-
-    assert.equal(game.state.finalRunTime, frozenRunTime);
-    assert.equal(game.state.time, frozenRunTime);
-    assert.equal(fixture.elements["run-time"].textContent, frozenDisplay);
-    assert.equal(fixture.elements["end-time"].textContent, frozenDisplay);
-  });
+  state.time = 5_061;
+  controller.sync(state, player, stageDefinitions);
+  assert.equal(projection.elements["run-time"].textContent, "01:01");
+  assert.equal(projection.elements["end-time"].textContent, "01:01");
 });
 
-test("showcase scene bootstraps enemy and boss studies without a browser", async () => {
-  await withDomFixture("?mode=render&enemy=cherub", (fixture) => {
-    const config = getShowcaseConfig(fixture.window.location.search);
-    assert.deepEqual(config, {
-      type: "enemy",
-      key: "cherub",
-      label: "Enemy Study: Nebula Cherub",
-    });
-
-    const state = createGameState();
-    state.view.width = 1280;
-    state.view.height = 720;
-    const player = createPlayerState(1280, 720);
-    createShowcaseScene(state, player, config);
-    assert.equal(state.entities.length, 1);
-    updateShowcaseScene(state, 0.5);
-    assert.equal(state.entities[0].components.ai.t > 0, true);
+test("showcase scenes bootstrap and evolve enemy and boss studies deterministically", () => {
+  const enemyConfig = getShowcaseConfig("?mode=render&enemy=cherub");
+  assert.deepEqual(enemyConfig, {
+    type: "enemy",
+    key: "cherub",
+    label: "Enemy Study: Nebula Cherub",
   });
+
+  const enemyState = createGameState();
+  enemyState.view.width = 1280;
+  enemyState.view.height = 720;
+  const enemyPlayer = createPlayerState(1280, 720);
+  createShowcaseScene(enemyState, enemyPlayer, enemyConfig);
+  assert.equal(enemyState.entities.length, 1);
+  updateShowcaseScene(enemyState, 0.5);
+  assert.equal(enemyState.entities[0].components.ai.t > 0, true);
+
+  const bossConfig = getShowcaseConfig("?mode=render&boss=seraph&phase=2");
+  const bossState = createGameState();
+  bossState.view.width = 1280;
+  bossState.view.height = 720;
+  const bossPlayer = createPlayerState(1280, 720);
+  createShowcaseScene(bossState, bossPlayer, bossConfig);
+  assert.equal(bossState.boss.key, "seraph");
+  assert.equal(bossState.boss.phaseIndex, 1);
+  updateShowcaseScene(bossState, 0.5);
+  assert.equal(bossState.boss.phaseTime > 0, true);
 });

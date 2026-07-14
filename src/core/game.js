@@ -291,11 +291,13 @@ export function createGame({
     if (disposed) return;
     disposed = true;
     initialized = false;
-    runtimeController.dispose();
     if (rafId !== null && typeof cancelAnimationFrame === "function") {
       cancelAnimationFrame(rafId);
       rafId = null;
     }
+    runtimeController.dispose();
+    backgroundRenderer.dispose();
+    return audio.dispose();
   }
 
   return {

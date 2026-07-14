@@ -95,10 +95,17 @@ function createShader(gl, type, source) {
 function createProgram(gl, vsSourceCode, fsSourceCode) {
   const vs = createShader(gl, gl.VERTEX_SHADER, vsSourceCode);
   const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSourceCode);
+  if (!vs || !fs) {
+    if (vs) gl.deleteShader(vs);
+    if (fs) gl.deleteShader(fs);
+    return null;
+  }
   const program = gl.createProgram();
   gl.attachShader(program, vs);
   gl.attachShader(program, fs);
   gl.linkProgram(program);
+  gl.deleteShader(vs);
+  gl.deleteShader(fs);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     console.error(gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
@@ -109,6 +116,10 @@ function createProgram(gl, vsSourceCode, fsSourceCode) {
 
 export function createBackgroundRenderer(gl) {
   const program = createProgram(gl, vsSource, fsSource);
+  if (!program) {
+    throw new Error("Unable to initialize the WebGL background renderer.");
+  }
+  let disposed = false;
   const attribs = {
     a_position: gl.getAttribLocation(program, "a_position"),
   };
@@ -130,10 +141,12 @@ export function createBackgroundRenderer(gl) {
   );
 
   function resize(width, height, dpr) {
+    if (disposed) return;
     gl.viewport(0, 0, Math.floor(width * dpr), Math.floor(height * dpr));
   }
 
   function render(state, player) {
+    if (disposed) return;
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.enableVertexAttribArray(attribs.a_position);
@@ -153,5 +166,14 @@ export function createBackgroundRenderer(gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  return { resize, render };
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.useProgram(null);
+    gl.deleteBuffer?.(buffer);
+    gl.deleteProgram(program);
+  }
+
+  return { resize, render, dispose };
 }

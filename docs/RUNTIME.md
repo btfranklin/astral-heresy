@@ -116,7 +116,7 @@ Run this after gameplay, UI, or content edits:
 12. Visit at least one enemy render-study URL and one boss render-study URL.
 13. Confirm the page still initializes on a browser with WebGL enabled.
 
-For the primary browserless runtime lane, run:
+For deterministic runtime orchestration and game-state coverage, run:
 
 ```bash
 node scripts/run_fast_tests.mjs runtime
@@ -128,29 +128,30 @@ The legacy runtime wrapper is still available:
 node scripts/check_runtime_smoke.mjs
 ```
 
-For combat-economy-specific verification without the DOM harness, run:
+For combat-economy-specific verification without a browser, run:
 
 ```bash
 node scripts/run_fast_tests.mjs combat
 ```
 
-For dedicated powerup verification without the DOM harness, run:
+For dedicated powerup verification without a browser, run:
 
 ```bash
 node scripts/run_fast_tests.mjs powerups
 ```
 
-That harness validates:
+The deterministic runtime lane validates:
 
-- start-screen visibility before launch
-- launch and restart wiring
-- open playfield geometry for desktop and tablet widths
-- compact interface mode and render-study boss-panel sync
-- deterministic step and text-state hooks
-- burst input wiring and loop HUD reset
-- input reset on blur and visibility loss
-- playfield and density text-state coverage
+- lifecycle collaborator wiring for init, start, reset, resize, and disposal
+- resize and playfield calculations across viewport modes
+- fresh-run reset behavior and final-runtime projection
+- input handler state transitions and reset orchestration
+- HUD projection and explicit Canvas draw-command intent
+- audio recipe selection without replacing the Web Audio platform
 - render-study URL parsing and scene setup
+- idempotent Web Audio and WebGL resource-release logic against narrow recorders
+
+It does not implement a fake DOM, Canvas, WebGL, AudioContext, window, or animation-frame scheduler. Browser-owned behavior belongs to the Chromium lane.
 
 The dedicated powerup lane validates:
 
@@ -159,7 +160,7 @@ The dedicated powerup lane validates:
 - `Orbitals`, `Weakpoint Amplifier`, and `Point-Blank Seal`
 - score-shard routing and weakpoint-brand damage behavior
 
-For a real-browser pass that captures screenshots under `output/playwright/runtime-smoke/`, run:
+Install the development tools once with `npm install`, then run the Chromium contract suite:
 
 ```bash
 node scripts/check_runtime_browser_smoke.mjs
@@ -167,21 +168,20 @@ node scripts/check_runtime_browser_smoke.mjs
 
 That lane validates:
 
-- page boot in a real browser
-- launch flow and restart wiring
-- open playfield geometry in the real browser
-- enemy clamping inside the playable envelope
-- pickup acquisition callout visibility
-- player-local active-effect cue state
-- shield-break, orbitals, amplifier-brand, and magnet-core scenes
-- one enemy render-study URL
-- one boss render-study URL
-- screenshot capture into the ignored output folder
+- page boot, browser-native module loading, selectors, overlays, and HUD startup
+- native keyboard and pointer events, trusted-event/default-prevention behavior, visibility-driven input reset, and restart
+- live viewport resize, DPR-scaled Canvas backing sizes, layout rectangles, and coordinate clamping
+- real Canvas 2D pixels, WebGL context/shader/draw validity, and representative enemy/boss render-study surfaces
+- Web Audio creation only after a real user gesture and context closure during teardown
+- native animation-frame progression and cancellation
+- idempotent cleanup followed by real input and resize events
+- absence of unexpected page exceptions, console errors, failed requests, bad local responses, and dialogs
+- current-run screenshots and traces under `output/playwright/`
 
 ## Constraints Worth Remembering
 
 - WebGL is required for the animated background. Failure is surfaced through an alert in the composition root.
 - The repo has no build step. Browser-native ES modules are the execution model.
 - Randomness is not seeded. If determinism matters, document the intended RNG boundary before changing it.
-- Subtle visual or gameplay framing changes should get a real-browser smoke pass when possible; screenshots catch readability issues that the browserless harness intentionally does not judge.
-- `window.__astralHeresy.dispose()` is available for teardown-aware debugging and tests.
+- Browser-visible runtime changes must pass the Chromium contract lane; screenshots remain useful for readability judgments beyond its pixel assertions.
+- `window.__astralHeresy.dispose()` cancels animation frames, detaches listeners, releases WebGL resources, stops/disconnects Web Audio nodes, and closes the audio context.

@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createAudioEngine } from "../../../src/audio/audioEngine.js";
 import {
   sfxBossDefeat,
   sfxBossPhase,
@@ -15,209 +14,257 @@ import {
   sfxStart,
   sfxWeakpoint,
 } from "../../../src/audio/sfx.js";
-import { createInputSystem } from "../../../src/systems/inputSystem.js";
 import { createRuntimeController } from "../../../src/core/runtimeController.js";
-import { createInterfaceController } from "../../../src/ui/interfaceController.js";
-import { createGameState } from "../../../src/state/gameState.js";
-import { createPlayerState } from "../../../src/state/playerState.js";
 import { getShowcaseConfig, createShowcaseScene, updateShowcaseScene } from "../../../src/debug/showcase.js";
-import { createBackgroundRenderer } from "../../../src/rendering/glBackground.js";
+import { createBossInstance } from "../../../src/data/bosses.js";
+import { stageDefinitions } from "../../../src/data/stages.js";
+import { buildEntityBuckets } from "../../../src/entities/entityBuckets.js";
+import { drawBossByKey, listBossRendererKeys } from "../../../src/rendering/bossRenderers.js";
 import { createCanvasRenderer } from "../../../src/rendering/canvasRenderer.js";
 import { drawGlowCircle } from "../../../src/rendering/drawHelpers.js";
-import { drawBossUI, drawBossWeakpoint, drawPlayerUI } from "../../../src/rendering/hudRenderer.js";
-import { drawBossByKey, listBossRendererKeys } from "../../../src/rendering/bossRenderers.js";
 import { drawEnemy, listEnemyRendererKeys } from "../../../src/rendering/enemyRenderers.js";
-import { createBossInstance } from "../../../src/data/bosses.js";
+import { drawBossUI, drawBossWeakpoint, drawPlayerUI } from "../../../src/rendering/hudRenderer.js";
+import { createGameState } from "../../../src/state/gameState.js";
+import { createPlayerState } from "../../../src/state/playerState.js";
+import { createInputSystem } from "../../../src/systems/inputSystem.js";
 import { spawnEnemy } from "../../../src/systems/enemySystem.js";
-import { buildEntityBuckets } from "../../../src/entities/entityBuckets.js";
-import { stageDefinitions } from "../../../src/data/stages.js";
+import { createInterfaceController } from "../../../src/ui/interfaceController.js";
 import { makeAudioSpy, makeBossContext, makeState } from "../../helpers/fixtures.mjs";
 import {
-  createFakeWebGLContext,
+  createElementRecorder,
+  createEventTargetRecorder,
+  createInterfaceProjectionFixture,
   createRecording2dContext,
   getListenerCount,
-  withDomFixture,
+  withInputListenerEnvironment,
 } from "../../helpers/runtimeFixture.mjs";
 
-test("audio engine initializes under a fake AudioContext and sfx helpers call the expected surfaces", async () => {
-  await withDomFixture("", () => {
-    const engine = createAudioEngine();
-    engine.init();
-    assert.equal(Boolean(engine.engine.ctx), true);
-    assert.equal(Boolean(engine.engine.musicLayers), true);
+test("sfx helpers emit the expected audio recipes", () => {
+  const audio = makeAudioSpy();
+  sfxShoot(audio);
+  sfxGraze(audio);
+  sfxEnemyPop(audio);
+  sfxChain(audio);
+  sfxPlayerHit(audio);
+  sfxBurst(audio);
+  sfxBossPhase(audio);
+  sfxWeakpoint(audio);
+  sfxBossDefeat(audio);
+  sfxPickup(audio, "weapon");
+  sfxStart(audio);
 
-    engine.engine.ctx.state = "suspended";
-    engine.resume();
-    assert.equal(engine.engine.ctx.resumeCalls, 1);
-
-    const { state, player } = makeState();
-    state.started = true;
-    engine.updateMusic(state, player);
-    assert.equal(engine.engine.music.gain.value > 0, true);
-
-    const audio = makeAudioSpy();
-    sfxShoot(audio);
-    sfxGraze(audio);
-    sfxEnemyPop(audio);
-    sfxChain(audio);
-    sfxPlayerHit(audio);
-    sfxBurst(audio);
-    sfxBossPhase(audio);
-    sfxWeakpoint(audio);
-    sfxBossDefeat(audio);
-    sfxPickup(audio, "weapon");
-    sfxStart(audio);
-    assert.equal(audio.noises.length > 0, true);
-    assert.equal(audio.tones.length > 0, true);
-    assert.equal(audio.chords.length > 0, true);
+  assert.deepEqual(audio.tones[0], {
+    type: "triangle",
+    freq: 430,
+    duration: 0.14,
+    opts: {
+      amp: 0.08,
+      slide: 1.45,
+      attack: 0.004,
+      release: 0.08,
+      filter: 2600,
+    },
   });
+  assert.deepEqual(audio.chords.at(-1).freqs, [260, 390, 520]);
+  assert.equal(audio.noises.length, 7);
+  assert.equal(audio.tones.length, 12);
+  assert.equal(audio.chords.length, 6);
 });
 
-test("input system attaches listeners, toggles pointer mode, and clears held input on blur and hide", async () => {
-  await withDomFixture("", (fixture) => {
+test("input orchestration attaches handlers, updates state, resets held controls, and detaches", async () => {
+  await withInputListenerEnvironment(({ windowTarget, documentTarget }) => {
     const { state } = makeState();
-    const input = createInputSystem(state, fixture.elements.game);
+    const canvas = createElementRecorder({ rect: { left: 10, top: 20, width: 640, height: 360 } });
+    const input = createInputSystem(state, canvas);
     input.attach();
 
-    fixture.document.dispatchEvent({ type: "keydown", code: "KeyM", preventDefault() {} });
+    const toggleEvent = documentTarget.emit("keydown", { code: "KeyM" });
+    assert.equal(toggleEvent.defaultPrevented, true);
     assert.equal(state.input.pointerEnabled, false);
-    fixture.document.dispatchEvent({ type: "keydown", code: "KeyZ", preventDefault() {} });
-    fixture.document.dispatchEvent({ type: "keydown", code: "KeyA", preventDefault() {} });
-    fixture.elements.game.dispatchEvent({ type: "pointerdown", clientX: 30, clientY: 40 });
-    fixture.window.dispatchEvent({ type: "blur" });
+
+    documentTarget.emit("keydown", { code: "KeyZ" });
+    documentTarget.emit("keydown", { code: "KeyA" });
+    canvas.emit("pointerdown", { clientX: 30, clientY: 40 });
+    assert.deepEqual(
+      { x: state.input.pointerX, y: state.input.pointerY, firing: state.input.PointerFire },
+      { x: 20, y: 20, firing: true }
+    );
+
+    windowTarget.emit("blur");
     assert.equal(state.input.KeyZ, false);
     assert.equal(state.input.KeyA, false);
     assert.equal(state.input.PointerFire, false);
-    assert.equal(state.input.pointerEnabled, false, "Input resets should preserve pointer mode preference.");
+    assert.equal(state.input.pointerEnabled, false, "Resetting held controls preserves the mode preference.");
 
-    fixture.document.dispatchEvent({ type: "keydown", code: "ArrowRight", preventDefault() {} });
-    fixture.document.hidden = true;
-    fixture.document.visibilityState = "hidden";
-    fixture.document.dispatchEvent({ type: "visibilitychange" });
+    documentTarget.emit("keydown", { code: "ArrowRight" });
+    documentTarget.hidden = true;
+    documentTarget.visibilityState = "hidden";
+    documentTarget.emit("visibilitychange");
     assert.equal(state.input.ArrowRight, false);
 
     input.detach();
-    assert.equal(getListenerCount(fixture.windowListeners, "blur"), 0);
-    assert.equal(getListenerCount(fixture.document.listeners, "keydown"), 0);
+    assert.equal(getListenerCount(windowTarget, "blur"), 0);
+    assert.equal(getListenerCount(documentTarget, "keydown"), 0);
+    assert.equal(getListenerCount(canvas, "pointerdown"), 0);
   });
 });
 
-test("showcase config, interface controller, and rendering helpers expose deterministic runtime surfaces", async () => {
-  await withDomFixture("?mode=render&boss=seraph&phase=2", (fixture) => {
-    const { state, player } = makeState();
-    const showcase = getShowcaseConfig(fixture.window.location.search);
-    assert.deepEqual(showcase, {
-      type: "boss",
-      key: "seraph",
-      phase: 2,
-      label: "Boss Study: Seraph of Orbits",
-    });
-
-    createShowcaseScene(state, player, showcase);
-    assert.equal(state.showcase.type, "boss");
-    assert.equal(Boolean(state.boss), true);
-    updateShowcaseScene(state, 0.5);
-    assert.equal(state.boss.phaseTime > 0, true);
-
-    const controller = createInterfaceController(fixture.document);
-    state.started = true;
-    state.boss = createBossInstance("seraph", makeBossContext(state, player));
-    state.boss.weakpoint = { x: state.boss.x, y: state.boss.y, radius: 12, color: "#fff" };
-    state.powerupNotice = {
-      title: "Halo Shield",
-      roleTag: "BARRIER READY",
-      category: "utility",
-      timer: 0.8,
-      hudTimer: 1.6,
-      ribbonTimer: 0.4,
-      color: "#bdfdff",
-      sigil: "hex",
-      x: player.x,
-      y: player.y,
-    };
-    player.activePowerups.haloShield = 10;
-    controller.sync(state, player, stageDefinitions);
-    assert.equal(fixture.elements.interface.dataset.mode, "showcase");
-    assert.equal(fixture.elements["boss-panel"].classList.contains("hidden"), false);
-    assert.equal(fixture.elements["powerup-feed"].classList.contains("hidden"), false);
-    assert.equal(fixture.elements["stage-name"].textContent.length > 0, true);
-
-    state.showcase = null;
-    controller.sync(state, player, stageDefinitions);
-    assert.equal(fixture.elements.interface.dataset.mode, "combat");
-    assert.equal(fixture.elements["boss-panel"].classList.contains("hidden"), true);
-    assert.equal(fixture.elements["powerup-feed"].classList.contains("hidden"), true);
-
-    const ctx = createRecording2dContext();
-    drawGlowCircle(ctx, 10, 20, 30, "#fff", 0.5);
-    drawBossUI(ctx, state.boss, state);
-    drawBossWeakpoint(ctx, state.boss, state);
-    drawPlayerUI(ctx, player, state, stageDefinitions);
-    assert.equal(ctx.calls.some((call) => call.type === "fillText"), true);
-
-    const enemy = spawnEnemy(state, "cherub", { x: 640, y: 200, vx: 0, vy: 0 });
-    drawEnemy(ctx, enemy, state);
-    drawBossByKey(ctx, state, state.boss);
-    assert.equal(listEnemyRendererKeys().includes("cherub"), true);
-    assert.equal(listBossRendererKeys().includes("seraph"), true);
+test("showcase state, interface projection, and canvas drawing intent stay deterministic", () => {
+  const projection = createInterfaceProjectionFixture();
+  const { state, player } = makeState();
+  const showcase = getShowcaseConfig("?mode=render&boss=seraph&phase=2");
+  assert.deepEqual(showcase, {
+    type: "boss",
+    key: "seraph",
+    phase: 2,
+    label: "Boss Study: Seraph of Orbits",
   });
+
+  createShowcaseScene(state, player, showcase);
+  updateShowcaseScene(state, 0.5);
+  assert.equal(state.showcase.type, "boss");
+  assert.equal(state.boss.phaseTime > 0, true);
+
+  const controller = createInterfaceController(projection.document);
+  state.started = true;
+  state.boss = createBossInstance("seraph", makeBossContext(state, player));
+  state.boss.weakpoint = { x: state.boss.x, y: state.boss.y, radius: 12, color: "#fff" };
+  state.powerupNotice = {
+    title: "Halo Shield",
+    roleTag: "BARRIER READY",
+    category: "utility",
+    timer: 0.8,
+    hudTimer: 1.6,
+    ribbonTimer: 0.4,
+    color: "#bdfdff",
+    sigil: "hex",
+    x: player.x,
+    y: player.y,
+  };
+  player.activePowerups.haloShield = 10;
+  controller.sync(state, player, stageDefinitions);
+  assert.equal(projection.elements.interface.dataset.mode, "showcase");
+  assert.equal(projection.elements["boss-panel"].classList.contains("hidden"), false);
+  assert.equal(projection.elements["powerup-feed"].classList.contains("hidden"), false);
+  assert.equal(projection.elements["stage-name"].textContent, "Boss Study: Seraph of Orbits");
+
+  state.showcase = null;
+  controller.sync(state, player, stageDefinitions);
+  assert.equal(projection.elements.interface.dataset.mode, "combat");
+  assert.equal(projection.elements["boss-panel"].classList.contains("hidden"), true);
+  assert.equal(projection.elements["powerup-feed"].classList.contains("hidden"), true);
+
+  const ctx = createRecording2dContext();
+  drawGlowCircle(ctx, 10, 20, 30, "#fff", 0.5);
+  drawBossUI(ctx, state.boss, state);
+  drawBossWeakpoint(ctx, state.boss, state);
+  drawPlayerUI(ctx, player, state, stageDefinitions);
+  const enemy = spawnEnemy(state, "cherub", { x: 640, y: 200, vx: 0, vy: 0 });
+  drawEnemy(ctx, enemy, state);
+  drawBossByKey(ctx, state, state.boss);
+
+  assert.equal(ctx.calls.some((call) => call.type === "fillText"), true);
+  assert.equal(ctx.calls.some((call) => call.type === "arc"), true);
+  assert.equal(listEnemyRendererKeys().includes("cherub"), true);
+  assert.equal(listBossRendererKeys().includes("seraph"), true);
 });
 
-test("background renderer, canvas renderer, and runtime controller operate under fake contexts without a browser", async () => {
-  await withDomFixture("", (fixture) => {
-    const { state, player } = makeState();
-    const gl = createFakeWebGLContext();
-    const bg = createBackgroundRenderer(gl);
-    bg.resize(1280, 720, 1);
-    bg.render(state, player);
-    assert.equal(gl.calls.some((call) => call.type === "drawArrays"), true);
+test("canvas renderer records draw orchestration without claiming Canvas compatibility", () => {
+  const { state, player } = makeState();
+  const ctx = createRecording2dContext();
+  const renderer = createCanvasRenderer(ctx);
+  state.boss = createBossInstance("seraph", makeBossContext(state, player));
+  state.boss.weakpoint = { x: state.boss.x, y: state.boss.y, radius: 10, color: "#fff" };
 
-    const ctx = fixture.elements.game.getContext("2d");
-    const canvas = createCanvasRenderer(ctx);
-    const boss = createBossInstance("seraph", makeBossContext(state, player));
-    boss.weakpoint = { x: boss.x, y: boss.y, radius: 10, color: "#fff" };
-    state.boss = boss;
-    const buckets = buildEntityBuckets(state);
-    canvas.render(state, player, stageDefinitions, buckets);
-    assert.equal(["high", "medium", "minimal"].includes(state.renderDetail), true);
+  renderer.render(state, player, stageDefinitions, buildEntityBuckets(state));
 
-    const runtimeState = createGameState();
-    runtimeState.view.width = 1280;
-    runtimeState.view.height = 720;
-    const runtimePlayer = createPlayerState(1280, 720);
-    const runtimeInput = createInputSystem(runtimeState, fixture.elements.game);
-    const audio = makeAudioSpy();
-    const interfaceController = { syncCalls: 0, sync() { this.syncCalls += 1; } };
-    const backgroundRenderer = { resizeCalls: 0, resize() { this.resizeCalls += 1; } };
-
-    const runtime = createRuntimeController({
-      state: runtimeState,
-      player: runtimePlayer,
-      audio,
-      inputSystem: runtimeInput,
-      interfaceController,
-      stages: stageDefinitions,
-      showcaseConfig: null,
-      bgCanvas: fixture.elements.bg,
-      gameCanvas: fixture.elements.game,
-      backgroundRenderer,
-      startScreen: fixture.elements["start-screen"],
-      startButton: fixture.elements["start-button"],
-      endScreen: fixture.elements["end-screen"],
-      restartButton: fixture.elements["restart-button"],
-      windowObject: fixture.window,
-      documentObject: fixture.document,
-      onGameStart() {},
-    });
-
-    runtime.init();
-    assert.equal(interfaceController.syncCalls > 0, true);
-    assert.equal(backgroundRenderer.resizeCalls > 0, true);
-    runtime.startGame();
-    assert.equal(runtimeState.started, true);
-    runtime.resetGame(true);
-    assert.equal(runtimeState.started, true);
-    runtime.dispose();
-    assert.equal(getListenerCount(fixture.windowListeners, "resize"), 0);
+  assert.equal(state.renderDetail, "high");
+  assert.deepEqual(ctx.calls[0], {
+    type: "setTransform",
+    args: [state.view.dpr, 0, 0, state.view.dpr, 0, 0],
   });
+  assert.equal(ctx.calls.some((call) => call.type === "clearRect"), true);
+  assert.equal(ctx.calls.some((call) => call.type === "fillText"), true);
+});
+
+test("runtime controller orchestrates init, start, reset, resize, and dispose collaborators", () => {
+  const state = createGameState();
+  const player = createPlayerState(1280, 720);
+  const audio = makeAudioSpy();
+  const inputSystem = {
+    attachCalls: 0,
+    detachCalls: 0,
+    attach() { this.attachCalls += 1; },
+    detach() { this.detachCalls += 1; },
+  };
+  const interfaceController = {
+    syncCalls: 0,
+    sync() { this.syncCalls += 1; },
+  };
+  const backgroundRenderer = {
+    resizeCalls: [],
+    resize(...args) { this.resizeCalls.push(args); },
+  };
+  const windowTarget = Object.assign(createEventTargetRecorder(), {
+    innerWidth: 1280,
+    innerHeight: 720,
+    devicePixelRatio: 2,
+  });
+  const documentTarget = createEventTargetRecorder();
+  const bgCanvas = { width: 0, height: 0 };
+  const gameCanvas = { width: 0, height: 0 };
+  const startScreen = createElementRecorder();
+  const startButton = createElementRecorder();
+  const endScreen = createElementRecorder();
+  const restartButton = createElementRecorder();
+  let starts = 0;
+
+  const runtime = createRuntimeController({
+    state,
+    player,
+    audio,
+    inputSystem,
+    interfaceController,
+    stages: stageDefinitions,
+    showcaseConfig: null,
+    bgCanvas,
+    gameCanvas,
+    backgroundRenderer,
+    startScreen,
+    startButton,
+    endScreen,
+    restartButton,
+    windowObject: windowTarget,
+    documentObject: documentTarget,
+    onGameStart() { starts += 1; },
+  });
+
+  runtime.init();
+  runtime.init();
+  assert.equal(inputSystem.attachCalls, 1);
+  assert.equal(interfaceController.syncCalls, 1);
+  assert.deepEqual(backgroundRenderer.resizeCalls, [[1280, 720, 2]]);
+  assert.deepEqual({ width: bgCanvas.width, height: bgCanvas.height }, { width: 2560, height: 1440 });
+  assert.deepEqual({ width: gameCanvas.width, height: gameCanvas.height }, { width: 2560, height: 1440 });
+
+  startButton.emit("click");
+  assert.equal(state.started, true);
+  assert.equal(audio.initCalls, 1);
+  assert.equal(audio.resumeCalls, 1);
+  assert.equal(starts, 1);
+
+  state.over = true;
+  player.hp = 1;
+  restartButton.emit("click");
+  assert.equal(state.over, false);
+  assert.equal(player.hp, 5);
+  assert.equal(state.started, true);
+
+  runtime.dispose();
+  runtime.dispose();
+  assert.equal(inputSystem.detachCalls, 1);
+  assert.equal(getListenerCount(windowTarget, "resize"), 0);
+  assert.equal(getListenerCount(documentTarget, "keydown"), 0);
+  assert.equal(getListenerCount(startButton, "click"), 0);
+  assert.equal(getListenerCount(restartButton, "click"), 0);
 });

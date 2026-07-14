@@ -88,7 +88,7 @@ Current intended direction:
 - `rendering/` should read state and entities; it should not own gameplay mutation beyond transient visual fields already present in state.
 - `debug/` is an inspection surface. Keep it callable from the composition root, but avoid making gameplay systems depend on it.
 
-These boundaries are enforced by `python3 scripts/check_structure.py`, which is also run by `python3 scripts/check_repo_legibility.py`.
+These boundaries are enforced by `node scripts/check_structure.mjs`, which parses browser-native ECMAScript modules into a dependency graph and is also run by `python3 scripts/check_repo_legibility.py`. The checker validates static imports, re-exports, and literal dynamic imports with exact path resolution. It reports graph reachability and cycles for visibility, but those observations are not policy failures unless this document defines them as invariants.
 
 ## Content Boundary
 

@@ -30,8 +30,8 @@ Use this file as a router. The durable source of truth for non-trivial repo know
   `node scripts/run_fast_tests.mjs all`
 - Verifying the repo-legibility checks:
   `python3 scripts/check_repo_legibility.py`
-- Running only the structural boundary check:
-  `python3 scripts/check_structure.py`
+- Running only the structural module-graph check:
+  `node scripts/check_structure.mjs`
 - Running only the stage/boss fast-test group:
   `node scripts/run_fast_tests.mjs content`
 - Running only the combat-economy fast-test group:
@@ -48,7 +48,7 @@ Use this file as a router. The durable source of truth for non-trivial repo know
   `node scripts/check_powerup_smoke.mjs`
 - Legacy wrapper for the runtime group:
   `node scripts/check_runtime_smoke.mjs`
-- Running the real-browser smoke lane:
+- Running the real-browser contract lane:
   `node scripts/check_runtime_browser_smoke.mjs`
 
 ## Working Rules
