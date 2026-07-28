@@ -4,6 +4,8 @@ import { resetFreshRunState } from "../state/runReset.js";
 import { createShowcaseScene } from "../debug/showcase.js";
 import { sfxStart } from "../audio/sfx.js";
 
+const BACKGROUND_DPR_CAP = 1.5;
+
 export function createRuntimeController({
   state,
   player,
@@ -22,6 +24,7 @@ export function createRuntimeController({
   windowObject = window,
   documentObject = document,
   onGameStart = () => {},
+  onRenderInvalidated = () => {},
 }) {
   let initialized = false;
   let disposed = false;
@@ -45,18 +48,22 @@ export function createRuntimeController({
   function resize() {
     const previousWidth = state.view.width || windowObject.innerWidth;
     const previousHeight = state.view.height || windowObject.innerHeight;
-    state.view.dpr = windowObject.devicePixelRatio || 1;
+    const devicePixelRatio = windowObject.devicePixelRatio;
+    state.view.dpr =
+      Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1;
+    const backgroundDpr = Math.min(state.view.dpr, BACKGROUND_DPR_CAP);
     state.view.width = windowObject.innerWidth;
     state.view.height = windowObject.innerHeight;
     state.playfield = createPlayfield(state.view.width, state.view.height);
 
-    bgCanvas.width = Math.floor(state.view.width * state.view.dpr);
-    bgCanvas.height = Math.floor(state.view.height * state.view.dpr);
+    bgCanvas.width = Math.floor(state.view.width * backgroundDpr);
+    bgCanvas.height = Math.floor(state.view.height * backgroundDpr);
     gameCanvas.width = Math.floor(state.view.width * state.view.dpr);
     gameCanvas.height = Math.floor(state.view.height * state.view.dpr);
 
-    backgroundRenderer.resize(state.view.width, state.view.height, state.view.dpr);
+    backgroundRenderer.resize(state.view.width, state.view.height, backgroundDpr);
     const playerBounds = getPlayerBounds(state.view.width, state.view.height);
+    onRenderInvalidated();
 
     if (!state.started) {
       player.x = playerBounds.startX;
@@ -106,6 +113,7 @@ export function createRuntimeController({
     sfxStart(audio);
     hideOverlays();
     onGameStart();
+    onRenderInvalidated();
   }
 
   function prepareFreshState() {
@@ -118,6 +126,7 @@ export function createRuntimeController({
     hideOverlays();
     createShowcaseScene(state, player, config);
     sync();
+    onRenderInvalidated();
   }
 
   function resetGame(autoStart = false) {
@@ -132,6 +141,7 @@ export function createRuntimeController({
     }
 
     sync();
+    onRenderInvalidated();
   }
 
   function attachUI() {

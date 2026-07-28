@@ -1,20 +1,46 @@
 import { rand, TAU } from "../core/math.js";
 import { getOrbitalOffsets } from "../core/orbitals.js";
 import { powerupTuning } from "../core/powerups.js";
-import { drawGlowCircle } from "./drawHelpers.js";
+import {
+  createGlowSpriteCache,
+  createNormalizedSpriteCache,
+  drawGlowCircle,
+} from "./drawHelpers.js";
 import { drawBossByKey } from "./bossRenderers.js";
-import { drawBossUI, drawBossWeakpoint, drawPlayerUI } from "./hudRenderer.js";
+import {
+  createBossHudCache,
+  drawBossUI,
+  drawBossWeakpoint,
+  drawPlayerUI,
+} from "./hudRenderer.js";
 import { drawEnemy } from "./enemyRenderers.js";
 
-function createSpriteCache() {
+const NORMALIZED_SPRITE_SIZE = 64;
+const NORMALIZED_PARTICLE_RADIUS = 8;
+
+function releaseCanvas(canvas) {
+  canvas.width = 0;
+  canvas.height = 0;
+}
+
+function createBulletSpriteCache(createCanvas) {
   const cache = new Map();
+
+  function dispose() {
+    for (const canvas of cache.values()) {
+      releaseCanvas(canvas);
+    }
+    cache.clear();
+  }
+
   return {
     get(color, radius) {
       const key = `${color}:${radius}`;
-      if (cache.has(key)) return cache.get(key);
+      const cached = cache.get(key);
+      if (cached) return cached;
 
       const size = Math.ceil(radius * 8);
-      const sprite = document.createElement("canvas");
+      const sprite = createCanvas();
       sprite.width = size;
       sprite.height = size;
       const spriteCtx = sprite.getContext("2d");
@@ -38,7 +64,38 @@ function createSpriteCache() {
       cache.set(key, sprite);
       return sprite;
     },
+    dispose,
   };
+}
+
+function createParticleSpriteCache(createCanvas) {
+  return createNormalizedSpriteCache(createCanvas, {
+    maxEntries: 32,
+    paint(spriteCtx, color) {
+      const center = NORMALIZED_SPRITE_SIZE * 0.5;
+      const glow = spriteCtx.createRadialGradient(
+        center,
+        center,
+        NORMALIZED_PARTICLE_RADIUS * 0.2,
+        center,
+        center,
+        NORMALIZED_PARTICLE_RADIUS * 3.2
+      );
+      glow.addColorStop(0, color);
+      glow.addColorStop(0.35, color);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      spriteCtx.fillStyle = glow;
+      spriteCtx.beginPath();
+      spriteCtx.arc(center, center, NORMALIZED_PARTICLE_RADIUS * 3.1, 0, TAU);
+      spriteCtx.fill();
+
+      spriteCtx.globalCompositeOperation = "source-over";
+      spriteCtx.fillStyle = color;
+      spriteCtx.beginPath();
+      spriteCtx.arc(center, center, NORMALIZED_PARTICLE_RADIUS, 0, TAU);
+      spriteCtx.fill();
+    },
+  });
 }
 
 function drawBulletTrails(ctx, bullets, detail) {
@@ -111,25 +168,25 @@ function drawPlayfieldFrame(ctx, state) {
 
   ctx.strokeStyle = "rgba(255, 213, 142, 0.08)";
   ctx.lineWidth = 1;
+  ctx.beginPath();
   for (let y = 52; y < height; y += 104) {
-    ctx.beginPath();
     ctx.moveTo(Math.max(12, left - 20), y);
     ctx.lineTo(left - 4, y + 8);
     ctx.moveTo(right + 4, y + 8);
     ctx.lineTo(Math.min(state.view.width - 12, right + 20), y);
-    ctx.stroke();
   }
+  ctx.stroke();
 
   ctx.restore();
 }
 
-function drawEnemies(ctx, enemies, state) {
+function drawEnemies(ctx, enemies, state, resources) {
   for (const enemy of enemies) {
-    drawEnemy(ctx, enemy, state);
+    drawEnemy(ctx, enemy, state, resources);
   }
 }
 
-function drawPickups(ctx, pickups, state) {
+function drawPickups(ctx, pickups, state, resources) {
   for (const entity of pickups) {
     const pos = entity.components.position;
     const render = entity.components.render;
@@ -150,7 +207,7 @@ function drawPickups(ctx, pickups, state) {
       ctx.fillRect(-8, -120, 16, 240);
       ctx.globalAlpha = 1;
     }
-    drawGlowCircle(ctx, 0, 0, 28, render.color, 0.22);
+    drawGlowCircle(ctx, 0, 0, 28, render.color, 0.22, resources);
     ctx.strokeStyle = render.accent;
     ctx.lineWidth = 2;
     if (pickup.category === "weapon") {
@@ -205,7 +262,7 @@ function drawPickups(ctx, pickups, state) {
   }
 }
 
-function drawScoreShards(ctx, scoreShards, player) {
+function drawScoreShards(ctx, scoreShards, player, resources) {
   ctx.save();
   for (const entity of scoreShards) {
     const pos = entity.components.position;
@@ -228,7 +285,7 @@ function drawScoreShards(ctx, scoreShards, player) {
       );
       ctx.stroke();
     }
-    drawGlowCircle(ctx, pos.x, pos.y, 12, render.color, 0.18);
+    drawGlowCircle(ctx, pos.x, pos.y, 12, render.color, 0.18, resources);
     ctx.fillStyle = render.color;
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y - 6);
@@ -241,7 +298,7 @@ function drawScoreShards(ctx, scoreShards, player) {
   ctx.restore();
 }
 
-function drawParticles(ctx, particles, spriteCache, detail) {
+function drawParticles(ctx, particles, spriteCache, detail, dpr) {
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   for (const particle of particles) {
@@ -255,24 +312,36 @@ function drawParticles(ctx, particles, spriteCache, detail) {
       ctx.fillStyle = render.color;
       ctx.fillRect(pos.x - render.size, pos.y - render.size, render.size * 2, render.size * 2);
     } else {
-      const sprite = spriteCache.get(render.color, Math.max(1, render.size));
-      ctx.drawImage(sprite, pos.x - sprite.width * 0.5, pos.y - sprite.height * 0.5);
+      const radius = Math.max(1, render.size);
+      const sprite = spriteCache.get(render.color, dpr);
+      const destinationSize = Math.ceil(radius * 8);
+      ctx.drawImage(
+        sprite,
+        0,
+        0,
+        sprite.width,
+        sprite.height,
+        pos.x - destinationSize * 0.5,
+        pos.y - destinationSize * 0.5,
+        destinationSize,
+        destinationSize
+      );
     }
   }
   ctx.restore();
 }
 
-function drawPlayer(ctx, player, state) {
+function drawPlayer(ctx, player, state, resources) {
   ctx.save();
   ctx.translate(player.x, player.y);
   const focused = Boolean(state.input.ShiftLeft || state.input.ShiftRight);
   const pulse = 1 + Math.sin(state.time * 5.2) * 0.04;
 
-  drawGlowCircle(ctx, 0, 15, 30, "rgba(121, 255, 225, 0.55)", 0.42);
-  drawGlowCircle(ctx, 0, -2, 24, "rgba(126, 170, 255, 0.35)", 0.28);
+  drawGlowCircle(ctx, 0, 15, 30, "rgba(121, 255, 225, 0.55)", 0.42, resources);
+  drawGlowCircle(ctx, 0, -2, 24, "rgba(126, 170, 255, 0.35)", 0.28, resources);
 
   if (focused) {
-    drawGlowCircle(ctx, 0, 0, 38, "rgba(120, 255, 225, 0.6)", 0.35);
+    drawGlowCircle(ctx, 0, 0, 38, "rgba(120, 255, 225, 0.6)", 0.35, resources);
     ctx.save();
     ctx.rotate(-state.time * 0.8);
     ctx.strokeStyle = "rgba(158,251,255,0.66)";
@@ -289,7 +358,15 @@ function drawPlayer(ctx, player, state) {
 
   if (player.weaponMode === "orbitals") {
     for (const orbital of getOrbitalOffsets(state.time, focused)) {
-      drawGlowCircle(ctx, orbital.x, orbital.y, 10, "rgba(158, 251, 255, 0.4)", 0.18);
+      drawGlowCircle(
+        ctx,
+        orbital.x,
+        orbital.y,
+        10,
+        "rgba(158, 251, 255, 0.4)",
+        0.18,
+        resources
+      );
       ctx.fillStyle = "#d9fbff";
       ctx.beginPath();
       ctx.arc(orbital.x, orbital.y, 4.4, 0, TAU);
@@ -375,11 +452,27 @@ function drawPlayer(ctx, player, state) {
   ctx.restore();
 }
 
-export function createCanvasRenderer(ctx) {
-  const bulletSpriteCache = createSpriteCache();
-  const particleSpriteCache = createSpriteCache();
+export function createCanvasRenderer(ctx, { createCanvas } = {}) {
+  const canvasFactory =
+    createCanvas ||
+    (typeof document !== "undefined" && typeof document.createElement === "function"
+      ? () => document.createElement("canvas")
+      : null);
+  const bulletSpriteCache = canvasFactory ? createBulletSpriteCache(canvasFactory) : null;
+  const particleSpriteCache = canvasFactory ? createParticleSpriteCache(canvasFactory) : null;
+  const resources = {
+    dpr: 1,
+    unitCirclePoints: new Map(),
+    glowSprites: canvasFactory ? createGlowSpriteCache(canvasFactory) : null,
+    bossHud: canvasFactory ? createBossHudCache(canvasFactory) : null,
+  };
+  let disposed = false;
 
   function render(state, player, stages, buckets) {
+    if (disposed) return;
+
+    const numericDpr = Number(state.view.dpr);
+    resources.dpr = Number.isFinite(numericDpr) && numericDpr > 0 ? numericDpr : 1;
     ctx.setTransform(state.view.dpr, 0, 0, state.view.dpr, 0, 0);
     ctx.clearRect(0, 0, state.view.width, state.view.height);
 
@@ -393,28 +486,40 @@ export function createCanvasRenderer(ctx) {
     state.renderDetail = detail;
 
     drawPlayfieldFrame(ctx, state);
-    drawParticles(ctx, buckets.particles, particleSpriteCache, detail === "minimal" ? "minimal" : "high");
+    if (particleSpriteCache || detail === "minimal") {
+      drawParticles(
+        ctx,
+        buckets.particles,
+        particleSpriteCache,
+        detail === "minimal" ? "minimal" : "high",
+        resources.dpr
+      );
+    }
     drawBulletTrails(ctx, buckets.enemyBullets, detail);
-    drawBullets(ctx, buckets.enemyBullets, bulletSpriteCache, detail);
+    if (bulletSpriteCache || detail === "minimal") {
+      drawBullets(ctx, buckets.enemyBullets, bulletSpriteCache, detail);
+    }
     drawBulletTrails(ctx, buckets.playerBullets, detail === "high" ? "medium" : detail);
-    drawBullets(ctx, buckets.playerBullets, bulletSpriteCache, detail);
-    drawPickups(ctx, buckets.pickups, state);
-    drawScoreShards(ctx, buckets.scoreShards, player);
-    drawEnemies(ctx, buckets.enemies, state);
+    if (bulletSpriteCache || detail === "minimal") {
+      drawBullets(ctx, buckets.playerBullets, bulletSpriteCache, detail);
+    }
+    drawPickups(ctx, buckets.pickups, state, resources);
+    drawScoreShards(ctx, buckets.scoreShards, player, resources);
+    drawEnemies(ctx, buckets.enemies, state, resources);
 
     if (state.boss) {
-      drawBossByKey(ctx, state, state.boss);
-      drawBossWeakpoint(ctx, state.boss, state);
-      drawBossUI(ctx, state.boss, state);
+      drawBossByKey(ctx, state, state.boss, resources);
+      drawBossWeakpoint(ctx, state.boss, state, resources);
+      drawBossUI(ctx, state.boss, state, resources);
     }
 
     if (!state.over || player.hp > 0) {
       if (player.invuln <= 0 || Math.floor(state.time * 10) % 2 === 0) {
-        drawPlayer(ctx, player, state);
+        drawPlayer(ctx, player, state, resources);
       }
     }
 
-    drawPlayerUI(ctx, player, state, stages);
+    drawPlayerUI(ctx, player, state, stages, resources);
 
     if (state.over) {
       ctx.save();
@@ -433,5 +538,15 @@ export function createCanvasRenderer(ctx) {
     }
   }
 
-  return { render };
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    bulletSpriteCache?.dispose();
+    particleSpriteCache?.dispose();
+    resources.glowSprites?.dispose();
+    resources.bossHud?.dispose();
+    resources.unitCirclePoints.clear();
+  }
+
+  return { render, dispose };
 }

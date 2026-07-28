@@ -65,25 +65,31 @@ export function createRecording2dContext() {
   return context;
 }
 
-export function createClassListRecorder(initial = []) {
+export function createClassListRecorder(initial = [], onWrite = () => {}) {
   const values = new Set(initial);
   const calls = [];
   return {
     calls,
     values,
     add(...tokens) {
-      calls.push({ type: "add", tokens });
+      const call = { type: "add", tokens };
+      calls.push(call);
+      onWrite(call);
       for (const token of tokens) values.add(token);
     },
     remove(...tokens) {
-      calls.push({ type: "remove", tokens });
+      const call = { type: "remove", tokens };
+      calls.push(call);
+      onWrite(call);
       for (const token of tokens) values.delete(token);
     },
     contains(token) {
       return values.has(token);
     },
     toggle(token, force) {
-      calls.push({ type: "toggle", token, force });
+      const call = { type: "toggle", token, force };
+      calls.push(call);
+      onWrite(call);
       const enabled = force === undefined ? !values.has(token) : Boolean(force);
       if (enabled) values.add(token);
       else values.delete(token);
@@ -94,16 +100,45 @@ export function createClassListRecorder(initial = []) {
 
 export function createElementRecorder({ classNames = [], rect = null } = {}) {
   const target = createEventTargetRecorder();
-  return {
+  const writes = [];
+  const recordProperties = (type) =>
+    new Proxy({}, {
+      set(properties, property, value) {
+        writes.push({ type, property, value });
+        properties[property] = value;
+        return true;
+      },
+    });
+  const classList = createClassListRecorder(classNames, (write) => {
+    const { type: operation, ...details } = write;
+    writes.push({ type: "classList", operation, ...details });
+  });
+  let textContent = "";
+  const element = {
     ...target,
-    textContent: "",
-    style: {},
-    dataset: {},
-    classList: createClassListRecorder(classNames),
+    writes,
+    style: recordProperties("style"),
+    dataset: recordProperties("dataset"),
+    classList,
     width: 0,
     height: 0,
     getBoundingClientRect: rect ? () => ({ ...rect }) : undefined,
+    clearWrites() {
+      writes.length = 0;
+      classList.calls.length = 0;
+    },
   };
+  Object.defineProperty(element, "textContent", {
+    enumerable: true,
+    get() {
+      return textContent;
+    },
+    set(value) {
+      writes.push({ type: "textContent", value });
+      textContent = value;
+    },
+  });
+  return element;
 }
 
 export function createEventTargetRecorder() {
@@ -177,10 +212,13 @@ export function createInterfaceProjectionFixture() {
     "end-accuracy",
     "end-time",
   ];
-  const elements = Object.fromEntries(ids.map((id) => [id, createElementRecorder()]));
-  elements["powerup-feed"].classList.add("hidden");
-  elements["boss-panel"].classList.add("hidden");
-  elements["end-screen"].classList.add("hidden");
+  const initiallyHidden = new Set(["powerup-feed", "boss-panel", "end-screen"]);
+  const elements = Object.fromEntries(
+    ids.map((id) => [
+      id,
+      createElementRecorder({ classNames: initiallyHidden.has(id) ? ["hidden"] : [] }),
+    ])
+  );
 
   const hullPips = Array.from({ length: 5 }, () => createElementRecorder({ classNames: ["is-full"] }));
   const burstStockPips = Array.from({ length: 2 }, () => createElementRecorder());
@@ -190,12 +228,24 @@ export function createInterfaceProjectionFixture() {
     ["#burst-stocks .stock-pip", burstStockPips],
     ["#effect-strip .effect-chip", effectChips],
   ]);
+  const recordedElements = [
+    ...Object.values(elements),
+    ...hullPips,
+    ...burstStockPips,
+    ...effectChips,
+  ];
 
   return {
     elements,
     hullPips,
     burstStockPips,
     effectChips,
+    clearWrites() {
+      for (const element of recordedElements) element.clearWrites();
+    },
+    get writes() {
+      return recordedElements.flatMap((element) => element.writes);
+    },
     document: {
       getElementById(id) {
         return elements[id] ?? null;

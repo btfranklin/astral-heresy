@@ -120,6 +120,22 @@ export function createBackgroundRenderer(gl) {
     throw new Error("Unable to initialize the WebGL background renderer.");
   }
   let disposed = false;
+  let bufferWidth = 0;
+  let bufferHeight = 0;
+  let bufferScaleX = 1;
+  let bufferScaleY = 1;
+  const lastRender = {
+    valid: false,
+    resolutionWidth: 0,
+    resolutionHeight: 0,
+    time: 0,
+    playerX: 0,
+    playerY: 0,
+    pulse: 0,
+    laneMin: 0,
+    laneMax: 0,
+    laneActive: 0,
+  };
   const attribs = {
     a_position: gl.getAttribLocation(program, "a_position"),
   };
@@ -142,33 +158,77 @@ export function createBackgroundRenderer(gl) {
 
   function resize(width, height, dpr) {
     if (disposed) return;
-    gl.viewport(0, 0, Math.floor(width * dpr), Math.floor(height * dpr));
+    bufferWidth =
+      Number.isFinite(gl.drawingBufferWidth) && gl.drawingBufferWidth > 0
+        ? gl.drawingBufferWidth
+        : Math.floor(width * dpr);
+    bufferHeight =
+      Number.isFinite(gl.drawingBufferHeight) && gl.drawingBufferHeight > 0
+        ? gl.drawingBufferHeight
+        : Math.floor(height * dpr);
+    bufferScaleX = width > 0 ? bufferWidth / width : dpr;
+    bufferScaleY = height > 0 ? bufferHeight / height : dpr;
+    lastRender.valid = false;
+    gl.viewport(0, 0, bufferWidth, bufferHeight);
   }
 
   function render(state, player) {
-    if (disposed) return;
+    if (disposed) return false;
+    const resolutionWidth = bufferWidth || Math.floor(state.view.width * state.view.dpr);
+    const resolutionHeight = bufferHeight || Math.floor(state.view.height * state.view.dpr);
+    const scaleX = bufferWidth ? bufferScaleX : state.view.dpr;
+    const scaleY = bufferHeight ? bufferScaleY : state.view.dpr;
+    const playerX = player.x * scaleX;
+    const playerY = player.y * scaleY;
+    const laneMin = state.playfield.minX * scaleX;
+    const laneMax = state.playfield.maxX * scaleX;
+    const laneActive = state.playfield.active ? 1 : 0;
+
+    if (
+      lastRender.valid &&
+      lastRender.resolutionWidth === resolutionWidth &&
+      lastRender.resolutionHeight === resolutionHeight &&
+      lastRender.time === state.time &&
+      lastRender.playerX === playerX &&
+      lastRender.playerY === playerY &&
+      lastRender.pulse === state.pulse &&
+      lastRender.laneMin === laneMin &&
+      lastRender.laneMax === laneMax &&
+      lastRender.laneActive === laneActive
+    ) {
+      return false;
+    }
+
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.enableVertexAttribArray(attribs.a_position);
     gl.vertexAttribPointer(attribs.a_position, 2, gl.FLOAT, false, 0, 0);
 
-    gl.uniform2f(uniforms.u_resolution, state.view.width * state.view.dpr, state.view.height * state.view.dpr);
+    gl.uniform2f(uniforms.u_resolution, resolutionWidth, resolutionHeight);
     gl.uniform1f(uniforms.u_time, state.time);
-    gl.uniform2f(uniforms.u_player, player.x * state.view.dpr, player.y * state.view.dpr);
+    gl.uniform2f(uniforms.u_player, playerX, playerY);
     gl.uniform1f(uniforms.u_pulse, state.pulse);
-    gl.uniform2f(
-      uniforms.u_lane,
-      state.playfield.minX * state.view.dpr,
-      state.playfield.maxX * state.view.dpr
-    );
-    gl.uniform1f(uniforms.u_laneActive, state.playfield.active ? 1 : 0);
+    gl.uniform2f(uniforms.u_lane, laneMin, laneMax);
+    gl.uniform1f(uniforms.u_laneActive, laneActive);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    lastRender.valid = true;
+    lastRender.resolutionWidth = resolutionWidth;
+    lastRender.resolutionHeight = resolutionHeight;
+    lastRender.time = state.time;
+    lastRender.playerX = playerX;
+    lastRender.playerY = playerY;
+    lastRender.pulse = state.pulse;
+    lastRender.laneMin = laneMin;
+    lastRender.laneMax = laneMax;
+    lastRender.laneActive = laneActive;
+    return true;
   }
 
   function dispose() {
     if (disposed) return;
     disposed = true;
+    lastRender.valid = false;
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.useProgram(null);
     gl.deleteBuffer?.(buffer);

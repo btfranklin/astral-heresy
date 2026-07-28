@@ -14,7 +14,7 @@ import {
   createInterfaceProjectionFixture,
 } from "../../helpers/runtimeFixture.mjs";
 
-function createRuntimeScenario(width = 1280, height = 720, dpr = 1) {
+function createRuntimeScenario(width = 1280, height = 720, dpr = 1, showcaseConfig = null) {
   const state = createGameState();
   const player = createPlayerState(width, height);
   const audio = makeAudioSpy();
@@ -46,6 +46,7 @@ function createRuntimeScenario(width = 1280, height = 720, dpr = 1) {
     end: createElementRecorder(),
     restartButton: createElementRecorder(),
   };
+  let renderInvalidations = 0;
   const runtime = createRuntimeController({
     state,
     player,
@@ -53,7 +54,7 @@ function createRuntimeScenario(width = 1280, height = 720, dpr = 1) {
     inputSystem,
     interfaceController,
     stages: stageDefinitions,
-    showcaseConfig: null,
+    showcaseConfig,
     bgCanvas: canvases.background,
     gameCanvas: canvases.game,
     backgroundRenderer,
@@ -63,6 +64,9 @@ function createRuntimeScenario(width = 1280, height = 720, dpr = 1) {
     restartButton: overlays.restartButton,
     windowObject: windowTarget,
     documentObject: documentTarget,
+    onRenderInvalidated() {
+      renderInvalidations += 1;
+    },
   });
 
   return {
@@ -75,6 +79,9 @@ function createRuntimeScenario(width = 1280, height = 720, dpr = 1) {
     canvases,
     overlays,
     runtime,
+    get renderInvalidations() {
+      return renderInvalidations;
+    },
   };
 }
 
@@ -87,8 +94,11 @@ test("runtime resize calculations stay deterministic across viewport modes", () 
   assert.equal(scenario.state.playfield.rightBayWidth, 0);
   assert.equal(scenario.state.playfield.minX <= 80, true);
   assert.equal(scenario.state.playfield.maxX >= 1200, true);
-  assert.deepEqual(scenario.canvases.background, { width: 2560, height: 1440 });
+  assert.equal(scenario.state.view.dpr, 2);
+  assert.deepEqual(scenario.canvases.background, { width: 1920, height: 1080 });
   assert.deepEqual(scenario.canvases.game, { width: 2560, height: 1440 });
+  assert.deepEqual(scenario.backgroundRenderer.resizeCalls[0], [1280, 720, 1.5]);
+  assert.equal(scenario.renderInvalidations, 1);
 
   scenario.windowTarget.innerWidth = 900;
   scenario.windowTarget.innerHeight = 720;
@@ -100,6 +110,21 @@ test("runtime resize calculations stay deterministic across viewport modes", () 
   assert.equal(scenario.state.playfield.rightBayWidth, 0);
   assert.deepEqual(scenario.backgroundRenderer.resizeCalls.at(-1), [900, 720, 1]);
   assert.deepEqual(scenario.canvases.game, { width: 900, height: 720 });
+  assert.equal(scenario.renderInvalidations, 2);
+});
+
+test("runtime resize falls back to DPR 1 for invalid device scale values", () => {
+  for (const invalidDpr of [Infinity, -1, 0, Number.NaN]) {
+    const scenario = createRuntimeScenario(640, 480, invalidDpr);
+    scenario.runtime.init();
+
+    assert.equal(scenario.state.view.dpr, 1);
+    assert.deepEqual(scenario.canvases.background, { width: 640, height: 480 });
+    assert.deepEqual(scenario.canvases.game, { width: 640, height: 480 });
+    assert.deepEqual(scenario.backgroundRenderer.resizeCalls, [[640, 480, 1]]);
+
+    scenario.runtime.dispose();
+  }
 });
 
 test("active-run resize clamps player and pointer to calculated bounds", () => {
@@ -143,6 +168,18 @@ test("fresh-run reset restores gameplay state while keeping an auto-started run 
   assert.equal(scenario.player.hp, 5);
   assert.equal(scenario.audio.engine.lastShot, 0);
   assert.equal(scenario.interfaceController.syncCalls, 2);
+  assert.equal(scenario.renderInvalidations, 4);
+});
+
+test("showcase activation invalidates after resize and scene construction", () => {
+  const showcase = getShowcaseConfig("?mode=render&enemy=cherub");
+  const scenario = createRuntimeScenario(1280, 720, 1, showcase);
+
+  scenario.runtime.init();
+
+  assert.equal(scenario.state.showcase, showcase);
+  assert.equal(scenario.state.entities.length, 1);
+  assert.equal(scenario.renderInvalidations, 2);
 });
 
 test("interface projection uses the latched final runtime after simulation time changes", () => {

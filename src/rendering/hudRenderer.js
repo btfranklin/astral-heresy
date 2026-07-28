@@ -2,6 +2,67 @@ import { combatTuning, getChainMultiplier } from "../core/combat.js";
 import { listActivePowerups, powerupTuning } from "../core/powerups.js";
 import { drawGlowCircle } from "./drawHelpers.js";
 
+function releaseCanvas(canvas) {
+  canvas.width = 0;
+  canvas.height = 0;
+}
+
+function createHudLayer(createCanvas, logicalWidth, logicalHeight, dpr) {
+  const canvas = createCanvas();
+  canvas.width = Math.max(1, Math.ceil(logicalWidth * dpr));
+  canvas.height = Math.max(1, Math.ceil(logicalHeight * dpr));
+  const layerCtx = canvas.getContext("2d");
+  layerCtx.setTransform(
+    canvas.width / logicalWidth,
+    0,
+    0,
+    canvas.height / logicalHeight,
+    0,
+    0
+  );
+  return { canvas, ctx: layerCtx };
+}
+
+export function createBossHudCache(createCanvas) {
+  let disposed = false;
+  let entry = null;
+
+  function clear() {
+    if (!entry) return;
+    releaseCanvas(entry.background);
+    releaseCanvas(entry.gradient);
+    releaseCanvas(entry.foreground);
+    entry = null;
+  }
+
+  function get(viewportWidth, dpr, bossName, phaseLabel, build) {
+    if (disposed) return null;
+    if (
+      entry?.viewportWidth === viewportWidth &&
+      entry.dpr === dpr &&
+      entry.bossName === bossName &&
+      entry.phaseLabel === phaseLabel
+    ) {
+      return entry;
+    }
+    clear();
+    entry = build();
+    entry.viewportWidth = viewportWidth;
+    entry.dpr = dpr;
+    entry.bossName = bossName;
+    entry.phaseLabel = phaseLabel;
+    return entry;
+  }
+
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    clear();
+  }
+
+  return { createCanvas, get, dispose };
+}
+
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
 }
@@ -18,13 +79,13 @@ function drawPolygon(ctx, radius, sides, rotation = -Math.PI / 2) {
   ctx.closePath();
 }
 
-function drawTimedSigil(ctx, x, y, effect, state) {
+function drawTimedSigil(ctx, x, y, effect, state, resources) {
   const ratio = clamp01(effect.timer / effect.duration);
   const pulse = 1 + Math.sin(state.time * 7 + effect.index) * 0.05;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(state.time * 0.6 + effect.index * 0.4);
-  drawGlowCircle(ctx, 0, 0, 14, `${effect.color}44`, 0.16);
+  drawGlowCircle(ctx, 0, 0, 14, `${effect.color}44`, 0.16, resources);
   ctx.strokeStyle = `${effect.color}cc`;
   ctx.fillStyle = `${effect.color}1f`;
   ctx.lineWidth = 1.4;
@@ -43,7 +104,7 @@ function drawTimedSigil(ctx, x, y, effect, state) {
   ctx.restore();
 }
 
-function drawActiveEffectSigils(ctx, player, state) {
+function drawActiveEffectSigils(ctx, player, state, resources) {
   const effects = listActivePowerups(player)
     .slice(0, 6)
     .map((effect, index) => ({ ...effect, index }));
@@ -59,12 +120,13 @@ function drawActiveEffectSigils(ctx, player, state) {
       player.x + Math.cos(angle) * radius,
       player.y + Math.sin(angle) * radius,
       effects[i],
-      state
+      state,
+      resources
     );
   }
 }
 
-function drawGrazeChargeCue(ctx, player, state) {
+function drawGrazeChargeCue(ctx, player, state, resources) {
   const ratio = clamp01(state.grazeCharge / combatTuning.maxGrazeCharge);
   const ready = ratio >= 1 || state.burstStocks >= combatTuning.maxBurstStocks;
   ctx.save();
@@ -75,12 +137,12 @@ function drawGrazeChargeCue(ctx, player, state) {
   ctx.arc(0, 0, player.radius + 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
   ctx.stroke();
   if (ready) {
-    drawGlowCircle(ctx, 0, 0, 42, "rgba(255, 213, 142, 0.22)", 0.12);
+    drawGlowCircle(ctx, 0, 0, 42, "rgba(255, 213, 142, 0.22)", 0.12, resources);
   }
   ctx.restore();
 }
 
-function drawBurstPips(ctx, player, state) {
+function drawBurstPips(ctx, player, state, resources) {
   if (state.over) return;
   const spacing = 12;
   const originX = player.x - ((combatTuning.maxBurstStocks - 1) * spacing) / 2;
@@ -89,7 +151,15 @@ function drawBurstPips(ctx, player, state) {
   for (let i = 0; i < combatTuning.maxBurstStocks; i++) {
     const full = i < state.burstStocks;
     const x = originX + i * spacing;
-    drawGlowCircle(ctx, x, y, full ? 10 : 6, full ? "rgba(121, 255, 225, 0.48)" : "rgba(255,255,255,0.12)", 0.12);
+    drawGlowCircle(
+      ctx,
+      x,
+      y,
+      full ? 10 : 6,
+      full ? "rgba(121, 255, 225, 0.48)" : "rgba(255,255,255,0.12)",
+      0.12,
+      resources
+    );
     ctx.fillStyle = full ? "#79ffe1" : "rgba(255,255,255,0.12)";
     ctx.strokeStyle = full ? "rgba(247,255,255,0.78)" : "rgba(255,255,255,0.22)";
     ctx.lineWidth = 1;
@@ -113,36 +183,24 @@ function drawChainCue(ctx, player, state) {
   ctx.restore();
 }
 
-export function drawBossUI(ctx, boss, state) {
-  const phase = boss.phases[boss.phaseIndex];
-  const barWidth = Math.min(460, state.view.width * 0.42);
-  const barX = state.view.width * 0.5 - barWidth * 0.5;
-  const barY = 26;
-
-  ctx.save();
-  drawGlowCircle(ctx, state.view.width * 0.5, barY + 10, barWidth * 0.7, "rgba(255,143,216,0.16)", 0.28);
+function drawBossHudBackground(ctx, barX, barY, barWidth) {
   ctx.fillStyle = "rgba(8, 11, 24, 0.72)";
   ctx.fillRect(barX - 10, barY - 10, barWidth + 20, 34);
   ctx.strokeStyle = "rgba(255,255,255,0.14)";
   ctx.strokeRect(barX - 10, barY - 10, barWidth + 20, 34);
-
-  const gradient = ctx.createLinearGradient(barX, 0, barX + barWidth, 0);
-  gradient.addColorStop(0, "#ff8fd8");
-  gradient.addColorStop(0.52, "#ffd58e");
-  gradient.addColorStop(1, "#79ffe1");
   ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
   ctx.fillRect(barX, barY, barWidth, 10);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(barX, barY, barWidth * (boss.hp / boss.maxHp), 10);
+}
 
+function drawBossHudForeground(ctx, boss, phase, state, barX, barY, barWidth) {
   ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.beginPath();
   for (let i = 1; i < 8; i++) {
     const x = barX + (barWidth * i) / 8;
-    ctx.beginPath();
     ctx.moveTo(x, barY);
     ctx.lineTo(x, barY + 10);
-    ctx.stroke();
   }
+  ctx.stroke();
 
   ctx.fillStyle = "rgba(255, 255, 255, 0.82)";
   ctx.textAlign = "center";
@@ -150,16 +208,140 @@ export function drawBossUI(ctx, boss, state) {
   ctx.fillText(phase ? phase.name.toUpperCase() : "FINAL FORM", state.view.width * 0.5, barY - 4);
   ctx.font = "16px Baskerville, 'Palatino Linotype', serif";
   ctx.fillText(boss.name, state.view.width * 0.5, barY + 32);
+}
+
+function createBossHudEntry(cache, boss, phase, state, barX, barY, barWidth, dpr) {
+  const layerLeft = barX - 10;
+  const layerWidth = barWidth + 20;
+  const layerHeight = barY + 44;
+  const backgroundLayer = createHudLayer(cache.createCanvas, layerWidth, layerHeight, dpr);
+  backgroundLayer.ctx.translate(-layerLeft, 0);
+  drawBossHudBackground(backgroundLayer.ctx, barX, barY, barWidth);
+
+  const foregroundLayer = createHudLayer(cache.createCanvas, layerWidth, layerHeight, dpr);
+  foregroundLayer.ctx.translate(-layerLeft, 0);
+  drawBossHudForeground(
+    foregroundLayer.ctx,
+    boss,
+    phase,
+    state,
+    barX,
+    barY,
+    barWidth
+  );
+
+  const gradientLayer = createHudLayer(cache.createCanvas, barWidth, 10, dpr);
+  const gradient = gradientLayer.ctx.createLinearGradient(0, 0, barWidth, 0);
+  gradient.addColorStop(0, "#ff8fd8");
+  gradient.addColorStop(0.52, "#ffd58e");
+  gradient.addColorStop(1, "#79ffe1");
+  gradientLayer.ctx.fillStyle = gradient;
+  gradientLayer.ctx.fillRect(0, 0, barWidth, 10);
+
+  return {
+    background: backgroundLayer.canvas,
+    gradient: gradientLayer.canvas,
+    foreground: foregroundLayer.canvas,
+    layerLeft,
+    layerWidth,
+    layerHeight,
+  };
+}
+
+function drawHudLayer(ctx, canvas, x, width, height) {
+  ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height, x, 0, width, height);
+}
+
+export function drawBossUI(ctx, boss, state, resources) {
+  const phase = boss.phases[boss.phaseIndex];
+  const barWidth = Math.min(460, state.view.width * 0.42);
+  const barX = state.view.width * 0.5 - barWidth * 0.5;
+  const barY = 26;
+
+  ctx.save();
+  drawGlowCircle(
+    ctx,
+    state.view.width * 0.5,
+    barY + 10,
+    barWidth * 0.7,
+    "rgba(255,143,216,0.16)",
+    0.28,
+    resources
+  );
+
+  const cache = resources?.bossHud;
+  if (cache) {
+    const numericDpr = Number(resources.dpr);
+    const dpr = Number.isFinite(numericDpr) && numericDpr > 0 ? numericDpr : 1;
+    const phaseLabel = phase ? phase.name.toUpperCase() : "FINAL FORM";
+    const entry = cache.get(
+      state.view.width,
+      dpr,
+      boss.name,
+      phaseLabel,
+      () => createBossHudEntry(cache, boss, phase, state, barX, barY, barWidth, dpr)
+    );
+    if (entry) {
+      drawHudLayer(
+        ctx,
+        entry.background,
+        entry.layerLeft,
+        entry.layerWidth,
+        entry.layerHeight
+      );
+      const hpRatio = boss.hp / boss.maxHp;
+      if (hpRatio > 0) {
+        const hpWidth = barWidth * hpRatio;
+        ctx.drawImage(
+          entry.gradient,
+          0,
+          0,
+          entry.gradient.width * hpRatio,
+          entry.gradient.height,
+          barX,
+          barY,
+          hpWidth,
+          10
+        );
+      }
+      drawHudLayer(
+        ctx,
+        entry.foreground,
+        entry.layerLeft,
+        entry.layerWidth,
+        entry.layerHeight
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  drawBossHudBackground(ctx, barX, barY, barWidth);
+  const gradient = ctx.createLinearGradient(barX, 0, barX + barWidth, 0);
+  gradient.addColorStop(0, "#ff8fd8");
+  gradient.addColorStop(0.52, "#ffd58e");
+  gradient.addColorStop(1, "#79ffe1");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(barX, barY, barWidth * (boss.hp / boss.maxHp), 10);
+  drawBossHudForeground(ctx, boss, phase, state, barX, barY, barWidth);
   ctx.restore();
 }
 
-export function drawBossWeakpoint(ctx, boss, state) {
+export function drawBossWeakpoint(ctx, boss, state, resources) {
   if (!boss.weakpoint) return;
   const weakpoint = boss.weakpoint;
   const pulse = 0.75 + Math.sin(state.time * 10) * 0.18;
 
   ctx.save();
-  drawGlowCircle(ctx, weakpoint.x, weakpoint.y, weakpoint.radius * 3, "rgba(255, 245, 214, 0.35)", 0.3);
+  drawGlowCircle(
+    ctx,
+    weakpoint.x,
+    weakpoint.y,
+    weakpoint.radius * 3,
+    "rgba(255, 245, 214, 0.35)",
+    0.3,
+    resources
+  );
   ctx.strokeStyle = weakpoint.color;
   ctx.lineWidth = 2.2;
   ctx.globalAlpha = 0.75 + state.feedback.weakpoint * 0.5;
@@ -186,7 +368,7 @@ export function drawBossWeakpoint(ctx, boss, state) {
   ctx.restore();
 }
 
-export function drawPlayerUI(ctx, player, state, stages) {
+export function drawPlayerUI(ctx, player, state, stages, resources) {
   ctx.save();
   ctx.strokeStyle = "rgba(180, 236, 255, 0.18)";
   ctx.lineWidth = 1.2;
@@ -214,15 +396,15 @@ export function drawPlayerUI(ctx, player, state, stages) {
     ctx.arc(0, 0, player.radius + combatTuning.grazeInnerOffset, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
-    drawGrazeChargeCue(ctx, player, state);
-    drawBurstPips(ctx, player, state);
+    drawGrazeChargeCue(ctx, player, state, resources);
+    drawBurstPips(ctx, player, state, resources);
   }
 
   if (player.activePowerups.haloShield > 0 && !state.over) {
     ctx.save();
     ctx.translate(player.x, player.y);
     const pulse = 0.9 + Math.sin(state.time * 7.8) * 0.08;
-    drawGlowCircle(ctx, 0, 0, 34, "rgba(189, 253, 255, 0.4)", 0.22);
+    drawGlowCircle(ctx, 0, 0, 34, "rgba(189, 253, 255, 0.4)", 0.22, resources);
     ctx.strokeStyle = "rgba(221, 252, 255, 0.86)";
     ctx.lineWidth = 1.6;
     ctx.beginPath();
@@ -268,7 +450,7 @@ export function drawPlayerUI(ctx, player, state, stages) {
   if (player.activePowerups.grazeBloom > 0 && !state.over) {
     ctx.save();
     ctx.translate(player.x, player.y);
-    drawGlowCircle(ctx, 0, 0, 38, "rgba(255, 159, 218, 0.22)", 0.18);
+    drawGlowCircle(ctx, 0, 0, 38, "rgba(255, 159, 218, 0.22)", 0.18, resources);
     ctx.strokeStyle = "rgba(255, 196, 232, 0.55)";
     ctx.lineWidth = 1;
     for (let i = 0; i < 4; i++) {
@@ -343,7 +525,7 @@ export function drawPlayerUI(ctx, player, state, stages) {
     ctx.save();
     ctx.textAlign = "center";
     ctx.globalAlpha = alpha;
-    drawGlowCircle(ctx, x, y - 8, 90, `${notice.color}33`, 0.18);
+    drawGlowCircle(ctx, x, y - 8, 90, `${notice.color}33`, 0.18, resources);
     ctx.strokeStyle = notice.color;
     ctx.lineWidth = 1.4;
     ctx.beginPath();
@@ -358,7 +540,7 @@ export function drawPlayerUI(ctx, player, state, stages) {
     ctx.restore();
   }
 
-  drawActiveEffectSigils(ctx, player, state);
+  drawActiveEffectSigils(ctx, player, state, resources);
   drawChainCue(ctx, player, state);
 
   if (state.feedback.burst > 0 && state.burstOrigin) {

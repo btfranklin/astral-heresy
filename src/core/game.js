@@ -76,6 +76,13 @@ export function createGame({
   });
 
   const stages = stageDefinitions;
+  let renderDirty = true;
+  let wasContinuouslyAnimated = false;
+
+  function invalidateRender() {
+    renderDirty = true;
+  }
+
   const runtimeController = createRuntimeController({
     state,
     player,
@@ -92,6 +99,7 @@ export function createGame({
     endScreen,
     restartButton,
     onGameStart: () => events.emit("game:start"),
+    onRenderInvalidated: invalidateRender,
   });
 
   let disposed = false;
@@ -187,6 +195,24 @@ export function createGame({
     interfaceController.sync(state, player, stages);
   }
 
+  function isContinuouslyAnimated() {
+    return Boolean(
+      state.showcase ||
+      (state.started && !state.over) ||
+      state.shake > 0 ||
+      renderBuckets.particles.length > 0
+    );
+  }
+
+  function renderIfNeeded(force = false) {
+    const continuouslyAnimated = isContinuouslyAnimated();
+    if (force || renderDirty || continuouslyAnimated || wasContinuouslyAnimated) {
+      renderFrame();
+      renderDirty = false;
+    }
+    wasContinuouslyAnimated = continuouslyAnimated;
+  }
+
   function buildTextSnapshot() {
     const sample = (entities, limit = 8) =>
       entities.slice(0, limit).map((entity) => ({
@@ -279,7 +305,7 @@ export function createGame({
     if (disposed) return;
     const dt = nextFrame(timestamp);
     update(dt);
-    renderFrame();
+    renderIfNeeded();
     rafId = requestAnimationFrame(loop);
   }
 
@@ -301,6 +327,7 @@ export function createGame({
     }
     runtimeController.dispose();
     backgroundRenderer.dispose();
+    canvasRenderer.dispose();
     return audio.dispose();
   }
 
@@ -315,26 +342,36 @@ export function createGame({
       for (let i = 0; i < steps; i++) {
         update(1 / 60);
       }
-      renderFrame();
+      renderIfNeeded(true);
       return JSON.stringify(buildTextSnapshot());
     },
     renderGameToText() {
       return JSON.stringify(buildTextSnapshot());
     },
     debugSpawnPickup(kind, x, y, overrides = {}) {
-      return spawnPickup(state, kind, x, y, overrides, { laneAware: false });
+      const entity = spawnPickup(state, kind, x, y, overrides, { laneAware: false });
+      invalidateRender();
+      return entity;
     },
     debugSpawnEnemy(archetypeKey, overrides = {}, spawnOptions) {
-      return spawnEnemy(state, archetypeKey, overrides, spawnOptions);
+      const entity = spawnEnemy(state, archetypeKey, overrides, spawnOptions);
+      invalidateRender();
+      return entity;
     },
     debugSpawnScoreShards(x, y, count = 4, options = {}) {
-      return spawnScoreShards(state, x, y, count, options, { laneAware: false });
+      const entities = spawnScoreShards(state, x, y, count, options, { laneAware: false });
+      invalidateRender();
+      return entities;
     },
     debugSpawnEnemyBullet(x, y, angle, speed, options = {}) {
-      return spawnEnemyBullet(state, x, y, angle, speed, options);
+      const entity = spawnEnemyBullet(state, x, y, angle, speed, options);
+      invalidateRender();
+      return entity;
     },
     debugSpawnPlayerBullet(x, y, angle, speed, options = {}) {
-      return spawnPlayerBullet(state, x, y, angle, speed, options);
+      const entity = spawnPlayerBullet(state, x, y, angle, speed, options);
+      invalidateRender();
+      return entity;
     },
     debugBuildBuckets() {
       return buildEntityBuckets(state);

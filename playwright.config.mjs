@@ -20,7 +20,7 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
   },
   webServer: {
-    command: `python3 -m http.server ${port} --directory . >/dev/null 2>&1`,
+    command: `python3 scripts/serve_local.py ${port} --directory . >/dev/null 2>&1`,
     url: `${baseURL}/`,
     reuseExistingServer: false,
     timeout: 15_000,

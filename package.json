@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/validate_fast.mjs",
-    "test:browser": "playwright test --config=playwright.config.mjs"
+    "test:browser": "playwright test --config=playwright.config.mjs",
+    "test:performance": "playwright test --config=playwright.performance.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": ">=1.61.1",

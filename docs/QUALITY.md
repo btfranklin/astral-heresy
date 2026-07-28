@@ -25,6 +25,9 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
   - Real Chromium contract suite for browser-owned behavior.
   - One-time setup: `npm install` followed by `npx playwright install chromium`.
   - Starts an isolated local server, uses native Playwright input, checks Canvas/WebGL/Web Audio behavior, exercises visibility and resize lifecycle, verifies teardown, and fails on unexpected browser errors.
+- `npm run test:performance`
+  - Opt-in Chromium rendering-performance telemetry at DPR 1 and 2.
+  - Records fixed-scene animation-frame, CDP, Canvas, DOM, allocation, and optional GPU timing measurements without imposing a numeric budget or joining the default gate.
 
 ## Test Layers
 
@@ -36,6 +39,8 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
   - Small cross-system simulations that replace the old bespoke smoke scripts without turning into browser automation.
 - `tests/browser/`
   - Real Chromium coverage for native modules, DOM events and selectors, layout, Canvas/WebGL, Web Audio, animation frames, and browser resource cleanup.
+- `tests/performance/`
+  - Serial, fixed-scene browser measurements kept separate from correctness assertions and the default validation gate.
 
 Narrow recorders and collaborator spies are valid for orchestration and projection assertions. They are not substitutes for browser event, selector, rendering, audio, layout, or scheduling semantics.
 
@@ -82,6 +87,19 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 - `node scripts/check_runtime_browser_smoke.mjs`
   - Required for changes to startup, DOM/input lifecycle, visibility, viewport geometry, Canvas/WebGL, Web Audio, animation scheduling, or teardown.
   - Captures current-run screenshots for startup and representative render-study scenes while using pixel and browser-error assertions as the automated rendering gate.
+- Installed Safari manual smoke
+  - Required after changing the native-module graph, local serving path, or startup flow, and when repairing a Safari-reported regression.
+  - Launch with `./scripts/play.sh`, click `Launch Sortie`, confirm active gameplay begins, and check Safari's JavaScript console for startup errors.
+  - Playwright's Chromium lane remains useful evidence, but it does not substitute for this Safari check.
+
+### Rendering Performance
+
+- `npm run test:performance`
+  - Runs headless Chromium serially at a 1280×720 viewport with DPR 1 and 2 projects.
+  - Samples idle, six stationary `halo` enemies with 42 stationary bullets, and the phase-3 Seraph showcase after 60 warmup callbacks.
+  - Attaches versioned JSON containing 180 callback-duration and callback-interval samples, CDP task/script duration deltas, backing-store and renderer metadata, and optional GPU timer-query measurements.
+  - Runs Canvas command, DOM mutation, and offscreen-allocation counters on a separate untimed page so instrumentation does not distort the timed sample.
+  - Fails only for invalid or missing samples, invalid scene construction, or browser errors. It deliberately has no numeric budget, checked-in baseline, golden artifact, new dependency, or place in the default validation gate.
 
 ## Repair Expectations
 

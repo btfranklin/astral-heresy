@@ -13,12 +13,13 @@ Run the local server helper:
 Or serve the repo manually:
 
 ```bash
-python3 -m http.server 7666 --directory .
+python3 scripts/serve_local.py 7666 --directory .
 ```
 
 Then open `http://127.0.0.1:7666/`.
 
-`./scripts/play.sh` prefers `7666` and falls back to other free ports if needed. You can also override it with `PORT=8686 ./scripts/play.sh`.
+`./scripts/play.sh` chooses a fresh local port for each run so Safari cannot reuse native modules from an older source revision. You can pin it when needed with `PORT=8686 ./scripts/play.sh`.
+The local server also disables browser caching so subsequent reloads keep one consistent ES-module graph.
 
 ## Repository Map
 
@@ -104,3 +105,13 @@ Run the real Chromium contract lane and capture current-run artifacts under `out
 ```bash
 node scripts/check_runtime_browser_smoke.mjs
 ```
+
+Record the opt-in Chromium rendering-performance telemetry:
+
+```bash
+npm run test:performance
+```
+
+This separate lane samples fixed idle, projectile-heavy, and boss render scenes
+at DPR 1 and 2. It reports measurements without enforcing numeric budgets or
+joining the default validation gate.

@@ -14,8 +14,6 @@ else
   exit 1
 fi
 
-DEFAULT_PORT_CANDIDATES=(7666 7667 6969 8686)
-
 port_is_available() {
   "$PYTHON" - "$1" <<'PY'
 import socket
@@ -50,26 +48,20 @@ if [[ -n "${PORT:-}" ]]; then
     exit 1
   fi
 else
-  for candidate in "${DEFAULT_PORT_CANDIDATES[@]}"; do
-    if port_is_available "$candidate"; then
-      PORT="$candidate"
-      break
-    fi
-  done
-
-  PORT=${PORT:-$(find_fallback_port)}
+  # A fresh origin prevents Safari from combining native ES modules cached
+  # during different source revisions.
+  PORT=$(find_fallback_port)
 fi
 
 URL="http://127.0.0.1:${PORT}/"
 OPEN_URL="${URL}?play_run=$(date +%s)"
 
-if [[ "$PYTHON_MAJOR" == "3" ]]; then
-  SERVER_ARGS=(-m http.server "$PORT" --directory "$ROOT_DIR")
-else
-  SERVER_ARGS=(-m SimpleHTTPServer "$PORT")
+if [[ "$PYTHON_MAJOR" != "3" ]]; then
+  echo "Python 3 is required to run the cache-safe local server." >&2
+  exit 1
 fi
 
-"$PYTHON" "${SERVER_ARGS[@]}" >/dev/null 2>&1 &
+"$PYTHON" "$ROOT_DIR/scripts/serve_local.py" "$PORT" --directory "$ROOT_DIR" >/dev/null 2>&1 &
 SERVER_PID=$!
 
 cleanup() {

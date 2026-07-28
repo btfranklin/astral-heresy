@@ -1,5 +1,5 @@
 import { TAU } from "../core/math.js";
-import { drawGlowCircle } from "./drawHelpers.js";
+import { drawGlowCircle, getUnitCirclePoints } from "./drawHelpers.js";
 
 function drawHaloRing(ctx, radius, color, lineWidth = 2, alpha = 0.9) {
   ctx.save();
@@ -12,20 +12,30 @@ function drawHaloRing(ctx, radius, color, lineWidth = 2, alpha = 0.9) {
   ctx.restore();
 }
 
-function drawSigilTicks(ctx, radius, count, color, time = 0, alternating = false) {
+function drawSigilTicks(
+  ctx,
+  radius,
+  count,
+  color,
+  time = 0,
+  alternating = false,
+  resources
+) {
   ctx.save();
   ctx.rotate(time);
   ctx.strokeStyle = color;
   ctx.lineWidth = Math.max(1, radius * 0.07);
   ctx.lineCap = "round";
+  const points = getUnitCirclePoints(count, resources);
+  ctx.beginPath();
   for (let i = 0; i < count; i++) {
-    const angle = (i / count) * TAU;
     const inner = radius * (alternating && i % 2 ? 0.78 : 0.86);
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
-    ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
-    ctx.stroke();
+    const cos = points[i * 2];
+    const sin = points[i * 2 + 1];
+    ctx.moveTo(cos * inner, sin * inner);
+    ctx.lineTo(cos * radius, sin * radius);
   }
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -62,8 +72,8 @@ function drawWing(ctx, side, radius, color) {
   ctx.restore();
 }
 
-function drawEye(ctx, radius, iris, halo) {
-  drawGlowCircle(ctx, 0, 0, radius * 2.1, halo, 0.26);
+function drawEye(ctx, radius, iris, halo, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 2.1, halo, 0.26, resources);
   ctx.fillStyle = "rgba(255,255,255,0.92)";
   ctx.beginPath();
   ctx.ellipse(0, 0, radius * 1.1, radius * 0.7, 0, 0, TAU);
@@ -85,11 +95,11 @@ function drawEye(ctx, radius, iris, halo) {
   ctx.fill();
 }
 
-function drawCherub(ctx, radius, color, accent, time) {
-  drawGlowCircle(ctx, 0, 0, radius * 2.8, "rgba(122,215,255,0.3)", 0.4);
+function drawCherub(ctx, radius, color, accent, time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 2.8, "rgba(122,215,255,0.3)", 0.4, resources);
   ctx.save();
   ctx.rotate(-time * 0.22);
-  drawSigilTicks(ctx, radius * 1.18, 8, "rgba(224,250,255,0.56)", 0, true);
+  drawSigilTicks(ctx, radius * 1.18, 8, "rgba(224,250,255,0.56)", 0, true, resources);
   drawHaloRing(ctx, radius * 1.02, "rgba(122,215,255,0.58)", 1.2, 0.72);
   ctx.restore();
   ctx.save();
@@ -102,16 +112,24 @@ function drawCherub(ctx, radius, color, accent, time) {
   drawWing(ctx, -1, radius * 1.16, "rgba(165, 231, 255, 0.54)");
   drawWing(ctx, 1, radius * 1.16, "rgba(224, 250, 255, 0.62)");
   ctx.restore();
-  drawEye(ctx, radius * 0.8, color, "rgba(121,255,225,0.35)");
+  drawEye(ctx, radius * 0.8, color, "rgba(121,255,225,0.35)", resources);
 }
 
-function drawHaloSentinel(ctx, radius, color, accent, time) {
-  drawGlowCircle(ctx, 0, 0, radius * 3.2, "rgba(131,255,230,0.28)", 0.38);
+function drawHaloSentinel(ctx, radius, color, accent, time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 3.2, "rgba(131,255,230,0.28)", 0.38, resources);
   ctx.save();
   ctx.rotate(time * 0.5);
   drawHaloRing(ctx, radius * 1.14, accent, 3, 0.74);
   drawHaloRing(ctx, radius * 0.82, "rgba(255,255,255,0.4)", 1.2, 0.8);
-  drawSigilTicks(ctx, radius * 1.34, 12, "rgba(131,255,230,0.62)", -time, true);
+  drawSigilTicks(
+    ctx,
+    radius * 1.34,
+    12,
+    "rgba(131,255,230,0.62)",
+    -time,
+    true,
+    resources
+  );
   for (let i = 0; i < 6; i++) {
     const angle = (i / 6) * TAU;
     const x = Math.cos(angle) * radius * 1.05;
@@ -122,26 +140,26 @@ function drawHaloSentinel(ctx, radius, color, accent, time) {
     ctx.fill();
   }
   ctx.restore();
-  drawEye(ctx, radius * 0.74, color, "rgba(131,255,230,0.28)");
+  drawEye(ctx, radius * 0.74, color, "rgba(131,255,230,0.28)", resources);
 }
 
-function drawOracle(ctx, radius, color, accent) {
-  drawGlowCircle(ctx, 0, 0, radius * 2.8, "rgba(255,212,128,0.24)", 0.36);
+function drawOracle(ctx, radius, color, accent, _time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 2.8, "rgba(255,212,128,0.24)", 0.36, resources);
   drawDiamond(ctx, radius * 1.22, "rgba(255, 224, 145, 0.34)", "rgba(255,246,215,0.84)");
   drawDiamond(ctx, radius * 0.9, "rgba(255, 246, 215, 0.7)", color, Math.PI / 4);
   drawHaloRing(ctx, radius * 1.05, accent, 1.6, 0.7);
-  drawSigilTicks(ctx, radius * 1.3, 4, color, Math.PI / 4);
+  drawSigilTicks(ctx, radius * 1.3, 4, color, Math.PI / 4, false, resources);
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, -radius * 0.92);
   ctx.lineTo(0, radius * 0.92);
   ctx.stroke();
-  drawEye(ctx, radius * 0.46, color, "rgba(255,212,128,0.2)");
+  drawEye(ctx, radius * 0.46, color, "rgba(255,212,128,0.2)", resources);
 }
 
-function drawWeaver(ctx, radius, color, accent, time) {
-  drawGlowCircle(ctx, 0, 0, radius * 3, "rgba(197,163,255,0.24)", 0.36);
+function drawWeaver(ctx, radius, color, accent, time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 3, "rgba(197,163,255,0.24)", 0.36, resources);
   ctx.save();
   ctx.rotate(time * 0.8);
   ctx.strokeStyle = accent;
@@ -156,11 +174,11 @@ function drawWeaver(ctx, radius, color, accent, time) {
   ctx.restore();
   drawDiamond(ctx, radius * 1.05, "rgba(197,163,255,0.3)", "rgba(255,223,251,0.74)", -time * 0.22);
   drawDiamond(ctx, radius * 0.78, "rgba(231,221,255,0.72)", color, time * 0.16);
-  drawEye(ctx, radius * 0.44, color, "rgba(197,163,255,0.2)");
+  drawEye(ctx, radius * 0.44, color, "rgba(197,163,255,0.2)", resources);
 }
 
-function drawShard(ctx, radius, color, accent, time) {
-  drawGlowCircle(ctx, 0, 0, radius * 2.7, "rgba(158,251,255,0.24)", 0.34);
+function drawShard(ctx, radius, color, accent, time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 2.7, "rgba(158,251,255,0.24)", 0.34, resources);
   ctx.save();
   ctx.rotate(time * 0.55);
   ctx.fillStyle = "rgba(240, 253, 255, 0.72)";
@@ -179,11 +197,11 @@ function drawShard(ctx, radius, color, accent, time) {
   }
   ctx.restore();
   drawHaloRing(ctx, radius * 0.58, accent, 1.6, 0.72);
-  drawEye(ctx, radius * 0.36, color, "rgba(158,251,255,0.18)");
+  drawEye(ctx, radius * 0.36, color, "rgba(158,251,255,0.18)", resources);
 }
 
-function drawHarp(ctx, radius, color, accent, time) {
-  drawGlowCircle(ctx, 0, 0, radius * 2.7, "rgba(255,213,255,0.24)", 0.34);
+function drawHarp(ctx, radius, color, accent, time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 2.7, "rgba(255,213,255,0.24)", 0.34, resources);
   ctx.strokeStyle = accent;
   ctx.lineWidth = 2.4;
   ctx.beginPath();
@@ -204,12 +222,20 @@ function drawHarp(ctx, radius, color, accent, time) {
     ctx.lineTo(x + Math.sin(time + i) * 1.5, radius * 0.64);
     ctx.stroke();
   }
-  drawSigilTicks(ctx, radius * 1.18, 6, "rgba(255,213,255,0.55)", time * 0.16);
-  drawEye(ctx, radius * 0.34, color, "rgba(255,213,255,0.16)");
+  drawSigilTicks(
+    ctx,
+    radius * 1.18,
+    6,
+    "rgba(255,213,255,0.55)",
+    time * 0.16,
+    false,
+    resources
+  );
+  drawEye(ctx, radius * 0.34, color, "rgba(255,213,255,0.16)", resources);
 }
 
-function drawSpear(ctx, radius, color, accent) {
-  drawGlowCircle(ctx, 0, 0, radius * 2.8, "rgba(255,155,133,0.22)", 0.34);
+function drawSpear(ctx, radius, color, accent, _time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 2.8, "rgba(255,155,133,0.22)", 0.34, resources);
   ctx.fillStyle = "rgba(255, 240, 214, 0.78)";
   ctx.beginPath();
   ctx.moveTo(0, -radius * 1.18);
@@ -234,16 +260,24 @@ function drawSpear(ctx, radius, color, accent) {
     ctx.fill();
   }
   drawHaloRing(ctx, radius * 0.54, accent, 1.6, 0.68);
-  drawEye(ctx, radius * 0.3, color, "rgba(255,155,133,0.16)");
+  drawEye(ctx, radius * 0.3, color, "rgba(255,155,133,0.16)", resources);
 }
 
-function drawThrone(ctx, radius, color, accent, time) {
-  drawGlowCircle(ctx, 0, 0, radius * 3.4, "rgba(255,184,91,0.22)", 0.36);
+function drawThrone(ctx, radius, color, accent, time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 3.4, "rgba(255,184,91,0.22)", 0.36, resources);
   ctx.save();
   ctx.rotate(time * 0.34);
   drawHaloRing(ctx, radius * 1.22, accent, 3, 0.72);
   drawHaloRing(ctx, radius * 0.88, "rgba(255,255,255,0.38)", 2, 0.72);
-  drawSigilTicks(ctx, radius * 1.42, 12, "rgba(255,184,91,0.58)", time * 0.25, true);
+  drawSigilTicks(
+    ctx,
+    radius * 1.42,
+    12,
+    "rgba(255,184,91,0.58)",
+    time * 0.25,
+    true,
+    resources
+  );
   ctx.restore();
   ctx.save();
   ctx.rotate(-time * 0.55);
@@ -257,11 +291,11 @@ function drawThrone(ctx, radius, color, accent, time) {
     ctx.fill();
   }
   ctx.restore();
-  drawEye(ctx, radius * 0.7, color, "rgba(255,184,91,0.18)");
+  drawEye(ctx, radius * 0.7, color, "rgba(255,184,91,0.18)", resources);
 }
 
-function drawFang(ctx, radius, color, accent, time) {
-  drawGlowCircle(ctx, 0, 0, radius * 3, "rgba(255,121,176,0.22)", 0.36);
+function drawFang(ctx, radius, color, accent, time, resources) {
+  drawGlowCircle(ctx, 0, 0, radius * 3, "rgba(255,121,176,0.22)", 0.36, resources);
   ctx.save();
   ctx.rotate(Math.sin(time * 0.8) * 0.1);
   ctx.fillStyle = "rgba(255, 224, 241, 0.74)";
@@ -286,26 +320,26 @@ function drawFang(ctx, radius, color, accent, time) {
   ctx.fill();
   ctx.restore();
   drawHaloRing(ctx, radius * 0.62, accent, 1.6, 0.68);
-  drawEye(ctx, radius * 0.38, color, "rgba(255,121,176,0.16)");
+  drawEye(ctx, radius * 0.38, color, "rgba(255,121,176,0.16)", resources);
 }
 
 const enemyRenderers = {
-  cherub: (ctx, radius, color, accent, time) => drawCherub(ctx, radius, color, accent, time),
-  halo: (ctx, radius, color, accent, time) => drawHaloSentinel(ctx, radius, color, accent, time),
-  oracle: (ctx, radius, color, accent) => drawOracle(ctx, radius, color, accent),
-  weaver: (ctx, radius, color, accent, time) => drawWeaver(ctx, radius, color, accent, time),
-  shard: (ctx, radius, color, accent, time) => drawShard(ctx, radius, color, accent, time),
-  harp: (ctx, radius, color, accent, time) => drawHarp(ctx, radius, color, accent, time),
-  spear: (ctx, radius, color, accent) => drawSpear(ctx, radius, color, accent),
-  throne: (ctx, radius, color, accent, time) => drawThrone(ctx, radius, color, accent, time),
-  fang: (ctx, radius, color, accent, time) => drawFang(ctx, radius, color, accent, time),
+  cherub: drawCherub,
+  halo: drawHaloSentinel,
+  oracle: drawOracle,
+  weaver: drawWeaver,
+  shard: drawShard,
+  harp: drawHarp,
+  spear: drawSpear,
+  throne: drawThrone,
+  fang: drawFang,
 };
 
 export function listEnemyRendererKeys() {
   return Object.keys(enemyRenderers);
 }
 
-export function drawEnemy(ctx, enemy, state) {
+export function drawEnemy(ctx, enemy, state, resources) {
   const pos = enemy.components.position;
   const col = enemy.components.collider;
   const render = enemy.components.render;
@@ -318,7 +352,7 @@ export function drawEnemy(ctx, enemy, state) {
   ctx.save();
   ctx.translate(pos.x, pos.y);
   const renderer = enemyRenderers[render.renderKey] || enemyRenderers.cherub;
-  renderer(ctx, col.r, render.color, render.accent, time);
+  renderer(ctx, col.r, render.color, render.accent, time, resources);
 
   if (reward?.elite) {
     ctx.strokeStyle = "rgba(255, 213, 142, 0.9)";

@@ -13,12 +13,13 @@ Standard helper:
 Manual server without auto-opening a browser:
 
 ```bash
-python3 -m http.server 7666 --directory .
+python3 scripts/serve_local.py 7666 --directory .
 ```
 
 Then visit `http://127.0.0.1:7666/`.
 
-`./scripts/play.sh` prefers `7666` and falls back to other free ports if needed. You can also override it with `PORT=8686 ./scripts/play.sh`.
+`./scripts/play.sh` chooses a fresh local port for each run so Safari cannot reuse native modules from an older source revision. You can pin it when needed with `PORT=8686 ./scripts/play.sh`.
+The local server sends `Cache-Control: no-store` and ignores stale conditional validators. Together, the fresh origin and no-store responses prevent Safari from combining native-module files from different source revisions.
 
 ## Start Flow
 
@@ -182,10 +183,53 @@ That lane validates:
 - current-run screenshots under `output/playwright/`, with traces retained there
   when a test fails
 
+## Rendering Performance Telemetry
+
+Run the opt-in performance lane separately from the correctness suites:
+
+```bash
+npm run test:performance
+```
+
+The lane uses serial headless Chromium projects at a fixed 1280×720 viewport
+with DPR 1 and 2. It measures three controlled surfaces:
+
+- the idle start screen at `/`
+- six stationary `halo` enemies with 42 stationary bullets, constructed from
+  `/?mode=render&enemy=halo` through the public debug-spawn helpers
+- the phase-3 Seraph scene at `/?mode=render&boss=seraph&phase=3`
+
+The exact fixed coordinates, bullet attributes, warm-up, and sampling sequence
+live in [`../tests/performance/render-performance.spec.mjs`](../tests/performance/render-performance.spec.mjs);
+use that file rather than an ad hoc play session when reproducing a report.
+
+Each timed run warms up for 60 animation-frame callbacks, records the next 180,
+and reports callback duration and interval percentiles plus CDP
+`TaskDuration`/`ScriptDuration` deltas. It also records canvas backing sizes,
+browser and renderer identity, and GPU timer-query data when the active renderer
+supports `EXT_disjoint_timer_query`; otherwise the JSON records the reason.
+
+Canvas command counts, DOM mutation counts, and offscreen-canvas allocations are
+collected on a separate untimed page. The line reporter prints a compact JSON
+summary, and the full raw sample is attached as `render-performance.json` under
+the ignored `output/playwright/performance/` tree.
+
+This is an evidence lane, not a pass/fail speed budget. It fails only when the
+scene, browser, or measurement itself is invalid. Compare runs only when their
+viewport, DPR, user agent, renderer, and backing-store metadata are compatible.
+Callback duration covers JavaScript executed inside the RAF callback; callback
+interval also reflects delivery and rendering pressure between callbacks. CDP
+task/script values are cumulative deltas over the 180-sample window. Canvas,
+DOM, and allocation counts come from the warmed untimed pass and must not be
+combined arithmetically with the timing sample. Zero warmed offscreen
+allocations indicates cache reuse. An unsupported GPU timer is expected on some
+headless renderers and is recorded as metadata rather than treated as a failure.
+
 ## Constraints Worth Remembering
 
 - WebGL is required for the animated background. Failure is surfaced through an alert in the composition root.
 - The repo has no build step. Browser-native ES modules are the execution model.
 - Randomness is not seeded. If determinism matters, document the intended RNG boundary before changing it.
 - Browser-visible runtime changes must pass the Chromium contract lane; screenshots remain useful for readability judgments beyond its pixel assertions.
+- Rendering-performance telemetry is opt-in and informational; do not interpret a green run as proof that a numeric frame budget was met.
 - `window.__astralHeresy.dispose()` cancels animation frames, detaches listeners, releases WebGL resources, stops/disconnects Web Audio nodes, and closes the audio context.

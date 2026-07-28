@@ -29,3 +29,4 @@ This directory is the system of record for repository knowledge that should surv
 - Use `node scripts/run_fast_tests.mjs runtime` when changing start flow, restart behavior, render-study behavior, or HUD sync.
 - The `scripts/check_content_contract.mjs`, `scripts/check_combat_smoke.mjs`, `scripts/check_powerup_smoke.mjs`, and `scripts/check_runtime_smoke.mjs` files remain as compatibility wrappers over those groups.
 - Use `node scripts/check_runtime_browser_smoke.mjs` for every change to browser-visible startup, input, visibility, layout, Canvas/WebGL, Web Audio, animation scheduling, or teardown behavior.
+- Use `npm run test:performance` when comparing rendering work under fixed Chromium scenes; it is an informational lane, not part of the default gate.

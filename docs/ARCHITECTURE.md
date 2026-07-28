@@ -49,6 +49,25 @@ time rather than render-call frequency. If you change ordering, document why
 here. Collision timing, boss defeat timing, and entity cleanup behavior depend
 on this sequence.
 
+The browser's finite positive device-pixel ratio is retained in `state.view.dpr`.
+The gameplay/UI Canvas uses that native ratio, while the procedural WebGL
+background uses `min(state.view.dpr, 1.5)`. The background renderer owns its
+actual drawing-buffer dimensions and coordinate scales, so background uniforms
+do not assume that both canvases share one backing resolution.
+
+RAF callbacks and the lightweight idle update path remain continuous. Pixel
+work is invalidated separately: showcases, active runs, shake, and particles
+render continuously; initialization, resize, start, reset, showcase activation,
+and debug spawns mark a frame dirty. One trailing frame clears the last
+continuous effect before idle drawing settles. The WebGL renderer also skips an
+identical scalar render signature, and `advanceTime()` always forces the Canvas
+projection synchronously.
+
+The opt-in Playwright performance lane observes this browser-owned loop from
+outside production modules. Timed RAF/CDP sampling and the separate untimed
+Canvas/DOM/allocation pass live under `tests/performance/`; production renderers
+must not gain benchmark-only branches or counters.
+
 ## State Ownership
 
 - [`../src/state/gameState.js`](../src/state/gameState.js): global run state, input flags, entity list, viewport metrics, scoring, boss/run lifecycle

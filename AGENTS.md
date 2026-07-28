@@ -50,6 +50,8 @@ Use this file as a router. The durable source of truth for non-trivial repo know
   `node scripts/check_runtime_smoke.mjs`
 - Running the real-browser contract lane:
   `node scripts/check_runtime_browser_smoke.mjs`
+- Recording the opt-in Chromium rendering-performance telemetry:
+  `npm run test:performance`
 
 ## Working Rules
 

@@ -149,10 +149,18 @@ test("showcase state, interface projection, and canvas drawing intent stay deter
   assert.equal(projection.elements["stage-name"].textContent, "Boss Study: Seraph of Orbits");
 
   state.showcase = null;
+  state.boss.hp = state.boss.maxHp / 3;
   controller.sync(state, player, stageDefinitions);
   assert.equal(projection.elements.interface.dataset.mode, "combat");
   assert.equal(projection.elements["boss-panel"].classList.contains("hidden"), true);
   assert.equal(projection.elements["powerup-feed"].classList.contains("hidden"), true);
+  assert.equal(projection.elements["stage-progress"].style.transform, `scaleX(${1 / 3})`);
+  assert.equal(projection.effectChips[0].classList.contains("hidden"), false);
+  assert.equal(projection.effectChips[0].textContent, "Shield 10.0s");
+
+  projection.clearWrites();
+  controller.sync(state, player, stageDefinitions);
+  assert.equal(projection.writes.length, 0, "An unchanged projection should not write to the DOM.");
 
   const ctx = createRecording2dContext();
   drawGlowCircle(ctx, 10, 20, 30, "#fff", 0.5);
@@ -218,6 +226,7 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
   const endScreen = createElementRecorder();
   const restartButton = createElementRecorder();
   let starts = 0;
+  let renderInvalidations = 0;
 
   const runtime = createRuntimeController({
     state,
@@ -237,21 +246,25 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
     windowObject: windowTarget,
     documentObject: documentTarget,
     onGameStart() { starts += 1; },
+    onRenderInvalidated() { renderInvalidations += 1; },
   });
 
   runtime.init();
   runtime.init();
   assert.equal(inputSystem.attachCalls, 1);
   assert.equal(interfaceController.syncCalls, 1);
-  assert.deepEqual(backgroundRenderer.resizeCalls, [[1280, 720, 2]]);
-  assert.deepEqual({ width: bgCanvas.width, height: bgCanvas.height }, { width: 2560, height: 1440 });
+  assert.equal(state.view.dpr, 2);
+  assert.deepEqual(backgroundRenderer.resizeCalls, [[1280, 720, 1.5]]);
+  assert.deepEqual({ width: bgCanvas.width, height: bgCanvas.height }, { width: 1920, height: 1080 });
   assert.deepEqual({ width: gameCanvas.width, height: gameCanvas.height }, { width: 2560, height: 1440 });
+  assert.equal(renderInvalidations, 1);
 
   startButton.emit("click");
   assert.equal(state.started, true);
   assert.equal(audio.initCalls, 1);
   assert.equal(audio.resumeCalls, 1);
   assert.equal(starts, 1);
+  assert.equal(renderInvalidations, 2);
 
   state.over = true;
   player.hp = 1;
@@ -259,6 +272,7 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
   assert.equal(state.over, false);
   assert.equal(player.hp, 5);
   assert.equal(state.started, true);
+  assert.equal(renderInvalidations, 4);
 
   runtime.dispose();
   runtime.dispose();

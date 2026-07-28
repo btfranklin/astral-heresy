@@ -27,6 +27,11 @@ const test = base.extend({
       window.__browserTest = {
         keyEvents: [],
         animationFrameCallbacks: 0,
+        canvasClears: 0,
+        mainRadialGradients: 0,
+        offscreenCanvases: 0,
+        webglDraws: 0,
+        domMutations: 0,
       };
 
       const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
@@ -35,6 +40,55 @@ const test = base.extend({
           window.__browserTest.animationFrameCallbacks += 1;
           callback(timestamp);
         });
+
+      const nativeCreateElement = Document.prototype.createElement;
+      Document.prototype.createElement = function (...args) {
+        const element = nativeCreateElement.apply(this, args);
+        if (String(args[0]).toLowerCase() === "canvas") {
+          window.__browserTest.offscreenCanvases += 1;
+        }
+        return element;
+      };
+
+      const nativeClearRect = CanvasRenderingContext2D.prototype.clearRect;
+      CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+        if (this.canvas?.id === "game") {
+          window.__browserTest.canvasClears += 1;
+        }
+        return nativeClearRect.apply(this, args);
+      };
+
+      const nativeCreateRadialGradient = CanvasRenderingContext2D.prototype.createRadialGradient;
+      CanvasRenderingContext2D.prototype.createRadialGradient = function (...args) {
+        if (this.canvas?.id === "game") {
+          window.__browserTest.mainRadialGradients += 1;
+        }
+        return nativeCreateRadialGradient.apply(this, args);
+      };
+
+      const nativeDrawArrays = WebGLRenderingContext.prototype.drawArrays;
+      WebGLRenderingContext.prototype.drawArrays = function (...args) {
+        if (this.canvas?.id === "bg") {
+          window.__browserTest.webglDraws += 1;
+        }
+        return nativeDrawArrays.apply(this, args);
+      };
+
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          const observer = new MutationObserver((records) => {
+            window.__browserTest.domMutations += records.length;
+          });
+          observer.observe(document.documentElement, {
+            attributes: true,
+            characterData: true,
+            childList: true,
+            subtree: true,
+          });
+        },
+        { once: true }
+      );
 
       document.addEventListener(
         "keydown",
@@ -72,6 +126,15 @@ async function launchWithClick(page) {
   await page.getByRole("button", { name: "Launch Sortie" }).click();
   await expect.poll(() => page.evaluate(() => window.__astralHeresy.state.started)).toBe(true);
   await expect(page.locator("#start-screen")).toBeHidden();
+}
+
+async function readRenderCounts(page) {
+  return page.evaluate(() => ({
+    callbacks: window.__browserTest.animationFrameCallbacks,
+    canvasClears: window.__browserTest.canvasClears,
+    webglDraws: window.__browserTest.webglDraws,
+    domMutations: window.__browserTest.domMutations,
+  }));
 }
 
 test("boots real modules, renders with Canvas and WebGL, and initializes audio after a gesture", async ({
@@ -140,6 +203,82 @@ test("boots real modules, renders with Canvas and WebGL, and initializes audio a
   expect(renderedPixels.glError).toBe(renderedPixels.noError);
   await page.screenshot({ path: testInfo.outputPath("startup-and-combat.png") });
   await cdp.detach();
+});
+
+test("keeps idle animation callbacks alive while invalidating only changed render surfaces", async ({
+  page,
+  browserErrors: _browserErrors,
+}) => {
+  await openGame(page);
+  await expect.poll(() => page.evaluate(() => window.__browserTest.canvasClears)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => window.__browserTest.webglDraws)).toBeGreaterThan(0);
+
+  const idleStart = await readRenderCounts(page);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.animationFrameCallbacks))
+    .toBeGreaterThanOrEqual(idleStart.callbacks + 30);
+  expect(await readRenderCounts(page)).toMatchObject({
+    canvasClears: idleStart.canvasClears,
+    webglDraws: idleStart.webglDraws,
+  });
+
+  const mutationsBeforeForcedProjection = await page.evaluate(
+    () => window.__browserTest.domMutations
+  );
+  await page.evaluate(() => window.advanceTime(16));
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.canvasClears))
+    .toBeGreaterThan(idleStart.canvasClears);
+  await page.evaluate(() => new Promise((resolve) => queueMicrotask(resolve)));
+  expect(await page.evaluate(() => window.__browserTest.domMutations)).toBe(
+    mutationsBeforeForcedProjection
+  );
+
+  const beforeResize = await readRenderCounts(page);
+  await page.setViewportSize({ width: 1100, height: 680 });
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.canvasClears))
+    .toBeGreaterThan(beforeResize.canvasClears);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.webglDraws))
+    .toBeGreaterThan(beforeResize.webglDraws);
+  const resized = await readRenderCounts(page);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.animationFrameCallbacks))
+    .toBeGreaterThanOrEqual(resized.callbacks + 30);
+  expect(await readRenderCounts(page)).toMatchObject({
+    canvasClears: resized.canvasClears,
+    webglDraws: resized.webglDraws,
+  });
+
+  await launchWithClick(page);
+  const active = await readRenderCounts(page);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.canvasClears))
+    .toBeGreaterThan(active.canvasClears + 2);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.webglDraws))
+    .toBeGreaterThan(active.webglDraws + 2);
+
+  await page.evaluate(() => {
+    const game = window.__astralHeresy;
+    game.state.over = true;
+    game.state.entities = [];
+    game.state.shake = 0;
+    game.player.hp = 0;
+  });
+  const settlingStart = await readRenderCounts(page);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.animationFrameCallbacks))
+    .toBeGreaterThanOrEqual(settlingStart.callbacks + 5);
+  const settled = await readRenderCounts(page);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.animationFrameCallbacks))
+    .toBeGreaterThanOrEqual(settled.callbacks + 30);
+  expect(await readRenderCounts(page)).toMatchObject({
+    canvasClears: settled.canvasClears,
+    webglDraws: settled.webglDraws,
+  });
 });
 
 test("projects representative gameplay state into the real HUD DOM", async ({
@@ -331,7 +470,7 @@ test("resizes real canvas geometry and clamps active player and pointer state", 
 test.describe("high-DPR browser context", () => {
   test.use({ deviceScaleFactor: 2, viewport: { width: 640, height: 480 } });
 
-  test("matches canvas backing dimensions to the browser DPR", async ({
+  test("keeps gameplay native while capping the background backing DPR", async ({
     page,
     browserErrors: _browserErrors,
   }) => {
@@ -341,7 +480,7 @@ test.describe("high-DPR browser context", () => {
       game: [document.getElementById("game").width, document.getElementById("game").height],
       background: [document.getElementById("bg").width, document.getElementById("bg").height],
     }));
-    expect(dimensions).toEqual({ dpr: 2, game: [1280, 960], background: [1280, 960] });
+    expect(dimensions).toEqual({ dpr: 2, game: [1280, 960], background: [960, 720] });
   });
 });
 
@@ -433,6 +572,59 @@ test("renders deterministic showcase surfaces in the real browser", async ({
     expect(surface.targetVisiblePixels).toBeGreaterThan(25);
     await page.screenshot({ path: testInfo.outputPath(`${scenario.name}.png`) });
   }
+});
+
+test("reuses DPR-aware glow, HUD, and normalized particle sprites", async ({
+  page,
+  browserErrors: _browserErrors,
+}) => {
+  await openGame(page, "/?mode=render&boss=seraph&phase=3");
+  const warmupStart = await page.evaluate(() => window.__browserTest.animationFrameCallbacks);
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.animationFrameCallbacks))
+    .toBeGreaterThanOrEqual(warmupStart + 10);
+  const warmed = await page.evaluate(() => ({
+    callbacks: window.__browserTest.animationFrameCallbacks,
+    offscreenCanvases: window.__browserTest.offscreenCanvases,
+    mainRadialGradients: window.__browserTest.mainRadialGradients,
+  }));
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.animationFrameCallbacks))
+    .toBeGreaterThanOrEqual(warmed.callbacks + 20);
+  expect(
+    await page.evaluate(() => ({
+      offscreenCanvases: window.__browserTest.offscreenCanvases,
+      mainRadialGradients: window.__browserTest.mainRadialGradients,
+    }))
+  ).toEqual({
+    offscreenCanvases: warmed.offscreenCanvases,
+    mainRadialGradients: warmed.mainRadialGradients,
+  });
+
+  await page.evaluate(async () => {
+    const game = window.__astralHeresy;
+    const { spawnParticle } = await import("/src/systems/particleSystem.js");
+    spawnParticle(game.state, 640, 360, "#123456", 120, 0, 999, 4);
+    game.state.entities
+      .filter((entity) => entity.type === "particle")
+      .forEach((particle, index) => {
+        particle.components.render.size = 1 + index / 40;
+      });
+  });
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.offscreenCanvases))
+    .toBe(warmed.offscreenCanvases + 1);
+
+  const afterFirstColor = await page.evaluate(() => ({
+    callbacks: window.__browserTest.animationFrameCallbacks,
+    offscreenCanvases: window.__browserTest.offscreenCanvases,
+  }));
+  await expect
+    .poll(() => page.evaluate(() => window.__browserTest.animationFrameCallbacks))
+    .toBeGreaterThanOrEqual(afterFirstColor.callbacks + 20);
+  expect(await page.evaluate(() => window.__browserTest.offscreenCanvases)).toBe(
+    afterFirstColor.offscreenCanvases
+  );
 });
 
 test("dispose releases browser resources and ignores later browser events", async ({

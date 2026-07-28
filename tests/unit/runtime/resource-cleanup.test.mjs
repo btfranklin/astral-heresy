@@ -157,13 +157,57 @@ test("WebGL disposal releases the buffer and program once and disables later ren
     playfield: { minX: 0, maxX: 1280, active: false },
   };
 
-  renderer.render(state, { x: 640, y: 620 });
+  assert.equal(renderer.render(state, { x: 640, y: 620 }), true);
   renderer.dispose();
   renderer.dispose();
-  renderer.render(state, { x: 640, y: 620 });
+  assert.equal(renderer.render(state, { x: 640, y: 620 }), false);
 
   assert.equal(gl.calls.filter((call) => call.type === "deleteShader").length, 2);
   assert.equal(gl.calls.filter((call) => call.type === "deleteBuffer").length, 1);
   assert.equal(gl.calls.filter((call) => call.type === "deleteProgram").length, 1);
   assert.equal(gl.calls.filter((call) => call.type === "drawArrays").length, 1);
+});
+
+test("WebGL rendering memoizes scalar signatures and uses its resized buffer scale", () => {
+  const gl = createWebGLRecorder();
+  gl.drawingBufferWidth = 1919;
+  gl.drawingBufferHeight = 1079;
+  const renderer = createBackgroundRenderer(gl);
+  const state = {
+    time: 0,
+    pulse: 0,
+    view: { width: 1280, height: 720, dpr: 2 },
+    playfield: { minX: 48, maxX: 1232, active: true },
+  };
+  const player = { x: 640, y: 620 };
+
+  renderer.resize(1280, 720, 1.5);
+  assert.equal(renderer.render(state, player), true);
+  assert.equal(renderer.render(state, player), false);
+  assert.equal(gl.calls.filter((call) => call.type === "drawArrays").length, 1);
+  assert.deepEqual(
+    gl.calls.find((call) => call.type === "viewport").args,
+    [0, 0, 1919, 1079]
+  );
+  assert.deepEqual(
+    gl.calls.find(
+      (call) => call.type === "uniform2f" && call.args[0].name === "u_resolution"
+    ).args.slice(1),
+    [1919, 1079]
+  );
+  assert.deepEqual(
+    gl.calls.find(
+      (call) => call.type === "uniform2f" && call.args[0].name === "u_player"
+    ).args.slice(1),
+    [640 * (1919 / 1280), 620 * (1079 / 720)]
+  );
+
+  state.pulse = 0.5;
+  assert.equal(renderer.render(state, player), true);
+  assert.equal(renderer.render(state, player), false);
+  assert.equal(gl.calls.filter((call) => call.type === "drawArrays").length, 2);
+
+  renderer.resize(1280, 720, 1.5);
+  assert.equal(renderer.render(state, player), true);
+  assert.equal(gl.calls.filter((call) => call.type === "drawArrays").length, 3);
 });

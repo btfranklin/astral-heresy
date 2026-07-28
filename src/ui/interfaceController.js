@@ -24,17 +24,44 @@ function setText(node, value) {
   }
 }
 
-function toggleClass(node, className, force) {
-  if (!node) return;
-  node.classList.toggle(className, force);
+function setDataset(node, key, value) {
+  if (node && node.dataset[key] !== value) {
+    node.dataset[key] = value;
+  }
 }
 
-function setMeter(node, ratio) {
+function toggleClass(node, className, force) {
   if (!node) return;
-  node.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
+  if (node.classList.contains(className) !== force) {
+    node.classList.toggle(className, force);
+  }
+}
+
+function createStyleSetter() {
+  const desiredValues = new WeakMap();
+
+  return function setStyle(node, property, value) {
+    if (!node) return;
+    let styles = desiredValues.get(node);
+    if (!styles) {
+      styles = Object.create(null);
+      desiredValues.set(node, styles);
+    }
+    if (styles[property] === value) return;
+    styles[property] = value;
+    if (node.style[property] !== value) {
+      node.style[property] = value;
+    }
+  };
+}
+
+function setMeter(node, ratio, setStyle) {
+  if (!node) return;
+  setStyle(node, "transform", `scaleX(${Math.max(0, Math.min(1, ratio))})`);
 }
 
 export function createInterfaceController(documentRoot) {
+  const setStyle = createStyleSetter();
   const elements = {
     shell: documentRoot.getElementById("interface"),
     statusCopy: documentRoot.getElementById("status-copy"),
@@ -90,8 +117,8 @@ export function createInterfaceController(documentRoot) {
             : 1;
       const interfaceMode = state.showcase ? "showcase" : state.over ? "over" : state.started ? "combat" : "idle";
 
-      elements.shell.dataset.started = state.started ? "true" : "false";
-      elements.shell.dataset.mode = interfaceMode;
+      setDataset(elements.shell, "started", state.started ? "true" : "false");
+      setDataset(elements.shell, "mode", interfaceMode);
       setText(
         elements.statusCopy,
         state.showcase
@@ -118,7 +145,7 @@ export function createInterfaceController(documentRoot) {
         elements.stageName,
         state.showcase?.label || stage?.name || (state.victory ? "Convergence" : "Last Stand")
       );
-      setMeter(elements.stageProgress, progress);
+      setMeter(elements.stageProgress, progress, setStyle);
       setText(elements.runTime, formatTime(getDisplayedRunTime(state)));
       setText(elements.scoreValue, formatNumber(state.score));
       setText(elements.killValue, formatNumber(state.kills));
@@ -127,8 +154,8 @@ export function createInterfaceController(documentRoot) {
       setText(elements.loopValue, state.loopIndex > 0 ? "II" : "I");
 
       if (elements.moveChip) {
-        elements.moveChip.classList.add("active");
-        elements.moveChip.textContent = state.input.pointerEnabled === false ? "Keys" : "Pointer";
+        toggleClass(elements.moveChip, "active", true);
+        setText(elements.moveChip, state.input.pointerEnabled === false ? "Keys" : "Pointer");
       }
       toggleClass(
         elements.fireChip,
@@ -144,12 +171,12 @@ export function createInterfaceController(documentRoot) {
       setText(elements.burstChip, `Burst ${state.burstStocks}/${combatTuning.maxBurstStocks}`);
 
       elements.hullPips.forEach((pip, index) => {
-        pip.classList.toggle("is-full", index < player.hp);
+        toggleClass(pip, "is-full", index < player.hp);
       });
       elements.burstStocks.forEach((pip, index) => {
-        pip.classList.toggle("is-full", index < state.burstStocks);
+        toggleClass(pip, "is-full", index < state.burstStocks);
       });
-      setMeter(elements.grazeProgress, state.grazeCharge / combatTuning.maxGrazeCharge);
+      setMeter(elements.grazeProgress, state.grazeCharge / combatTuning.maxGrazeCharge, setStyle);
       setText(elements.grazeValue, `${state.grazeCharge}%`);
       setText(
         elements.weaponValue,
@@ -178,36 +205,42 @@ export function createInterfaceController(documentRoot) {
           powerupNotice.sigil === "diamond" ? "◇" : powerupNotice.sigil === "seal" ? "✦" : "⬡"
         );
         if (elements.powerupNoticeRole) {
-          elements.powerupNoticeRole.style.color = powerupNotice.color;
+          setStyle(elements.powerupNoticeRole, "color", powerupNotice.color);
         }
         if (elements.powerupNoticeSigil) {
-          elements.powerupNoticeSigil.style.color = powerupNotice.color;
-          elements.powerupNoticeSigil.style.boxShadow = `0 0 18px ${powerupNotice.color}44`;
+          setStyle(elements.powerupNoticeSigil, "color", powerupNotice.color);
+          setStyle(elements.powerupNoticeSigil, "boxShadow", `0 0 18px ${powerupNotice.color}44`);
         }
       }
 
       const activePowerups = listActivePowerups(player);
       elements.effectChips.forEach((chip, index) => {
         const effect = activePowerups[index];
-        chip.classList.toggle("hidden", !effect);
+        toggleClass(chip, "hidden", !effect);
         if (!effect) return;
-        chip.textContent = `${effect.label} ${effect.timer.toFixed(1)}s`;
-        chip.style.borderColor =
+        setText(chip, `${effect.label} ${effect.timer.toFixed(1)}s`);
+        setStyle(
+          chip,
+          "borderColor",
           effect.category === "risk"
             ? "rgba(255, 143, 143, 0.28)"
             : effect.category === "weapon"
               ? "rgba(158, 251, 255, 0.32)"
-              : "rgba(121, 255, 225, 0.28)";
-        chip.style.color =
+              : "rgba(121, 255, 225, 0.28)"
+        );
+        setStyle(
+          chip,
+          "color",
           effect.category === "risk"
             ? "#ffd2b8"
             : effect.category === "weapon"
               ? "#e9ffff"
-              : "#e6fff8";
+              : "#e6fff8"
+        );
       });
 
       if (state.boss && state.showcase) {
-        elements.bossPanel.classList.remove("hidden");
+        toggleClass(elements.bossPanel, "hidden", false);
         setText(elements.bossName, state.boss.name);
         setText(
           elements.bossPhase,
@@ -215,13 +248,13 @@ export function createInterfaceController(documentRoot) {
             ? `${state.boss.phases[state.boss.phaseIndex]?.name || "Final Form"} · Weakpoint Open`
             : (state.boss.phases[state.boss.phaseIndex]?.name || "Final Form")
         );
-        setMeter(elements.bossProgress, state.boss.hp / state.boss.maxHp);
+        setMeter(elements.bossProgress, state.boss.hp / state.boss.maxHp, setStyle);
       } else {
-        elements.bossPanel.classList.add("hidden");
+        toggleClass(elements.bossPanel, "hidden", true);
       }
 
       if (state.over) {
-        elements.endScreen.classList.remove("hidden");
+        toggleClass(elements.endScreen, "hidden", false);
         setText(elements.endKicker, state.victory ? "Mission Complete" : "Mission Failed");
         setText(elements.endTitle, state.victory ? "Convergence Complete" : "Ship Lost");
         setText(
@@ -235,7 +268,7 @@ export function createInterfaceController(documentRoot) {
         setText(elements.endAccuracy, `${accuracy}%`);
         setText(elements.endTime, formatTime(getDisplayedRunTime(state)));
       } else {
-        elements.endScreen.classList.add("hidden");
+        toggleClass(elements.endScreen, "hidden", true);
       }
     },
   };
