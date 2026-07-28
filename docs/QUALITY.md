@@ -9,6 +9,9 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
 - Desktop combat space is owned by `state.playfield` and the stage director. Authored stage and boss content should use playfield geometry instead of ad hoc viewport math.
 - Stage density gating is authoritative within a frame. `gateWave()` decisions budget against live plus reserved capacity, so later waves in the same tick must not assume the original density snapshot still applies.
 - Runtime inspection surfaces stay explicit and local: use `window.__astralHeresy`, render-study mode, the deterministic Node harnesses, and the Chromium contract suite instead of one-off debug branches.
+- Audio observes a projected scalar world and never mutates gameplay. Native
+  Web Audio is the complete baseline; the memory worklet is a graceful
+  enhancement.
 
 ## Validation Stack
 
@@ -38,7 +41,9 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
 - `tests/scenario/`
   - Small cross-system simulations that replace the old bespoke smoke scripts without turning into browser automation.
 - `tests/browser/`
-  - Real Chromium coverage for native modules, DOM events and selectors, layout, Canvas/WebGL, Web Audio, animation frames, and browser resource cleanup.
+  - Real Chromium coverage for native modules, DOM events and selectors,
+    layout, Canvas/WebGL, realtime Web Audio, AudioWorklet, fixed-seed offline
+    rendering, animation frames, and browser resource cleanup.
 - `tests/performance/`
   - Serial, fixed-scene browser measurements kept separate from correctness assertions and the default validation gate.
 
@@ -92,6 +97,30 @@ Run the smallest lane that actually covers the change, then widen out if the edi
   - Launch with `./scripts/play.sh`, click `Launch Sortie`, confirm active gameplay begins, and check Safari's JavaScript console for startup errors.
   - Playwright's Chromium lane remains useful evidence, but it does not substitute for this Safari check.
 
+### Procedural Audio
+
+- `node scripts/run_fast_tests.mjs runtime`
+  - Validates all stage and boss-phase profiles, delay/frequency/feedback
+    bounds, state projection and pan clamping, the semantic cue registry,
+    priority stealing and repetition budgets, body crossfade cleanup, ending
+    idempotence, immediate reset, disposal, and worklet
+    success/load-failure/processor-error fallback.
+- `node scripts/check_structure.mjs`
+  - Validates the literal AudioWorklet URL as an exact, reachable runtime-module
+    edge.
+- `node scripts/check_runtime_browser_smoke.mjs`
+  - Confirms a single post-gesture context, `enhanced` worklet status, bounded
+    live graph counts, gameplay-routed lethal death, an audible tail after the
+    results overlay, and cancellation by immediate restart.
+  - Fixed-seed `OfflineAudioContext` scenarios assert finite samples, low DC,
+    peak below `0.98`, audible decaying death/victory tails, mono-safe death
+    impact, and measurably distinct stage profiles.
+- Installed Safari listening acceptance
+  - Required for sound-design changes. Follow the complete matrix in
+    [`RUNTIME.md`](./RUNTIME.md), covering all worlds and nine phases, dense cue
+    readability, worklet status, death/restart, victory, laptop speakers,
+    headphones, clicks, and feedback stability.
+
 ### Rendering Performance
 
 - `npm run test:performance`
@@ -110,5 +139,6 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 ## Fast Routing
 
 - Architecture questions: [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- Sound-design philosophy and audio grammar: [`SOUND_DESIGN.md`](./SOUND_DESIGN.md)
 - Runtime repros and manual smoke flow: [`RUNTIME.md`](./RUNTIME.md)
 - Stage and boss authoring rules: [`content/stages-bosses.md`](./content/stages-bosses.md)

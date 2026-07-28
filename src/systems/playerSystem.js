@@ -47,10 +47,7 @@ export function updatePlayer(state, player, audio, dt) {
       player,
       spawnBullet: (x, y, angle, speed, opts) => spawnPlayerBullet(state, x, y, angle, speed, opts),
     });
-    if (state.time - audio.engine.lastShot > 0.07) {
-      sfxShoot(audio);
-      audio.engine.lastShot = state.time;
-    }
+    sfxShoot(audio, { x: player.x });
     player.fireCooldown = weapon.cooldown(focus);
     player.weaponLabel = weapon.shortLabel;
   }

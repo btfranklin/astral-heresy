@@ -22,6 +22,7 @@ import { stageDefinitions } from "../data/stages.js";
 import { createBackgroundRenderer } from "../rendering/glBackground.js";
 import { createCanvasRenderer } from "../rendering/canvasRenderer.js";
 import { createAudioEngine } from "../audio/audioEngine.js";
+import { projectAudioWorld } from "../audio/audioState.js";
 import { flushEntities } from "../entities/entityFactory.js";
 import { createInterfaceController } from "../ui/interfaceController.js";
 import { getShowcaseConfig, updateShowcaseScene } from "../debug/showcase.js";
@@ -83,6 +84,10 @@ export function createGame({
     renderDirty = true;
   }
 
+  function getAudioWorld() {
+    return projectAudioWorld(state, player, stages);
+  }
+
   const runtimeController = createRuntimeController({
     state,
     player,
@@ -98,6 +103,7 @@ export function createGame({
     startButton,
     endScreen,
     restartButton,
+    getAudioWorld,
     onGameStart: () => events.emit("game:start"),
     onRenderInvalidated: invalidateRender,
   });
@@ -118,7 +124,7 @@ export function createGame({
 
     if (!state.started) {
       renderBuckets = buildEntityBuckets(state);
-      audio.updateMusic(state, player);
+      audio.updateWorld(getAudioWorld());
       return;
     }
 
@@ -127,7 +133,7 @@ export function createGame({
       state.pulse = Math.max(0, state.pulse - dt * 0.7);
       updateShowcaseScene(state, dt);
       renderBuckets = buildEntityBuckets(state);
-      audio.updateMusic(state, player);
+      audio.updateWorld(getAudioWorld());
       return;
     }
 
@@ -137,7 +143,7 @@ export function createGame({
       updateParticles(state, dt);
       flushEntities(state);
       renderBuckets = buildEntityBuckets(state);
-      audio.updateMusic(state, player);
+      audio.updateWorld(getAudioWorld());
       return;
     }
 
@@ -184,7 +190,7 @@ export function createGame({
     flushEntities(state);
     latchFinalRunTime();
     renderBuckets = buildEntityBuckets(state);
-    audio.updateMusic(state, player);
+    audio.updateWorld(getAudioWorld());
   }
 
   const nextFrame = createFrameTimer();
@@ -375,6 +381,19 @@ export function createGame({
     },
     debugBuildBuckets() {
       return buildEntityBuckets(state);
+    },
+    debugAudioDiagnostics() {
+      return audio.getDiagnostics();
+    },
+    debugSetAudioWorld(overrides) {
+      return audio.setDebugWorld(overrides);
+    },
+    debugClearAudioWorld() {
+      audio.clearDebugWorld();
+      return audio.getDiagnostics();
+    },
+    debugPlayAudioEvent(kind, payload = {}) {
+      return audio.playDebugEvent(kind, payload);
     },
     startGame: runtimeController.startGame,
     resetGame: runtimeController.resetGame,

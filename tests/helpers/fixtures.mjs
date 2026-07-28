@@ -19,28 +19,48 @@ export function makeState({ width = 1280, height = 720, started = true } = {}) {
 
 export function makeAudioSpy() {
   return {
-    engine: { lastShot: 0 },
-    tones: [],
-    noises: [],
-    chords: [],
+    events: [],
+    endings: [],
+    worlds: [],
     initCalls: 0,
     resumeCalls: 0,
+    beginCalls: 0,
+    resetCalls: 0,
     init() {
       this.initCalls += 1;
     },
     resume() {
       this.resumeCalls += 1;
     },
-    playNoise(duration, opts = {}) {
-      this.noises.push({ duration, opts });
+    beginRun(world) {
+      this.beginCalls += 1;
+      this.worlds.push(world);
+      return true;
     },
-    playTone(type, freq, duration, opts = {}) {
-      this.tones.push({ type, freq, duration, opts });
+    updateWorld(world) {
+      this.worlds.push(world);
     },
-    playChord(freqs, duration, opts = {}) {
-      this.chords.push({ freqs, duration, opts });
+    playEvent(kind, payload = {}) {
+      this.events.push({ kind, payload });
+      return true;
     },
-    updateMusic() {},
+    endRun(outcome, payload = {}) {
+      this.endings.push({ outcome, payload });
+      return true;
+    },
+    resetRun() {
+      this.resetCalls += 1;
+    },
+    getDiagnostics() {
+      return { mode: "active", workletStatus: "fallback" };
+    },
+    setDebugWorld() {
+      return true;
+    },
+    clearDebugWorld() {},
+    playDebugEvent(kind, payload = {}) {
+      return this.playEvent(kind, payload);
+    },
   };
 }
 

@@ -8,7 +8,11 @@ function createParam() {
   return {
     value: 0,
     setValueAtTime(value) { this.value = value; },
+    setTargetAtTime(value) { this.value = value; },
+    linearRampToValueAtTime(value) { this.value = value; },
     exponentialRampToValueAtTime(value) { this.value = value; },
+    cancelAndHoldAtTime() {},
+    cancelScheduledValues() {},
   };
 }
 
@@ -44,17 +48,21 @@ class DisposableAudioContext {
       start() {},
       stop() { this.stopCalls += 1; },
       addEventListener() {},
+      setPeriodicWave() {},
     });
     this.oscillators.push(node);
     return node;
   }
 
   createBiquadFilter() {
-    return createNode({ frequency: createParam(), Q: createParam() });
+    return createNode({ frequency: createParam(), Q: createParam(), gain: createParam() });
   }
 
-  createBuffer(_channels, length) {
-    return { getChannelData: () => new Float32Array(length) };
+  createBuffer(_channels, length, sampleRate = this.sampleRate) {
+    return {
+      duration: length / sampleRate,
+      getChannelData: () => new Float32Array(length),
+    };
   }
 
   createBufferSource() {
@@ -66,6 +74,45 @@ class DisposableAudioContext {
     });
     this.sources.push(node);
     return node;
+  }
+
+  createDelay() {
+    return createNode({ delayTime: createParam() });
+  }
+
+  createConvolver() {
+    return createNode({ buffer: null });
+  }
+
+  createStereoPanner() {
+    return createNode({ pan: createParam() });
+  }
+
+  createWaveShaper() {
+    return createNode({ curve: null, oversample: "none" });
+  }
+
+  createDynamicsCompressor() {
+    return createNode({
+      threshold: createParam(),
+      knee: createParam(),
+      ratio: createParam(),
+      attack: createParam(),
+      release: createParam(),
+    });
+  }
+
+  createAnalyser() {
+    return createNode({
+      fftSize: 512,
+      getFloatTimeDomainData(array) {
+        array.fill(0);
+      },
+    });
+  }
+
+  createPeriodicWave() {
+    return {};
   }
 
   close() {
@@ -120,31 +167,42 @@ function createWebGLRecorder() {
 }
 
 test("audio disposal stops active sources, disconnects nodes, and closes its context once", async () => {
-  const previousWindow = globalThis.window;
-  globalThis.window = { AudioContext: DisposableAudioContext };
-  try {
-    const audio = createAudioEngine();
-    audio.init();
-    const context = audio.engine.ctx;
-    audio.playTone("sine", 440, 1, { filter: 800 });
-    audio.playNoise(1, { filter: 600 });
+  const context = new DisposableAudioContext();
+  const audio = createAudioEngine({
+    contextFactory: () => context,
+    enableWorklet: false,
+  });
+  audio.init();
+  audio.beginRun({
+    active: true,
+    time: 0,
+    stageKey: "nebula-gate",
+    loopIndex: 0,
+    hull: 5,
+    bossKey: null,
+    bossPhaseIndex: -1,
+    chainRatio: 0,
+    grazeRatio: 0,
+    densityRatio: 0,
+    playerX: 640,
+    playfieldMinX: 0,
+    playfieldMaxX: 1280,
+  });
+  audio.playEvent("fire", { x: 640 });
+  audio.playEvent("player-hit", { x: 640 });
 
-    await audio.dispose();
-    await audio.dispose();
+  await audio.dispose();
+  await audio.dispose();
 
-    assert.equal(context.closeCalls, 1);
-    assert.equal(context.oscillators.every((node) => node.stopCalls >= 1), true);
-    assert.equal(context.sources.every((node) => node.stopCalls >= 1), true);
-    assert.equal(context.oscillators.every((node) => node.disconnectCalls === 1), true);
-    assert.equal(context.sources.every((node) => node.disconnectCalls === 1), true);
-    assert.equal(audio.engine.ctx, null);
+  assert.equal(context.closeCalls, 1);
+  assert.equal(context.oscillators.every((node) => node.stopCalls >= 1), true);
+  assert.equal(context.sources.every((node) => node.stopCalls >= 1), true);
+  assert.equal(context.oscillators.every((node) => node.disconnectCalls >= 1), true);
+  assert.equal(context.sources.every((node) => node.disconnectCalls >= 1), true);
+  assert.equal(audio.getDiagnostics().mode, "disposed");
 
-    audio.init();
-    audio.playTone("sine", 220, 1);
-    assert.equal(audio.engine.ctx, null);
-  } finally {
-    globalThis.window = previousWindow;
-  }
+  audio.init();
+  assert.equal(context.closeCalls, 1);
 });
 
 test("WebGL disposal releases the buffer and program once and disables later rendering", () => {

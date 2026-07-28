@@ -19,22 +19,27 @@ import {
   sfxEnemyPop,
   sfxGraze,
   sfxPickup,
+  sfxPlayerDeath,
   sfxPlayerHit,
+  sfxShieldAbsorb,
   sfxWeakpoint,
 } from "../audio/sfx.js";
 
 export function damagePlayer(state, player, audio, spawnParticle, x, y, intensity = 30) {
   if (absorbShieldHit(state, player)) {
+    sfxShieldAbsorb(audio, { x });
     spawnParticle(state, x, y, "#d8faff", intensity + 18, 300, 0.72, 4);
     return;
   }
   player.hp -= 1;
   player.invuln = 1.2;
   state.shake = Math.max(state.shake, 10);
-  sfxPlayerHit(audio);
   spawnParticle(state, x, y, "#ff6ad5", intensity, 260, 0.7, 3);
   if (player.hp <= 0) {
     state.over = true;
+    sfxPlayerDeath(audio, { x, y, hull: 0 });
+  } else {
+    sfxPlayerHit(audio, { x, y, hull: player.hp });
   }
 }
 
@@ -114,7 +119,7 @@ export function rewardKill(
 ) {
   const reward = enemy.components.reward;
   spawnParticle(state, enemyPos.x, enemyPos.y, "#79ffe1", 18, 220, 0.9, 3);
-  sfxEnemyPop(audio);
+  sfxEnemyPop(audio, { x: enemyPos.x, y: enemyPos.y });
   state.kills += 1;
   state.score += enemyHealth.maxHp * 140;
   extendChain(state);
@@ -141,7 +146,7 @@ export function rewardKill(
       "ELITE"
     );
     if (state.chainLevel % 4 === 0 || state.chainLevel >= combatTuning.chainMax) {
-      sfxChain(audio);
+      sfxChain(audio, { x: enemyPos.x, chainLevel: state.chainLevel });
     }
   } else if (reward?.scoreBonus) {
     addBonusScore(state, "elite", reward.scoreBonus, reward.label || "REWARD");
@@ -215,7 +220,7 @@ export function damageBoss(
     addBonusScore(state, "weakpoint", boss.weakpoint?.bonusScore || combatTuning.weakpointDefaultBonus, "WEAKPOINT");
     state.feedback.weakpoint = Math.max(state.feedback.weakpoint, 0.5);
     state.shake = Math.max(state.shake, 8);
-    sfxWeakpoint(audio);
+    sfxWeakpoint(audio, { x: boss.weakpoint.x, y: boss.weakpoint.y });
     if (bullet.components.attack?.weakpointBrandDuration > 0) {
       boss.weakpointBrandTimer = Math.max(
         boss.weakpointBrandTimer || 0,
@@ -262,7 +267,7 @@ export function triggerBurst(
     y: player.y,
   };
   state.shake = Math.max(state.shake, 16);
-  sfxBurst(audio);
+  sfxBurst(audio, { x: player.x, y: player.y });
   spawnParticle(state, player.x, player.y, "#9efbff", 48, 260, 0.75, 4);
 
   let clearedBullets = 0;
@@ -336,7 +341,7 @@ export function collectPickup(state, player, audio, pickupEntity) {
   if (!pickupPos || !pickupComp) return null;
   const definition = applyPowerupPickup(state, player, pickupComp.kind, pickupPos.x, pickupPos.y);
   if (definition) {
-    sfxPickup(audio, definition.category);
+    sfxPickup(audio, definition.category, { x: pickupPos.x, y: pickupPos.y });
   }
   removeEntity(pickupEntity);
   return definition;
@@ -355,7 +360,7 @@ export function maybeGrazeEnemyBullet(state, player, audio, bullet, distanceSq, 
   if (!bulletAttack?.grazed && distanceSq >= grazeInnerSq && distanceSq <= grazeOuterSq) {
     bulletAttack.grazed = true;
     registerGraze(state, player);
-    sfxGraze(audio);
+    sfxGraze(audio, { x: bullet.components.position?.x ?? player.x });
     return true;
   }
   return false;

@@ -26,6 +26,7 @@ The local server also disables browser caching so subsequent reloads keep one co
 - [`AGENTS.md`](./AGENTS.md): short task router for coding agents
 - [`docs/index.md`](./docs/index.md): documentation index and system of record
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md): game loop, domains, and dependency rules
+- [`docs/SOUND_DESIGN.md`](./docs/SOUND_DESIGN.md): present sound-design philosophy and auditory grammar
 - [`docs/QUALITY.md`](./docs/QUALITY.md): verification matrix and quality invariants
 - [`docs/RUNTIME.md`](./docs/RUNTIME.md): runbook, debug surfaces, and smoke-test flow
 - [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md): content authoring contract

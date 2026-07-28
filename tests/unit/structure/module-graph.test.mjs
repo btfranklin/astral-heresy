@@ -34,6 +34,7 @@ test("parser extracts every supported module edge without matching comments or s
     export { other } from "./named.js";
     export * from "./all.js";
     const lazy = import("./lazy.js");
+    const worklet = new URL("./worklet.js", import.meta.url);
     // import fake from "./comment.js";
     const text = 'export * from "./string.js"';
   `;
@@ -48,6 +49,7 @@ test("parser extracts every supported module edge without matching comments or s
       { specifier: "./named.js", kind: "re-export" },
       { specifier: "./all.js", kind: "re-export" },
       { specifier: "./lazy.js", kind: "dynamic import" },
+      { specifier: "./worklet.js", kind: "runtime module" },
     ],
   );
   assert.deepEqual(result.errors, []);
@@ -56,6 +58,12 @@ test("parser extracts every supported module edge without matching comments or s
 test("computed dynamic imports and syntax errors produce location-aware diagnostics", () => {
   const dynamic = parseModuleEdges("const moduleName = './x.js'; import(moduleName);", "src/index.js");
   assert.match(dynamic.errors[0], /^src\/index\.js:1:\d+ uses a computed dynamic import/);
+
+  const runtime = parseModuleEdges(
+    "const moduleName = './x.js'; new URL(moduleName, import.meta.url);",
+    "src/index.js",
+  );
+  assert.match(runtime.errors[0], /^src\/index\.js:1:\d+ uses a computed import\.meta URL/);
 
   const invalid = parseModuleEdges("import {", "src/index.js");
   assert.match(invalid.errors[0], /^src\/index\.js:1:\d+ cannot be parsed as an ECMAScript module/);

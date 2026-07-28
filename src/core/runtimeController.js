@@ -21,6 +21,7 @@ export function createRuntimeController({
   startButton,
   endScreen,
   restartButton,
+  getAudioWorld = () => null,
   windowObject = window,
   documentObject = document,
   onGameStart = () => {},
@@ -110,15 +111,16 @@ export function createRuntimeController({
     state.started = true;
     audio.init();
     audio.resume();
-    sfxStart(audio);
+    audio.beginRun(getAudioWorld());
+    sfxStart(audio, { x: player.x });
     hideOverlays();
     onGameStart();
     onRenderInvalidated();
   }
 
   function prepareFreshState() {
+    audio.resetRun();
     resetFreshRunState(state, player);
-    audio.engine.lastShot = 0;
   }
 
   function activateShowcase(config) {

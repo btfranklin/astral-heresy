@@ -7,6 +7,7 @@ This directory is the system of record for repository knowledge that should surv
 - [`../README.md`](../README.md): quickstart and high-level repo overview
 - [`../AGENTS.md`](../AGENTS.md): short task router for coding agents
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md): domain map, update loop, and dependency rules
+- [`SOUND_DESIGN.md`](./SOUND_DESIGN.md): present sound-design philosophy, auditory grammar, and implementation boundaries
 - [`QUALITY.md`](./QUALITY.md): verification matrix and golden repo invariants
 - [`RUNTIME.md`](./RUNTIME.md): runbook, debug surfaces, and smoke-test flows
 - [`content/stages-bosses.md`](./content/stages-bosses.md): stage and boss authoring contract

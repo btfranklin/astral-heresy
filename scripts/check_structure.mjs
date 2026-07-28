@@ -65,6 +65,18 @@ function staticSpecifier(node) {
   return typeof node.source?.value === "string" ? node.source.value : null;
 }
 
+function isImportMetaUrl(node) {
+  return (
+    node?.type === "MemberExpression" &&
+    node.computed === false &&
+    node.property?.type === "Identifier" &&
+    node.property.name === "url" &&
+    node.object?.type === "MetaProperty" &&
+    node.object.meta?.name === "import" &&
+    node.object.property?.name === "meta"
+  );
+}
+
 export function parseModuleEdges(sourceText, sourceRelative = "<source>") {
   let ast;
   try {
@@ -99,6 +111,25 @@ export function parseModuleEdges(sourceText, sourceRelative = "<source>") {
         errors.push(
           `${locationLabel(sourceRelative, node)} uses a computed dynamic import. ` +
             "Use a literal module specifier or document and implement an explicit dynamic-import policy.",
+        );
+      }
+    } else if (
+      node.type === "NewExpression" &&
+      node.callee?.type === "Identifier" &&
+      node.callee.name === "URL" &&
+      node.arguments.length === 2 &&
+      isImportMetaUrl(node.arguments[1])
+    ) {
+      if (typeof node.arguments[0]?.value === "string") {
+        edges.push({
+          specifier: node.arguments[0].value,
+          kind: "runtime module",
+          node: node.arguments[0],
+        });
+      } else {
+        errors.push(
+          `${locationLabel(sourceRelative, node)} uses a computed import.meta URL. ` +
+            "AudioWorklet and other runtime module edges must use a literal repository path.",
         );
       }
     }

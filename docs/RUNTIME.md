@@ -54,6 +54,7 @@ window.__astralHeresy.resetGame(true)
 window.__astralHeresy.debugSpawnEnemy("cherub", { x: 0, y: 180, vx: 0, vy: 0 })
 window.__astralHeresy.debugSpawnPickup("halo-shield", window.__astralHeresy.player.x, window.__astralHeresy.player.y)
 window.__astralHeresy.debugSpawnScoreShards(window.__astralHeresy.player.x + 120, window.__astralHeresy.player.y, 4)
+window.__astralHeresy.debugAudioDiagnostics()
 window.render_game_to_text()
 window.advanceTime(1000)
 ```
@@ -73,6 +74,63 @@ Useful fields:
 - `state.victory`
 - `state.renderDetail`
 - `state.showcase`
+
+### Audio Study
+
+Audio is created only after a launch gesture. Start a sortie, then use these
+narrow console methods:
+
+```js
+const game = window.__astralHeresy
+game.debugAudioDiagnostics()
+game.debugSetAudioWorld({
+  stageKey: "crystalline-choir",
+  bossKey: "prism",
+  bossPhaseIndex: 2,
+  loopIndex: 1,
+  hull: 2,
+  chainRatio: 0.8,
+  grazeRatio: 0.7,
+  densityRatio: 0.9,
+})
+game.debugPlayAudioEvent("burst", { x: game.player.x })
+game.debugClearAudioWorld()
+```
+
+The override changes only the audio projection. It does not write to
+`state`, `player`, boss objects, scoring, or collision state.
+
+Valid stage and boss-phase studies:
+
+| Stage key | Boss key | Phase indices |
+| --- | --- | --- |
+| `nebula-gate` | `seraph` | `0` Crown Spiral, `1` Halo Bloom, `2` Starfall Rite |
+| `crystalline-choir` | `prism` | `0` Crystal Lattice, `1` Refraction Choir, `2` Prismatic Tide |
+| `abyssal-cathedral` | `cathedral` | `0` Chorus of Fangs, `1` Spine Cathedral, `2` Maw Singularity |
+
+Validated cue kinds are `fire`, `graze`, `shield-absorb`, `enemy-defeat`,
+`chain-milestone`, `player-hit`, `burst`, `boss-arrival`, `boss-phase`,
+`weakpoint`, `boss-defeat`, `pickup`, `start`, `player-death`, and `victory`.
+Unknown kinds return `false`.
+
+To exercise true lethal routing rather than merely auditioning the cue:
+
+```js
+const game = window.__astralHeresy
+game.player.hp = 1
+game.player.invuln = 0
+game.player.activePowerups.haloShield = 0
+game.debugSpawnEnemyBullet(game.player.x, game.player.y, 0, 0, { r: 8 })
+game.advanceTime(16)
+```
+
+The results overlay should appear immediately while diagnostics report
+`ending-death`. Press `R` during the tail; diagnostics should return to
+`active` with one resonant body and zero retired graphs after the 30 ms reset.
+
+`debugAudioDiagnostics()` reports context and engine state, current stage and
+boss identity, worklet status, active temporary voices, resonant bodies,
+active/retired graphs, an owned-node count, and analyser peak/RMS.
 
 ### Render-Study Mode
 
@@ -116,6 +174,9 @@ Run this after gameplay, UI, or content edits:
 11. Confirm restart behavior after a loss with `Enter` or `R`.
 12. Visit at least one enemy render-study URL and one boss render-study URL.
 13. Confirm the page still initializes on a browser with WebGL enabled.
+14. Confirm audio diagnostics reach `enhanced` when AudioWorklet is available.
+15. Trigger lethal damage and confirm the results screen is immediate while the
+    Severance Requiem continues, then restart during its tail.
 
 For deterministic runtime orchestration and game-state coverage, run:
 
@@ -148,7 +209,8 @@ The deterministic runtime lane validates:
 - fresh-run reset behavior and final-runtime projection
 - input handler state transitions and reset orchestration
 - HUD projection and explicit Canvas draw-command intent
-- audio recipe selection without replacing the Web Audio platform
+- semantic cue selection, world projection, profile bounds, engine state,
+  worklet fallback, and idempotent reset/disposal against narrow recorders
 - render-study URL parsing and scene setup
 - idempotent Web Audio and WebGL resource-release logic against narrow recorders
 
@@ -177,6 +239,9 @@ That lane validates:
 - live viewport resize, DPR-scaled Canvas backing sizes, layout rectangles, and coordinate clamping
 - real Canvas 2D pixels, WebGL context/shader/draw validity, and representative enemy/boss render-study surfaces
 - Web Audio creation only after a real user gesture and context closure during teardown
+- AudioWorklet enhancement, fixed-seed OfflineAudioContext signal checks,
+  distinct stage profiles, bounded peaks, mono-safe critical cues, authored
+  death/victory decay, live death-after-overlay behavior, and mid-tail restart
 - native animation-frame progression and cancellation
 - idempotent cleanup followed by real input and resize events
 - absence of unexpected page exceptions, console errors, failed requests, bad local responses, and dialogs
@@ -233,3 +298,23 @@ headless renderers and is recorded as metadata rather than treated as a failure.
 - Browser-visible runtime changes must pass the Chromium contract lane; screenshots remain useful for readability judgments beyond its pixel assertions.
 - Rendering-performance telemetry is opt-in and informational; do not interpret a green run as proof that a numeric frame budget was met.
 - `window.__astralHeresy.dispose()` cancels animation frames, detaches listeners, releases WebGL resources, stops/disconnects Web Audio nodes, and closes the audio context.
+
+## Installed Safari Listening Matrix
+
+Run this matrix in installed Safari after audio work. Use a fresh origin from
+`./scripts/play.sh`, launch normally, and keep
+`debugAudioDiagnostics()` visible in the Web Inspector console.
+
+| Study | What to accept |
+| --- | --- |
+| Context and memory | No context before launch; one running context afterward; record `enhanced` or an intentional `fallback` with no gameplay error |
+| Nebula Gate | Airy, diffuse, slowly moving resonance; Seraph phases progress from orbital pulse to opened halo to descending memory |
+| Crystalline Choir | Short glass ringing; Prism phases progress from precise lattice to sidebands to folded, alternating dispersion |
+| Abyssal Cathedral | Dark subharmonic mass and long decay; Cathedral phases progress from formants to lengthened combs to a narrowed maw |
+| Dense play | Fire and graze remain legible; no projectile chatter, runaway feedback, or masking wall |
+| Shield, hit, death | Shield reads bright and nonlethal; ordinary hit reads downward; death is singular, collapses inward, and rings behind the immediate overlay |
+| Mid-tail restart | Press `R` during death; no click, leaked requiem, or old-stage resonance enters the new sortie |
+| Final victory | Outward defeat gesture converges to root/fifth and reaches silence separately from death |
+| Laptop speakers | Fire, graze, shield, hit, boss structure, and death remain distinguishable at moderate volume |
+| Headphones | Wet tails can widen, but critical glyphs stay centered and mono-safe; motion is smooth rather than jumpy |
+| General quality | No obvious clicks, DC-like pressure, stalled audio, processor errors, or escalating feedback across stage changes |

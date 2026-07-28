@@ -28,12 +28,22 @@ test("damagePlayer respects halo shield and handles lethal damage", () => {
   assert.equal(player.hp, 5);
   assert.equal(player.activePowerups.haloShield, 0);
   assert.equal(player.invuln, powerupTuning.shieldGraceInvuln);
+  assert.equal(audio.events.at(-1).kind, "shield-absorb");
 
   player.activePowerups.haloShield = 0;
   player.hp = 1;
   damagePlayer(state, player, audio, () => {}, player.x, player.y);
   assert.equal(state.over, true);
-  assert.equal(audio.noises.length > 0, true);
+  assert.equal(audio.endings.length, 1);
+  assert.equal(audio.endings[0].outcome, "death");
+  assert.equal(audio.events.some(({ kind }) => kind === "player-hit"), false);
+
+  state.over = false;
+  player.hp = 2;
+  damagePlayer(state, player, audio, () => {}, player.x, player.y);
+  assert.equal(state.over, false);
+  assert.equal(audio.events.at(-1).kind, "player-hit");
+  assert.equal(audio.endings.length, 1);
 });
 
 test("enemy and boss damage paths spend bullets, award hits, and trigger rewards", () => {
@@ -126,7 +136,7 @@ test("rewardKill, pickup collection, shard collection, and graze helpers update 
   const definition = collectPickup(state, player, audio, pickupEntity);
   assert.equal(definition.key, "halo-shield");
   assert.equal(pickupEntity.dead, true);
-  assert.equal(audio.chords.length > 0, true);
+  assert.equal(audio.events.at(-1).kind, "pickup");
 
   const shardEntity = createEntity("scoreShard", {
     scoreShard: scoreShard({ value: 40 }),

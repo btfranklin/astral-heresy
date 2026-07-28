@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  getAudioEventRecipe,
+  listAudioEventKinds,
+  sfxBossArrival,
   sfxBossDefeat,
   sfxBossPhase,
   sfxBurst,
@@ -9,9 +12,11 @@ import {
   sfxEnemyPop,
   sfxGraze,
   sfxPickup,
+  sfxPlayerDeath,
   sfxPlayerHit,
   sfxShoot,
   sfxStart,
+  sfxVictory,
   sfxWeakpoint,
 } from "../../../src/audio/sfx.js";
 import { createRuntimeController } from "../../../src/core/runtimeController.js";
@@ -39,7 +44,7 @@ import {
   withInputListenerEnvironment,
 } from "../../helpers/runtimeFixture.mjs";
 
-test("sfx helpers emit the expected audio recipes", () => {
+test("sfx helpers emit validated semantic cues while recipes preserve their glyph hierarchy", () => {
   const audio = makeAudioSpy();
   sfxShoot(audio);
   sfxGraze(audio);
@@ -47,28 +52,43 @@ test("sfx helpers emit the expected audio recipes", () => {
   sfxChain(audio);
   sfxPlayerHit(audio);
   sfxBurst(audio);
+  sfxBossArrival(audio);
   sfxBossPhase(audio);
   sfxWeakpoint(audio);
   sfxBossDefeat(audio);
   sfxPickup(audio, "weapon");
   sfxStart(audio);
+  sfxPlayerDeath(audio);
+  const secondDeath = sfxPlayerDeath(audio);
+  sfxVictory(audio);
 
-  assert.deepEqual(audio.tones[0], {
-    type: "triangle",
-    freq: 430,
-    duration: 0.14,
-    opts: {
-      amp: 0.08,
-      slide: 1.45,
-      attack: 0.004,
-      release: 0.08,
-      filter: 2600,
-    },
-  });
-  assert.deepEqual(audio.chords.at(-1).freqs, [260, 390, 520]);
-  assert.equal(audio.noises.length, 7);
-  assert.equal(audio.tones.length, 12);
-  assert.equal(audio.chords.length, 6);
+  assert.deepEqual(
+    audio.events.map(({ kind }) => kind),
+    [
+      "fire",
+      "graze",
+      "enemy-defeat",
+      "chain-milestone",
+      "player-hit",
+      "burst",
+      "boss-arrival",
+      "boss-phase",
+      "weakpoint",
+      "boss-defeat",
+      "pickup",
+      "start",
+    ]
+  );
+  assert.deepEqual(audio.endings.map(({ outcome }) => outcome), ["death", "death", "victory"]);
+  assert.equal(secondDeath, true);
+  assert.equal(listAudioEventKinds().includes("shield-absorb"), true);
+  const fire = getAudioEventRecipe("fire");
+  assert.deepEqual(
+    fire.voices.map(({ source }) => source),
+    ["noise", "tone", "tone"]
+  );
+  assert.equal(fire.center >= 0.7, true);
+  assert.equal(getAudioEventRecipe("not-a-cue"), null);
 });
 
 test("input orchestration attaches handlers, updates state, resets held controls, and detaches", async () => {

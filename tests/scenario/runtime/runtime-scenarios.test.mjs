@@ -157,7 +157,6 @@ test("fresh-run reset restores gameplay state while keeping an auto-started run 
   scenario.state.finalRunTime = 61;
   scenario.state.score = 9000;
   scenario.player.hp = 0;
-  scenario.audio.engine.lastShot = 99;
 
   scenario.runtime.resetGame(true);
 
@@ -166,7 +165,8 @@ test("fresh-run reset restores gameplay state while keeping an auto-started run 
   assert.equal(scenario.state.finalRunTime, null);
   assert.equal(scenario.state.score, 0);
   assert.equal(scenario.player.hp, 5);
-  assert.equal(scenario.audio.engine.lastShot, 0);
+  assert.equal(scenario.audio.resetCalls, 1);
+  assert.equal(scenario.audio.beginCalls, 2);
   assert.equal(scenario.interfaceController.syncCalls, 2);
   assert.equal(scenario.renderInvalidations, 4);
 });

@@ -139,7 +139,7 @@ test("player and combat systems move, fire, clamp, decay timers, and latch burst
   updatePlayer(state, player, audio, 0.1);
   const bullets = buildEntityBuckets(state).playerBullets;
   assert.equal(bullets.length, 2, "Focused base fire should emit two shots.");
-  assert.equal(audio.noises.length > 0, true);
+  assert.equal(audio.events.at(-1).kind, "fire");
   assert.equal(player.x <= state.playfield.maxX, true);
   assert.equal(player.y >= state.playfield.minY, true);
 
@@ -271,6 +271,7 @@ test("boss internals and boss system expose weakpoint windows, phase-break reset
   defeatBoss(state, player, state.boss, () => {}, audio, stageDefinitions);
   assert.equal(state.over, true);
   assert.equal(state.victory, true);
+  assert.equal(audio.endings.at(-1).outcome, "victory");
 });
 
 test("stage system initializes stage state, advances time, and transitions into boss mode", () => {
@@ -337,5 +338,5 @@ test("stage system initializes stage state, advances time, and transitions into 
   }
   assert.equal(clearedPickup.components.pickup.t, 0);
   assert.equal(clearedShard.components.scoreShard.t, 0);
-  assert.equal(audio.chords.length > 0 || audio.noises.length > 0, true);
+  assert.equal(audio.events.at(-1).kind, "boss-arrival");
 });

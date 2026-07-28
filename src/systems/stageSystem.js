@@ -1,4 +1,4 @@
-import { sfxBossPhase } from "../audio/sfx.js";
+import { sfxBossArrival } from "../audio/sfx.js";
 import { removeEntity } from "../entities/entityFactory.js";
 import { createBossInstance } from "../data/bosses.js";
 
@@ -31,7 +31,11 @@ export function updateStage(state, stages, contentContext, audio, dt) {
       }
       state.pulse = 1;
       state.shake = 12;
-      sfxBossPhase(audio);
+      sfxBossArrival(audio, {
+        x: state.boss.x,
+        bossKey: state.boss.key,
+        phaseIndex: state.boss.phaseIndex,
+      });
     }
   }
 }

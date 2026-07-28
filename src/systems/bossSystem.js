@@ -1,5 +1,5 @@
 import { lerp } from "../core/math.js";
-import { sfxBossDefeat, sfxBossPhase } from "../audio/sfx.js";
+import { sfxBossDefeat, sfxBossPhase, sfxVictory } from "../audio/sfx.js";
 import { removeEntity } from "../entities/entityFactory.js";
 import { addBonusScore, combatTuning } from "../core/combat.js";
 import { resetCooldowns } from "../data/patterns.js";
@@ -41,13 +41,17 @@ export function advanceBossPhase(state, boss, spawnParticle, audio) {
   state.pulse = 1;
   state.shake = 12;
   state.feedback.phase = Math.max(state.feedback.phase, 0.65);
-  sfxBossPhase(audio);
+  sfxBossPhase(audio, {
+    x: boss.x,
+    bossKey: boss.key,
+    phaseIndex: boss.phaseIndex,
+  });
   spawnParticle(state, boss.x, boss.y, "#ffffff", 80, 280, 1.2, 3);
 }
 
 export function defeatBoss(state, player, boss, spawnParticle, audio, stages) {
   if (state.boss !== boss) return;
-  sfxBossDefeat(audio);
+  sfxBossDefeat(audio, { x: boss.x, y: boss.y, bossKey: boss.key });
   state.kills += 1;
   state.score += combatTuning.bossDefeatScore;
   state.boss = null;
@@ -77,6 +81,7 @@ export function defeatBoss(state, player, boss, spawnParticle, audio, stages) {
     } else {
       state.over = true;
       state.victory = true;
+      sfxVictory(audio, { x: boss.x, y: boss.y, bossKey: boss.key });
     }
   }
 }

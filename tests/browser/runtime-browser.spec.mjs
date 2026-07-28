@@ -180,6 +180,9 @@ test("boots real modules, renders with Canvas and WebGL, and initializes audio a
   await expect
     .poll(() => [...audioContexts.values()][0]?.contextState)
     .toBe("running");
+  await expect
+    .poll(() => page.evaluate(() => window.__astralHeresy.debugAudioDiagnostics().workletStatus))
+    .toBe("enhanced");
 
   const renderedPixels = await page.evaluate(() => {
     window.advanceTime(16);

@@ -40,9 +40,10 @@ Per-frame order:
 13. `cleanupBullets`
 14. `flushEntities`
 15. build render buckets
-16. background render
-17. canvas/entity render
-18. DOM interface sync
+16. project the read-only audio world and update the semantic audio engine
+17. background render
+18. canvas/entity render
+19. DOM interface sync
 
 Transient visual feedback decays in the update phase so its timing follows elapsed
 time rather than render-call frequency. If you change ordering, document why
@@ -93,7 +94,8 @@ The repo uses a lightweight ECS-style approach:
 - `src/systems/`: gameplay mutation logic
 - `src/data/`: content factories and reusable bullet-pattern helpers
 - `src/rendering/`: WebGL background plus 2D entity/HUD drawing
-- `src/audio/`: Web Audio setup and sound recipes
+- `src/audio/`: Web Audio setup and sound recipes; their present design
+  language is documented in [`SOUND_DESIGN.md`](./SOUND_DESIGN.md)
 - `src/ui/`: DOM synchronization for overlays and result screens
 - `src/debug/`: explicit runtime inspection surfaces such as render-study mode
 
@@ -105,13 +107,16 @@ Current intended direction:
 - `core/` may compose across domains. Treat it as the top of the dependency graph, not a place for low-level helpers to reach upward.
 - `state/` and `entities/` should stay free of DOM, renderer, and audio concerns.
 - `systems/` may depend on `state/`, `entities/`, `core/`, `audio/`, and narrow content helpers. They should not manipulate DOM nodes directly.
+- `audio/` is a one-way observer. [`../src/audio/audioState.js`](../src/audio/audioState.js)
+  projects a bounded scalar snapshot at the composition root; the audio engine
+  cannot retain or mutate gameplay state.
 - The combat economy now lives mainly in `systems/collisionSystem.js`, `systems/combatSystem.js`, `systems/playerSystem.js`, and `core/combat.js`. Keep graze, burst, chain, and loop-two rules in those seams rather than spreading them into renderers.
 - Desktop combat-space ownership now flows through `state.playfield` plus the stage director in `core/director.js`. Keep lane geometry and saturation budgeting centralized there; do not reintroduce per-stage viewport math or ad hoc enemy-count caps. The director's same-frame reservation model is part of that contract: gates are authoritative within a single stage-update pass, not advisory suggestions that later waves can ignore.
 - `ui/` should depend on state shape and DOM only.
 - `rendering/` should read state and entities. Transient visual-state mutation belongs in systems alongside other elapsed-time updates.
 - `debug/` is an inspection surface. Keep it callable from the composition root, but avoid making gameplay systems depend on it.
 
-These boundaries are enforced by `node scripts/check_structure.mjs`, which parses browser-native ECMAScript modules into a dependency graph and is also run by `python3 scripts/check_repo_legibility.py`. The checker validates static imports, re-exports, and literal dynamic imports with exact path resolution. It reports graph reachability and cycles for visibility, but those observations are not policy failures unless this document defines them as invariants.
+These boundaries are enforced by `node scripts/check_structure.mjs`, which parses browser-native ECMAScript modules into a dependency graph and is also run by `python3 scripts/check_repo_legibility.py`. The checker validates static imports, re-exports, literal dynamic imports, and literal `new URL("./module.js", import.meta.url)` runtime-module edges with exact path resolution. The last form makes the AudioWorklet module a visible, reachable part of the graph even though the browser loads it outside ordinary ESM import evaluation. The checker reports graph reachability and cycles for visibility, but those observations are not policy failures unless this document defines them as invariants.
 
 ## Content Boundary
 

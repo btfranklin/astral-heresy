@@ -7,6 +7,7 @@ Use this file as a router. The durable source of truth for non-trivial repo know
 - Product overview and quickstart: [`README.md`](./README.md)
 - Docs index: [`docs/index.md`](./docs/index.md)
 - Architecture map: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
+- Sound design manifesto: [`docs/SOUND_DESIGN.md`](./docs/SOUND_DESIGN.md)
 - Quality and verification map: [`docs/QUALITY.md`](./docs/QUALITY.md)
 - Runtime inspection and smoke-test paths: [`docs/RUNTIME.md`](./docs/RUNTIME.md)
 - Stage and boss authoring model: [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md)
@@ -16,6 +17,8 @@ Use this file as a router. The durable source of truth for non-trivial repo know
 
 - Gameplay flow, state transitions, or update ordering:
   [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
+- Sound philosophy, cue grammar, synthesis, or audio changes:
+  [`docs/SOUND_DESIGN.md`](./docs/SOUND_DESIGN.md)
 - Adding or changing stages, bosses, patterns, or enemy content:
   [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md)
 - Visual QA, repros, hidden debug surfaces, or browser inspection:
