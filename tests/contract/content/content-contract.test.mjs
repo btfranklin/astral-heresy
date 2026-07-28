@@ -98,6 +98,11 @@ test("content registries stay keyed, renderable, and contract-valid", () => {
     assert.equal(typeof bossDefinition.showcaseLabel, "string");
     assert.equal(bossRendererKeys.has(bossDefinition.renderKey), true);
     assert.equal(Array.isArray(bossDefinition.phases) && bossDefinition.phases.length > 0, true);
+    assert.equal(
+      bossDefinition.hp,
+      bossDefinition.phases.reduce((total, phase) => total + phase.hp, 0),
+      `${bossDefinition.name} total hp must equal the sum of its phase barriers.`
+    );
 
     const boss = createBossInstance(bossDefinition.key, ctx);
     assert.equal(boss.name, bossDefinition.name);

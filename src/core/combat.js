@@ -31,30 +31,6 @@ export const combatTuning = {
   orbitalContactCooldown: 0.14,
 };
 
-export function createScoreBonuses() {
-  return {
-    graze: 0,
-    burst: 0,
-    chain: 0,
-    close: 0,
-    weakpoint: 0,
-    phaseBreak: 0,
-    elite: 0,
-    pickup: 0,
-  };
-}
-
-export function createFeedbackState() {
-  return {
-    graze: 0,
-    burst: 0,
-    weakpoint: 0,
-    phase: 0,
-    loop: 0,
-    chain: 0,
-  };
-}
-
 export function getChainMultiplier(level) {
   return 1 + Math.min(combatTuning.chainMax, Math.max(0, level)) * combatTuning.chainStep;
 }

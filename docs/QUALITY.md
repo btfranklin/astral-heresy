@@ -23,6 +23,7 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
   - Confirms required repo-routing artifacts exist, local markdown links resolve, generated inventory is fresh, and import boundaries still hold.
 - `node scripts/check_runtime_browser_smoke.mjs`
   - Real Chromium contract suite for browser-owned behavior.
+  - One-time setup: `npm install` followed by `npx playwright install chromium`.
   - Starts an isolated local server, uses native Playwright input, checks Canvas/WebGL/Web Audio behavior, exercises visibility and resize lifecycle, verifies teardown, and fails on unexpected browser errors.
 
 ## Test Layers

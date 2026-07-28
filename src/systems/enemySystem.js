@@ -11,7 +11,7 @@ export function spawnEnemy(state, archetypeKey, overrides = {}, spawnOptions = {
 
   const opts = { ...archetype, ...overrides };
   const laneAware = spawnOptions.laneAware !== false;
-  const radius = opts.r || 18;
+  const radius = opts.r ?? 18;
   const spawnX =
     laneAware && state.playfield.active
       ? clampToEnemyEnvelope(state.playfield, opts.x, radius + 40)
@@ -20,9 +20,9 @@ export function spawnEnemy(state, archetypeKey, overrides = {}, spawnOptions = {
     state,
     createEntity("enemy", {
       position: position(spawnX, opts.y),
-      velocity: velocity(opts.vx || 0, opts.vy || 40),
+      velocity: velocity(opts.vx ?? 0, opts.vy ?? 40),
       collider: collider(radius),
-      health: health(opts.hp || 4),
+      health: health(opts.hp ?? 4),
       render: render({
         color: opts.color || "#7ad7ff",
         accent: opts.accent || "#f7ffff",
@@ -30,7 +30,7 @@ export function spawnEnemy(state, archetypeKey, overrides = {}, spawnOptions = {
         glowColor: opts.glowColor || "rgba(120, 255, 230, 0.4)",
       }),
       reward:
-        opts.elite || opts.dropKey || opts.scoreBonus
+        opts.elite || opts.risk || opts.dropKey || opts.scoreBonus || opts.scoreShardCount
           ? reward({
               elite: opts.elite,
               risk: opts.risk,
@@ -43,7 +43,7 @@ export function spawnEnemy(state, archetypeKey, overrides = {}, spawnOptions = {
       ai: ai({
         behavior: opts.behavior || null,
         fire: opts.fire || null,
-        wobble: opts.wobble || 0,
+        wobble: opts.wobble ?? 0,
       }),
     })
   );
@@ -51,7 +51,7 @@ export function spawnEnemy(state, archetypeKey, overrides = {}, spawnOptions = {
 
 export function updateEnemies(state, dt) {
   for (const entity of state.entities) {
-    if (entity.type !== "enemy") continue;
+    if (entity.type !== "enemy" || entity.dead) continue;
     const enemyAI = entity.components.ai;
     const pos = entity.components.position;
     const vel = entity.components.velocity;

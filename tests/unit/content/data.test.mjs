@@ -12,6 +12,7 @@ import {
 import {
   getPowerupCategoryStyle,
   getPowerupDefinition,
+  listActiveEffectDefinitions,
   listPowerupKeys,
   listWeaponPickupKeys,
   powerupDefinitions,
@@ -55,6 +56,24 @@ test("powerup catalog exposes stable keys, categories, and weapon pickup coverag
   assert.equal(getPowerupCategoryStyle("risk").sigil, "seal");
   assert.equal(getPowerupCategoryStyle("unknown").sigil, "hex");
   assert.equal(powerupDefinitions["burst-cell"].effect.type, "burst-cell");
+  assert.equal(getPowerupDefinition("beam").duration, getWeaponDefinition("beam").duration);
+  assert.equal(getPowerupDefinition("beam").pickupColor, getWeaponDefinition("beam").pickupColor);
+
+  const timedDefinitions = listActiveEffectDefinitions();
+  assert.equal(
+    new Set(timedDefinitions.map((definition) => definition.effect.effectKey)).size,
+    timedDefinitions.length
+  );
+  assert.equal(
+    timedDefinitions.every(
+      (definition) =>
+        definition.duration > 0 &&
+        typeof definition.pickupColor === "string" &&
+        Number.isInteger(definition.hudSides) &&
+        definition.hudSides >= 3
+    ),
+    true
+  );
 });
 
 test("weapon definitions and fire modes expose deterministic attack contracts", () => {
@@ -63,6 +82,10 @@ test("weapon definitions and fire modes expose deterministic attack contracts", 
 
   assert.equal(getWeaponDefinition("missing").key, "base");
   assert.equal(listWeaponModes().includes("orbitals"), true);
+  assert.equal(
+    listWeaponModes().every((mode) => Number.isInteger(getWeaponDefinition(mode).hudSides)),
+    true
+  );
 
   const baseShots = [];
   const baseWeapon = fireWeapon("base", {

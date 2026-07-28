@@ -75,7 +75,8 @@ export function handleWithBuckets(state, player, audio, overrides = {}) {
     overrides.spawnPickupEntity || ((kind, x, y, entityOverrides = {}) => spawnPickup(state, kind, x, y, entityOverrides)),
     overrides.spawnScoreShardEntities ||
       ((x, y, count, options = {}) => spawnScoreShards(state, x, y, count, options)),
-    buckets
+    buckets,
+    overrides.dt
   );
   return buckets;
 }

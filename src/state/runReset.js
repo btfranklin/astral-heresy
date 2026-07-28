@@ -26,7 +26,7 @@ export function resetLoopTransitionState(state, player) {
   player.weaponTimer = 0;
   player.pendingBurst = false;
   player.burstCooldown = 0;
-  player.burstLatch = false;
+  player.burstLatch = Boolean(state.input.KeyX);
   for (const key of Object.keys(player.activePowerups)) {
     player.activePowerups[key] = 0;
   }

@@ -72,11 +72,39 @@ test("enemy and movement systems merge archetypes, run ai hooks, clamp lane drif
   });
   assert.equal(enemy.components.position.x >= state.playfield.minX - (enemy.components.collider.r + 40), true);
   assert.equal(enemy.components.reward.dropKey, "spread");
+  assert.equal(enemy.components.velocity.vy, 0, "A zero vertical-speed override must not fall back to archetype drift.");
 
   updateEnemies(state, 0.016);
   assert.equal(behaviorCalls, 1);
   assert.equal(fireCalls, 1);
   assert.equal(enemy.components.velocity.vx > 0, true);
+
+  enemy.dead = true;
+  updateEnemies(state, 0.016);
+  assert.equal(behaviorCalls, 1, "Dead enemies must not run behavior while awaiting the entity flush.");
+  assert.equal(fireCalls, 1, "Dead enemies must not fire while awaiting the entity flush.");
+
+  const zeroValueEnemy = spawnEnemy(state, "cherub", {
+    x: 300,
+    y: 120,
+    vx: 0,
+    vy: 0,
+    r: 0,
+    hp: 0,
+    risk: true,
+  });
+  assert.equal(zeroValueEnemy.components.velocity.vx, 0);
+  assert.equal(zeroValueEnemy.components.velocity.vy, 0);
+  assert.equal(zeroValueEnemy.components.collider.r, 0);
+  assert.equal(zeroValueEnemy.components.health.hp, 0);
+  assert.equal(zeroValueEnemy.components.reward.risk, true);
+
+  const shardRewardEnemy = spawnEnemy(state, "cherub", {
+    x: 400,
+    y: 120,
+    scoreShardCount: 3,
+  });
+  assert.equal(shardRewardEnemy.components.reward.scoreShardCount, 3);
 
   const mover = createEntity("particle", {
     position: position(10, 20),
@@ -86,10 +114,14 @@ test("enemy and movement systems merge archetypes, run ai hooks, clamp lane drif
   updateMovement(state, 0.5);
   assert.equal(mover.components.position.x, 60);
   assert.equal(mover.components.position.y, -5);
+  mover.dead = true;
+  updateMovement(state, 0.5);
+  assert.equal(mover.components.position.x, 60, "Dead entities must not move while awaiting the entity flush.");
+  assert.equal(mover.components.position.y, -5);
 
-  enemy.components.position.y = state.view.height + 100;
+  shardRewardEnemy.components.position.y = state.view.height + 100;
   updateEnemies(state, 0.016);
-  assert.equal(enemy.dead, true);
+  assert.equal(shardRewardEnemy.dead, true);
 });
 
 test("player and combat systems move, fire, clamp, decay timers, and latch burst input", () => {
@@ -151,6 +183,39 @@ test("pickup system spawns, lane-clamps, attracts, and removes off-screen pickup
   assert.equal(pickup.dead, true);
 });
 
+test("pickup and score-shard damping preserves the 60 Hz motion across frame partitions", () => {
+  function simulate(step, frameCount) {
+    const { state, player } = makeState();
+    player.x = -10_000;
+    player.y = -10_000;
+    const pickup = spawnPickup(state, "beam", 640, 200, {
+      vx: 0,
+      vy: 54,
+      spawnPause: 0.24,
+    });
+    const [shard] = spawnScoreShards(state, 640, 200, 1, {
+      seedOffset: 0,
+    });
+    for (let frame = 0; frame < frameCount; frame++) {
+      updatePickups(state, player, step);
+    }
+    return {
+      pickupVy: pickup.components.velocity.vy,
+      shardVx: shard.components.velocity.vx,
+      shardVy: shard.components.velocity.vy,
+    };
+  }
+
+  const at60Hz = simulate(1 / 60, 60);
+  const at30Hz = simulate(1 / 30, 30);
+  const at120Hz = simulate(1 / 120, 120);
+  for (const candidate of [at30Hz, at120Hz]) {
+    assert.equal(Math.abs(at60Hz.pickupVy - candidate.pickupVy) < 1e-9, true);
+    assert.equal(Math.abs(at60Hz.shardVx - candidate.shardVx) < 1e-9, true);
+    assert.equal(Math.abs(at60Hz.shardVy - candidate.shardVy) < 1e-9, true);
+  }
+});
+
 test("boss internals and boss system expose weakpoint windows, phase-break resets, and loop completion rules", () => {
   const { state, player } = makeState();
   const audio = makeAudioSpy();
@@ -181,6 +246,7 @@ test("boss internals and boss system expose weakpoint windows, phase-break reset
   state.boss = createBossInstance("seraph", makeBossContext(state, player));
   state.stageIndex = stageDefinitions.length - 1;
   state.burstStocks = 2;
+  state.input.KeyX = true;
   player.hp = 1;
   defeatBoss(state, player, state.boss, () => {}, audio, stageDefinitions);
   assert.equal(state.loopIndex, 1);
@@ -188,6 +254,17 @@ test("boss internals and boss system expose weakpoint windows, phase-break reset
   assert.equal(player.hp, 5);
   assert.equal(state.burstStocks, 1);
   assert.equal(player.invuln > 0, true);
+  assert.equal(player.burstLatch, true);
+
+  updateCombat(state, player, 1 / 60);
+  assert.equal(player.pendingBurst, false, "Holding Burst through the transition must not arm the granted stock.");
+  assert.equal(state.burstStocks, 1);
+  state.input.KeyX = false;
+  updateCombat(state, player, 1 / 60);
+  state.input.KeyX = true;
+  updateCombat(state, player, 1 / 60);
+  assert.equal(player.pendingBurst, true, "Burst may arm after the held key is released and pressed again.");
+  player.pendingBurst = false;
 
   state.boss = createBossInstance("seraph", makeBossContext(state, player));
   state.stageIndex = stageDefinitions.length - 1;
@@ -227,15 +304,38 @@ test("stage system initializes stage state, advances time, and transitions into 
   assert.equal(state.stageTime, 0.4);
   assert.equal(spawned.length, 1);
 
-  state.entities.push(
-    createEntity("enemy", {
-      position: position(0, 0),
-      collider: collider(4),
-      health: health(1),
-    })
+  let clearedBehaviorCalls = 0;
+  let clearedFireCalls = 0;
+  const clearedEnemy = spawnEnemy(state, "cherub", {
+    x: 320,
+    y: 120,
+    behavior() {
+      clearedBehaviorCalls += 1;
+    },
+    fire() {
+      clearedFireCalls += 1;
+    },
+  });
+  const clearedPickup = spawnPickup(state, "beam", 420, 180);
+  const [clearedShard] = spawnScoreShards(state, 520, 180, 1);
+  const clearedPositions = new Map(
+    [clearedEnemy, clearedPickup, clearedShard].map((entity) => [
+      entity.id,
+      { ...entity.components.position },
+    ])
   );
   updateStage(state, stages, contentContext, audio, 0.7);
   assert.equal(Boolean(state.boss), true);
   assert.equal(state.entities.every((entity) => entity.dead), true);
+  updateEnemies(state, 0.7);
+  updateMovement(state, 0.7);
+  updatePickups(state, player, 0.7);
+  assert.equal(clearedBehaviorCalls, 0);
+  assert.equal(clearedFireCalls, 0);
+  for (const entity of [clearedEnemy, clearedPickup, clearedShard]) {
+    assert.deepEqual(entity.components.position, clearedPositions.get(entity.id));
+  }
+  assert.equal(clearedPickup.components.pickup.t, 0);
+  assert.equal(clearedShard.components.scoreShard.t, 0);
   assert.equal(audio.chords.length > 0 || audio.noises.length > 0, true);
 });

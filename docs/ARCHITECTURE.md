@@ -25,25 +25,29 @@ Initialization order:
 
 Per-frame order:
 
-1. refresh stage density budgets and reset stage-director frame reservations
-2. `updateStage`
-3. `updatePlayer`
-4. `updateCombat`
-5. `updateBullets`
-6. `updateEnemies`
-7. `updateMovement`
-8. `updatePickups`
-9. `updateParticles`
-10. `updateBoss`
-11. `handleCollisions`
-12. `cleanupBullets`
-13. `flushEntities`
-14. build render buckets
-15. background render
-16. canvas/entity render
-17. DOM interface sync
+1. `updateVisualFeedback`
+2. refresh stage density budgets and reset stage-director frame reservations
+3. `updateStage`
+4. `updatePlayer`
+5. `updateCombat`
+6. `updateBullets`
+7. `updateEnemies`
+8. `updateMovement`
+9. `updatePickups`
+10. `updateParticles`
+11. `updateBoss`
+12. `handleCollisions`
+13. `cleanupBullets`
+14. `flushEntities`
+15. build render buckets
+16. background render
+17. canvas/entity render
+18. DOM interface sync
 
-If you change ordering, document why here. Collision timing, boss defeat timing, and entity cleanup behavior depend on this sequence.
+Transient visual feedback decays in the update phase so its timing follows elapsed
+time rather than render-call frequency. If you change ordering, document why
+here. Collision timing, boss defeat timing, and entity cleanup behavior depend
+on this sequence.
 
 ## State Ownership
 
@@ -85,7 +89,7 @@ Current intended direction:
 - The combat economy now lives mainly in `systems/collisionSystem.js`, `systems/combatSystem.js`, `systems/playerSystem.js`, and `core/combat.js`. Keep graze, burst, chain, and loop-two rules in those seams rather than spreading them into renderers.
 - Desktop combat-space ownership now flows through `state.playfield` plus the stage director in `core/director.js`. Keep lane geometry and saturation budgeting centralized there; do not reintroduce per-stage viewport math or ad hoc enemy-count caps. The director's same-frame reservation model is part of that contract: gates are authoritative within a single stage-update pass, not advisory suggestions that later waves can ignore.
 - `ui/` should depend on state shape and DOM only.
-- `rendering/` should read state and entities; it should not own gameplay mutation beyond transient visual fields already present in state.
+- `rendering/` should read state and entities. Transient visual-state mutation belongs in systems alongside other elapsed-time updates.
 - `debug/` is an inspection surface. Keep it callable from the composition root, but avoid making gameplay systems depend on it.
 
 These boundaries are enforced by `node scripts/check_structure.mjs`, which parses browser-native ECMAScript modules into a dependency graph and is also run by `python3 scripts/check_repo_legibility.py`. The checker validates static imports, re-exports, and literal dynamic imports with exact path resolution. It reports graph reachability and cycles for visibility, but those observations are not policy failures unless this document defines them as invariants.

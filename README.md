@@ -91,10 +91,12 @@ node scripts/run_fast_tests.mjs runtime
 
 The legacy `check_content_contract`, `check_combat_smoke`, `check_powerup_smoke`, and `check_runtime_smoke` scripts remain as compatibility wrappers over those groups.
 
-Install the development-only parser and browser-test dependencies:
+Install the development-only parser and browser-test dependencies, then install
+the Chromium build used by Playwright:
 
 ```bash
 npm install
+npx playwright install chromium
 ```
 
 Run the real Chromium contract lane and capture current-run artifacts under `output/playwright/`:

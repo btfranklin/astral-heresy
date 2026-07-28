@@ -12,7 +12,8 @@ export function handleCollisions(
   defeatBoss,
   spawnPickupEntity,
   spawnScoreShardEntities,
-  buckets
+  buckets,
+  dt
 ) {
   const context = {
     state,
@@ -24,6 +25,7 @@ export function handleCollisions(
     spawnPickupEntity,
     spawnScoreShardEntities,
     buckets,
+    dt,
   };
 
   resolvePlayerBurst(context);

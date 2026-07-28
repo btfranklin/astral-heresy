@@ -8,8 +8,6 @@ import {
   addBonusScore,
   addGrazeCharge,
   combatTuning,
-  createFeedbackState,
-  createScoreBonuses,
   extendChain,
   getChainMultiplier,
   getCloseRangeBonus,
@@ -21,8 +19,6 @@ import {
 import {
   absorbShieldHit,
   applyPowerupPickup,
-  createActivePowerupState as createCoreActivePowerups,
-  createPowerupNotice,
   decayPowerupState,
   getChainDecayFactor,
   getCloseRangeBonusMultiplier,
@@ -35,16 +31,21 @@ import {
 } from "../../../src/core/powerups.js";
 import { getOrbitalOffsets } from "../../../src/core/orbitals.js";
 import {
+  createFeedbackState,
   createGameState,
+  createPowerupNotice,
+  createScoreBonuses,
   resetGameState,
 } from "../../../src/state/gameState.js";
 import {
-  createActivePowerupState as createPlayerActivePowerups,
+  createActivePowerupState,
   createPlayerState,
   getPlayerBounds,
   resetPlayerState,
 } from "../../../src/state/playerState.js";
 import { resetFreshRunState, resetLoopTransitionState } from "../../../src/state/runReset.js";
+import { getPowerupDefinition } from "../../../src/data/powerups.js";
+import { getWeaponDefinition } from "../../../src/data/weapons.js";
 import {
   clampToEnemyEnvelope,
   clampToLane,
@@ -148,20 +149,10 @@ test("combat helpers manage score, graze, chains, and burst recharge", () => {
 
 test("powerup helpers manage notices, multipliers, ordering, shield absorption, and pickups", () => {
   const { state, player } = makeState();
-  state.feedback = { graze: 0, burst: 0, weakpoint: 0, phase: 0, loop: 0, chain: 0, shield: 0 };
-  state.scoreBonuses = {
-    graze: 0,
-    burst: 0,
-    chain: 0,
-    close: 0,
-    weakpoint: 0,
-    phaseBreak: 0,
-    elite: 0,
-    pickup: 0,
-    shard: 0,
-  };
+  state.feedback = createFeedbackState();
+  state.scoreBonuses = createScoreBonuses();
 
-  assert.deepEqual(createCoreActivePowerups(), createPlayerActivePowerups());
+  assert.deepEqual(player.activePowerups, createActivePowerupState());
   assert.equal(createPowerupNotice().category, "utility");
 
   player.activePowerups.haloShield = 12;
@@ -183,6 +174,22 @@ test("powerup helpers manage notices, multipliers, ordering, shield absorption, 
     listed.map((entry) => entry.key),
     ["halo-shield", "chain-sigil", "graze-bloom", "point-blank-seal", "beam", "magnet-core"],
     "Active powerups should be listed by remaining timer, with the temporary weapon included in the strip."
+  );
+  const beamEntry = listed.find((entry) => entry.key === "beam");
+  const beamDefinition = getWeaponDefinition("beam");
+  assert.deepEqual(
+    { color: beamEntry.color, duration: beamEntry.duration },
+    { color: beamDefinition.pickupColor, duration: beamDefinition.duration }
+  );
+  const shieldEntry = listed.find((entry) => entry.key === "halo-shield");
+  const shieldDefinition = getPowerupDefinition("halo-shield");
+  assert.deepEqual(
+    { color: shieldEntry.color, duration: shieldEntry.duration, sides: shieldEntry.sides },
+    {
+      color: shieldDefinition.pickupColor,
+      duration: shieldDefinition.duration,
+      sides: shieldDefinition.hudSides,
+    }
   );
 
   const absorbed = absorbShieldHit(state, player);
@@ -218,6 +225,7 @@ test("game state and player state create and reset their defaults", () => {
   const state = createGameState();
   assert.equal(state.burstStocks, 1);
   assert.equal(state.scoreBonuses.shard, 0);
+  assert.equal(state.feedback.shield, 0);
   assert.equal(state.playfield.active, false);
 
   state.view.width = 1280;

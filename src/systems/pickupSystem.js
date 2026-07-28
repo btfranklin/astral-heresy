@@ -4,6 +4,19 @@ import { getPowerupDefinition, getPowerupCategoryStyle } from "../data/powerups.
 import { getPickupAttractionRadius, powerupTuning } from "../core/powerups.js";
 import { clampToLane } from "../state/playfieldState.js";
 
+const referenceFrameRate = 60;
+
+function frameDecay(factor, dt) {
+  return factor ** (Math.max(0, dt) * referenceFrameRate);
+}
+
+function applyDampedAcceleration(value, factor, acceleration, dt) {
+  const decay = frameDecay(factor, dt);
+  const referenceFrameAcceleration = acceleration / referenceFrameRate;
+  const equilibrium = referenceFrameAcceleration / (1 - factor);
+  return equilibrium + (value - equilibrium) * decay;
+}
+
 export function spawnPickup(state, kind, x, y, overrides = {}, spawnOptions = {}) {
   const definition = getPowerupDefinition(kind);
   if (!definition) {
@@ -79,7 +92,7 @@ export function spawnScoreShards(state, x, y, count = 4, options = {}, spawnOpti
 
 export function updatePickups(state, player, dt) {
   for (const entity of state.entities) {
-    if (entity.type !== "pickup" && entity.type !== "scoreShard") continue;
+    if (entity.dead || (entity.type !== "pickup" && entity.type !== "scoreShard")) continue;
     const pos = entity.components.position;
     const vel = entity.components.velocity;
     const item = entity.components.pickup || entity.components.scoreShard;
@@ -89,13 +102,14 @@ export function updatePickups(state, player, dt) {
     if (entity.type === "pickup") {
       vel.vx = Math.sin(item.t * 1.8 + entity.id * 0.14) * 18;
       if (item.spawnPause > 0) {
-        item.spawnPause = Math.max(0, item.spawnPause - dt);
+        const pausedDt = Math.min(item.spawnPause, Math.max(0, dt));
+        item.spawnPause = Math.max(0, item.spawnPause - pausedDt);
         vel.vx *= 0.18;
-        vel.vy *= 0.25;
+        vel.vy *= frameDecay(0.25, pausedDt);
       }
     } else {
-      vel.vx *= 0.985;
-      vel.vy = vel.vy * 0.985 + 10 * dt;
+      vel.vx *= frameDecay(0.985, dt);
+      vel.vy = applyDampedAcceleration(vel.vy, 0.985, 10, dt);
     }
 
     const dx = player.x - pos.x;

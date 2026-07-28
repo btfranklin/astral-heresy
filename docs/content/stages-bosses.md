@@ -44,7 +44,10 @@ Stage `update()` owns:
 
 - enemy spawn timing
 - enemy movement/fire closures
-- transitions into the stage boss via `bossKey` once `t >= duration`
+
+The runtime stage system owns the transition into `bossKey` once the accumulated
+stage time reaches `duration`; authored `update()` functions only produce the
+stage's timed content.
 
 `playfield` is the stage-safe geometry surface for authored content:
 
@@ -146,6 +149,10 @@ Each phase provides:
 - optional `weakpoint`
 - `pattern(boss, dt, ctx)`
 
+Definition-level `hp` must equal the sum of all phase `hp` values. Each phase is
+a damage barrier: a hit can consume only the current `phaseHp`, and overkill is
+discarded instead of skipping health in a later phase.
+
 Boss pattern `ctx` includes the runtime geometry surface used by stage content:
 
 - `view`
@@ -183,6 +190,11 @@ When a boss attack is authored as desktop lanes, use `ctx.playfield.laneX(...)` 
 Use these first before inventing one-off projectile loops in stage or boss code. If a pattern becomes reusable across more than one fight, promote it into `patterns.js`.
 
 For player-facing pickup rewards, use the generic powerup definitions in [`../../src/data/powerups.js`](../../src/data/powerups.js). Weapon-fire behavior still lives in [`../../src/data/weapons.js`](../../src/data/weapons.js), but stages should not duplicate pickup duration, category, or labeling rules in content files.
+
+Timed-effect HUD metadata is registry-owned as well. Weapon and active-powerup
+definitions provide their `duration`, `pickupColor`, and `hudSides`; both the
+DOM effect strip and player-local canvas sigils project from those definitions
+instead of maintaining renderer-local copies.
 
 ## Authoring Workflow
 

@@ -47,6 +47,60 @@ export function spendPlayerBullet(bullet) {
   removeEntity(bullet);
 }
 
+function registerPlayerBulletHit(state, bullet, targetKey) {
+  const attack = bullet.components.attack;
+  if (!attack) {
+    state.shotsHit += 1;
+    return true;
+  }
+
+  if (!attack.hitTargetKeys) attack.hitTargetKeys = [];
+  if (attack.hitTargetKeys.includes(targetKey)) return false;
+
+  attack.hitTargetKeys.push(targetKey);
+  if (!attack.hitCounted) {
+    attack.hitCounted = true;
+    state.shotsHit += 1;
+  }
+  return true;
+}
+
+function getRemainingBossHp(boss) {
+  const futurePhaseHp = boss.phases
+    .slice(boss.phaseIndex + 1)
+    .reduce((total, phase) => total + phase.hp, 0);
+  return Math.max(0, boss.phaseHp) + futurePhaseHp;
+}
+
+export function applyBossDamage(
+  state,
+  player,
+  boss,
+  damage,
+  audio,
+  spawnParticle,
+  advanceBossPhase,
+  defeatBoss
+) {
+  const requestedDamage = Number.isFinite(damage) ? Math.max(0, damage) : 0;
+  const appliedDamage = Math.min(requestedDamage, Math.max(0, boss.phaseHp));
+  boss.phaseHp = Math.max(0, boss.phaseHp - appliedDamage);
+  boss.hp = getRemainingBossHp(boss);
+
+  const phaseBroken = boss.phaseHp <= 0;
+  if (phaseBroken) {
+    advanceBossPhase(state, boss, spawnParticle, audio);
+    boss.hp = boss.phases[boss.phaseIndex] ? getRemainingBossHp(boss) : 0;
+  }
+
+  const defeated = boss.phaseIndex >= boss.phases.length || boss.hp <= 0;
+  if (defeated) {
+    defeatBoss(state, player, boss, spawnParticle, audio);
+  }
+
+  return { appliedDamage, phaseBroken, defeated };
+}
+
 export function rewardKill(
   state,
   player,
@@ -121,8 +175,8 @@ export function damageEnemy(
   const enemyPos = enemy.components.position;
   const enemyHealth = enemy.components.health;
   if (!enemyPos || !enemyHealth) return;
+  if (!registerPlayerBulletHit(state, bullet, `enemy:${enemy.id}`)) return false;
 
-  state.shotsHit += 1;
   enemyHealth.hp -= damage;
   spendPlayerBullet(bullet);
   spawnParticle(state, enemyPos.x, enemyPos.y, "#ffffff", 6, 120, 0.4, 2);
@@ -139,6 +193,7 @@ export function damageEnemy(
       spawnScoreShardEntities
     );
   }
+  return true;
 }
 
 export function damageBoss(
@@ -153,9 +208,8 @@ export function damageBoss(
   advanceBossPhase,
   defeatBoss
 ) {
-  state.shotsHit += 1;
-  boss.hp -= damage;
-  boss.phaseHp -= damage;
+  if (!registerPlayerBulletHit(state, bullet, `boss:${boss.key}`)) return false;
+
   spendPlayerBullet(bullet);
   if (weakpointHit) {
     addBonusScore(state, "weakpoint", boss.weakpoint?.bonusScore || combatTuning.weakpointDefaultBonus, "WEAKPOINT");
@@ -173,12 +227,17 @@ export function damageBoss(
   } else {
     spawnParticle(state, boss.x, boss.y, "#ffe7f6", 4, 100, 0.3, 2);
   }
-  if (boss.phaseHp <= 0) {
-    advanceBossPhase(state, boss, spawnParticle, audio);
-  }
-  if (boss.hp <= 0) {
-    defeatBoss(state, player, boss, spawnParticle, audio);
-  }
+  applyBossDamage(
+    state,
+    player,
+    boss,
+    damage,
+    audio,
+    spawnParticle,
+    advanceBossPhase,
+    defeatBoss
+  );
+  return true;
 }
 
 export function triggerBurst(
@@ -248,18 +307,21 @@ export function triggerBurst(
   }
 
   if (state.boss) {
-    const dx = state.boss.x - player.x;
-    const dy = state.boss.y - player.y;
+    const boss = state.boss;
+    const dx = boss.x - player.x;
+    const dy = boss.y - player.y;
     if (dx * dx + dy * dy <= radiusSq) {
-      state.boss.hp -= combatTuning.burstBossDamage;
-      state.boss.phaseHp -= combatTuning.burstBossDamage;
-      spawnParticle(state, state.boss.x, state.boss.y, "#9efbff", 16, 180, 0.4, 3);
-      if (state.boss.phaseHp <= 0) {
-        advanceBossPhase(state, state.boss, spawnParticle, audio);
-      }
-      if (state.boss.hp <= 0) {
-        defeatBoss(state, player, state.boss, spawnParticle, audio);
-      }
+      spawnParticle(state, boss.x, boss.y, "#9efbff", 16, 180, 0.4, 3);
+      applyBossDamage(
+        state,
+        player,
+        boss,
+        combatTuning.burstBossDamage,
+        audio,
+        spawnParticle,
+        advanceBossPhase,
+        defeatBoss
+      );
     }
   }
 

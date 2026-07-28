@@ -1,6 +1,6 @@
 import { createPlayfield } from "./playfieldState.js";
 
-function createScoreBonuses() {
+export function createScoreBonuses() {
   return {
     graze: 0,
     burst: 0,
@@ -14,7 +14,7 @@ function createScoreBonuses() {
   };
 }
 
-function createFeedbackState() {
+export function createFeedbackState() {
   return {
     graze: 0,
     burst: 0,
@@ -36,7 +36,7 @@ function createDensityState() {
   };
 }
 
-function createPowerupNotice() {
+export function createPowerupNotice() {
   return {
     title: "",
     roleTag: "",

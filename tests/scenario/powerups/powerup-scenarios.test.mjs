@@ -105,7 +105,7 @@ test("magnet core, orbitals, amplifier, and point-blank seal keep their authored
   state.time += 0.12;
   updatePlayer(state, player, audio, 0.12);
   assert.equal(buildEntityBuckets(state).playerBullets.length > bulletCountBefore, true);
-  handleWithBuckets(state, player, audio);
+  handleWithBuckets(state, player, audio, { dt: 0.12 });
   assert.equal(enemy.dead, true);
 
   const boss = createBossInstance("seraph", makeBossContext(state, player));
@@ -123,7 +123,7 @@ test("magnet core, orbitals, amplifier, and point-blank seal keep their authored
     weakpointDamageMultiplier: 2.8,
     weakpointBrandDuration: 1.25,
   });
-  handleWithBuckets(state, player, audio);
+  handleWithBuckets(state, player, audio, { dt: 1 / 60 });
   assert.equal(Number((initialPhaseHp - boss.phaseHp).toFixed(2)), 0.6);
 
   const hpAfterBody = boss.phaseHp;
@@ -134,7 +134,7 @@ test("magnet core, orbitals, amplifier, and point-blank seal keep their authored
     weakpointDamageMultiplier: 2.8,
     weakpointBrandDuration: 1.25,
   });
-  handleWithBuckets(state, player, audio);
+  handleWithBuckets(state, player, audio, { dt: 1 / 60 });
   assert.equal(Number((hpAfterBody - boss.phaseHp).toFixed(2)), 2.8);
   assert.equal(Number(boss.weakpointBrandTimer.toFixed(2)), 1.25);
 
@@ -158,7 +158,7 @@ test("magnet core, orbitals, amplifier, and point-blank seal keep their authored
     damage: 1,
   });
   const closeBefore = state.scoreBonuses.close;
-  handleWithBuckets(state, player, audio);
+  handleWithBuckets(state, player, audio, { dt: 1 / 60 });
   const closeDistance = Math.hypot(player.x - sealTargetX, player.y - sealTargetY);
   assert.equal(
     state.scoreBonuses.close - closeBefore,

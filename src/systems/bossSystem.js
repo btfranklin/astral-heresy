@@ -28,12 +28,16 @@ export function advanceBossPhase(state, boss, spawnParticle, audio) {
   resetCooldowns(boss);
   boss.weakpoint = null;
   if (!boss.phases[boss.phaseIndex]) {
+    boss.phaseHp = 0;
     boss.hp = 0;
     return;
   }
   state.score += combatTuning.phaseBreakBaseScore;
   addBonusScore(state, "phaseBreak", speedBonus, "PHASE BREAK");
   boss.phaseHp = boss.phases[boss.phaseIndex].hp;
+  boss.hp = boss.phases
+    .slice(boss.phaseIndex)
+    .reduce((total, phase) => total + phase.hp, 0);
   state.pulse = 1;
   state.shake = 12;
   state.feedback.phase = Math.max(state.feedback.phase, 0.65);

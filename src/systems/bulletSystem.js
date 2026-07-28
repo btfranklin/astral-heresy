@@ -59,6 +59,7 @@ export function spawnPlayerBullet(state, x, y, angle, speed, opts = {}) {
 
 export function updateBullets(state, player, dt) {
   for (const entity of state.entities) {
+    if (entity.dead) continue;
     if (entity.type !== "enemyBullet" && entity.type !== "playerBullet") continue;
     const vel = entity.components.velocity;
     const bullet = entity.components.bullet;

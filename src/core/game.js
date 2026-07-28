@@ -15,6 +15,7 @@ import { handleCollisions } from "../systems/collisionSystem.js";
 import { updateStage } from "../systems/stageSystem.js";
 import { updateBoss, advanceBossPhase, defeatBoss } from "../systems/bossSystem.js";
 import { updateCombat } from "../systems/combatSystem.js";
+import { updateVisualFeedback } from "../systems/visualFeedbackSystem.js";
 import { spawnPickup, spawnScoreShards, updatePickups } from "../systems/pickupSystem.js";
 import { buildEntityBuckets, createEntityBuckets } from "../entities/entityBuckets.js";
 import { stageDefinitions } from "../data/stages.js";
@@ -105,6 +106,8 @@ export function createGame({
   }
 
   function update(dt) {
+    updateVisualFeedback(state, dt);
+
     if (!state.started) {
       renderBuckets = buildEntityBuckets(state);
       audio.updateMusic(state, player);
@@ -165,7 +168,8 @@ export function createGame({
         defeatBoss(innerState, innerPlayer, boss, particle, audioEngine, stages),
       (kind, x, y, overrides, spawnOptions) => spawnPickup(state, kind, x, y, overrides, spawnOptions),
       (x, y, count, options, spawnOptions) => spawnScoreShards(state, x, y, count, options, spawnOptions),
-      collisionBuckets
+      collisionBuckets,
+      dt
     );
 
     cleanupBullets(state);

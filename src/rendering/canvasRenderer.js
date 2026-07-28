@@ -386,7 +386,6 @@ export function createCanvasRenderer(ctx) {
     if (state.shake > 0) {
       const shake = state.shake;
       ctx.translate(rand(-shake, shake) * 0.3, rand(-shake, shake) * 0.3);
-      state.shake = Math.max(0, state.shake - 0.7);
     }
 
     const bulletCount = buckets.enemyBullets.length + buckets.playerBullets.length;

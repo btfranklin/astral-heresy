@@ -10,6 +10,7 @@ export function resolveOrbitalEnemyHits({
   spawnPickupEntity,
   spawnScoreShardEntities,
   buckets,
+  dt,
 }) {
   if (
     player.weaponMode !== "orbitals" ||
@@ -17,6 +18,9 @@ export function resolveOrbitalEnemyHits({
     !(state.input.KeyZ || state.input.Space || state.input.PointerFire)
   ) {
     return;
+  }
+  if (!Number.isFinite(dt) || dt < 0) {
+    throw new TypeError("Orbital collision resolution requires a non-negative frame delta.");
   }
 
   const focus = Boolean(state.input.ShiftLeft || state.input.ShiftRight);
@@ -29,16 +33,18 @@ export function resolveOrbitalEnemyHits({
     const enemyAI = enemy.components.ai;
     if (!enemyPos || !enemyCol || !enemyHealth || !enemyAI || enemyCol.r > 20) continue;
 
-    enemyAI.orbitalCooldown = Math.max(0, (enemyAI.orbitalCooldown || 0) - 0.016);
+    enemyAI.orbitalCooldown = (enemyAI.orbitalCooldown || 0) - dt;
     if (enemyAI.orbitalCooldown > 0) continue;
 
+    let hitByOrbital = false;
     for (const orbital of orbitals) {
       const ox = player.x + orbital.x;
       const oy = player.y + orbital.y;
       const dx = enemyPos.x - ox;
       const dy = enemyPos.y - oy;
       if (dx * dx + dy * dy < (enemyCol.r + combatTuning.orbitalContactRadius) ** 2) {
-        enemyAI.orbitalCooldown = combatTuning.orbitalContactCooldown;
+        enemyAI.orbitalCooldown += combatTuning.orbitalContactCooldown;
+        hitByOrbital = true;
         enemyHealth.hp -= combatTuning.orbitalContactDamage;
         spawnParticle(state, ox, oy, "#d9fbff", 8, 120, 0.25, 2);
         if (enemyHealth.hp <= 0) {
@@ -56,6 +62,9 @@ export function resolveOrbitalEnemyHits({
         }
         break;
       }
+    }
+    if (!hitByOrbital) {
+      enemyAI.orbitalCooldown = 0;
     }
   }
 }
@@ -88,7 +97,7 @@ export function resolvePlayerBulletEnemyHits({
       const dx = enemyPos.x - bulletPos.x;
       const dy = enemyPos.y - bulletPos.y;
       if (dx * dx + dy * dy < (enemyCol.r + bulletCol.r) ** 2) {
-        damageEnemy(
+        const hitApplied = damageEnemy(
           state,
           player,
           enemy,
@@ -99,7 +108,7 @@ export function resolvePlayerBulletEnemyHits({
           spawnPickupEntity,
           spawnScoreShardEntities
         );
-        break;
+        if (hitApplied) break;
       }
     }
   }

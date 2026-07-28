@@ -142,6 +142,52 @@ test("boots real modules, renders with Canvas and WebGL, and initializes audio a
   await cdp.detach();
 });
 
+test("projects representative gameplay state into the real HUD DOM", async ({
+  page,
+  browserErrors: _browserErrors,
+}) => {
+  await openGame(page);
+  await expect(page.locator("#interface")).toHaveAttribute("data-mode", "idle");
+  await expect(page.locator("#stage-name")).toHaveText("Nebula Gate");
+  await expect(page.locator("#run-time")).toHaveText("00:00");
+  await expect(page.locator("#score-value")).toHaveText("0");
+  await expect(page.locator("#graze-value")).toHaveText("0%");
+  await expect(page.locator("#weapon-value")).toHaveText("Standard");
+  await expect(page.locator("#hull-pips .hull-pip")).toHaveCount(5);
+  await expect(page.locator("#burst-stocks .stock-pip")).toHaveCount(2);
+  await expect(page.locator("#effect-strip .effect-chip")).toHaveCount(6);
+
+  await launchWithClick(page);
+  await page.evaluate(() => {
+    const game = window.__astralHeresy;
+    game.debugSpawnPickup("beam", game.player.x, game.player.y);
+    game.debugSpawnPickup("halo-shield", game.player.x, game.player.y);
+    window.advanceTime(16);
+    game.state.score = 12_345;
+    game.state.kills = 7;
+    game.state.shotsFired = 10;
+    game.state.shotsHit = 8;
+    game.state.grazeCharge = 45;
+    game.state.chainLevel = 2;
+    game.state.chainTimer = 2;
+    game.state.burstStocks = 2;
+    game.player.hp = 3;
+  });
+
+  await expect(page.locator("#interface")).toHaveAttribute("data-mode", "combat");
+  await expect(page.locator("#score-value")).toHaveText("12,345");
+  await expect(page.locator("#kill-value")).toHaveText("7");
+  await expect(page.locator("#accuracy-value")).toHaveText("80%");
+  await expect(page.locator("#chain-value")).toHaveText("x1.30");
+  await expect(page.locator("#graze-value")).toHaveText("45%");
+  await expect(page.locator("#weapon-value")).toContainText("Beam");
+  await expect(page.locator("#hull-pips .hull-pip.is-full")).toHaveCount(3);
+  await expect(page.locator("#burst-stocks .stock-pip.is-full")).toHaveCount(2);
+  await expect(page.locator("#effect-strip .effect-chip:not(.hidden)")).toHaveCount(2);
+  await expect(page.locator("#effect-strip")).toContainText("Beam");
+  await expect(page.locator("#effect-strip")).toContainText("Shield");
+});
+
 test("uses native keyboard, pointer, blur, visibility, and restart behavior", async ({
   page,
   browserErrors: _browserErrors,
@@ -303,24 +349,89 @@ test("renders deterministic showcase surfaces in the real browser", async ({
   page,
   browserErrors: _browserErrors,
 }, testInfo) => {
-  for (const [name, path] of [
-    ["enemy-halo", "/?mode=render&enemy=halo"],
-    ["boss-prism", "/?mode=render&boss=prism&phase=2"],
-  ]) {
-    await openGame(page, path);
-    await expect.poll(() => page.evaluate(() => window.__astralHeresy.state.showcase?.type)).not.toBeNull();
+  const scenarios = [
+    {
+      name: "enemy-halo",
+      path: "/?mode=render&enemy=halo",
+      showcase: { type: "enemy", key: "halo" },
+      target: { type: "enemy", key: "halo" },
+    },
+    {
+      name: "boss-prism",
+      path: "/?mode=render&boss=prism&phase=3",
+      showcase: { type: "boss", key: "prism", phase: 3 },
+      target: { type: "boss", key: "prism", phaseIndex: 2 },
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    await openGame(page, scenario.path);
     const surface = await page.evaluate(() => {
       window.advanceTime(16);
+      const game = window.__astralHeresy;
       const canvas = document.getElementById("game");
-      const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
-      let visible = 0;
-      for (let index = 3; index < pixels.length; index += 4 * 83) {
-        if (pixels[index] > 0) visible += 1;
+      const ctx = canvas.getContext("2d");
+      let target = null;
+
+      if (game.state.showcase.type === "enemy") {
+        const enemy = game.state.entities.find((entity) => entity.type === "enemy");
+        const position = enemy?.components.position;
+        const collider = enemy?.components.collider;
+        const render = enemy?.components.render;
+        if (position && collider && render) {
+          target = {
+            type: "enemy",
+            key: render.renderKey,
+            x: position.x,
+            y: position.y,
+            cropRadius: collider.r * 0.8,
+          };
+        }
+      } else if (game.state.boss) {
+        target = {
+          type: "boss",
+          key: game.state.boss.renderKey,
+          phaseIndex: game.state.boss.phaseIndex,
+          x: game.state.boss.x,
+          y: game.state.boss.y,
+          cropRadius: game.state.boss.r * 0.45,
+        };
       }
-      return { visible, showcase: window.__astralHeresy.state.showcase.type };
+
+      if (!target) {
+        return { showcase: game.state.showcase, target: null, targetVisiblePixels: 0 };
+      }
+
+      const dpr = game.state.view.dpr;
+      const left = Math.max(0, Math.floor((target.x - target.cropRadius) * dpr));
+      const top = Math.max(0, Math.floor((target.y - target.cropRadius) * dpr));
+      const right = Math.min(canvas.width, Math.ceil((target.x + target.cropRadius) * dpr));
+      const bottom = Math.min(canvas.height, Math.ceil((target.y + target.cropRadius) * dpr));
+      const pixels = ctx.getImageData(left, top, right - left, bottom - top).data;
+      let targetVisiblePixels = 0;
+      for (let index = 0; index < pixels.length; index += 4) {
+        if (
+          pixels[index + 3] > 0 &&
+          (pixels[index] > 0 || pixels[index + 1] > 0 || pixels[index + 2] > 0)
+        ) {
+          targetVisiblePixels += 1;
+        }
+      }
+
+      return {
+        showcase: game.state.showcase,
+        target: {
+          type: target.type,
+          key: target.key,
+          phaseIndex: target.phaseIndex,
+        },
+        targetVisiblePixels,
+      };
     });
-    expect(surface.visible).toBeGreaterThan(0);
-    await page.screenshot({ path: testInfo.outputPath(`${name}.png`) });
+    expect(surface.showcase).toMatchObject(scenario.showcase);
+    expect(surface.target).toMatchObject(scenario.target);
+    expect(surface.targetVisiblePixels).toBeGreaterThan(25);
+    await page.screenshot({ path: testInfo.outputPath(`${scenario.name}.png`) });
   }
 });
 

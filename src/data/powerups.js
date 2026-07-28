@@ -70,6 +70,7 @@ export const powerupDefinitions = {
     shortLabel: "Shield",
     roleTag: "BARRIER READY",
     duration: 12,
+    hudSides: 6,
     sigil: "hex",
     pickupColor: "#bdfdff",
     pickupAccent: "#fff3d9",
@@ -86,6 +87,7 @@ export const powerupDefinitions = {
     shortLabel: "Sigil",
     roleTag: "CHAIN LOCK",
     duration: 10,
+    hudSides: 4,
     sigil: "seal",
     pickupColor: "#ffb356",
     pickupAccent: "#fff3ca",
@@ -102,6 +104,7 @@ export const powerupDefinitions = {
     shortLabel: "Bloom",
     roleTag: "GRAZE X2",
     duration: 10,
+    hudSides: 8,
     sigil: "hex",
     pickupColor: "#ff9fda",
     pickupAccent: "#fff2f9",
@@ -118,6 +121,7 @@ export const powerupDefinitions = {
     shortLabel: "Magnet",
     roleTag: "ROUTE LOCK",
     duration: 10,
+    hudSides: 6,
     sigil: "hex",
     pickupColor: "#8fe8ff",
     pickupAccent: "#effdff",
@@ -134,6 +138,7 @@ export const powerupDefinitions = {
     shortLabel: "Seal",
     roleTag: "DANGER BONUS",
     duration: 10,
+    hudSides: 3,
     sigil: "seal",
     pickupColor: "#ff8f8f",
     pickupAccent: "#ffd58e",
@@ -157,6 +162,10 @@ export function listPowerupKeys() {
 
 export function listWeaponPickupKeys() {
   return listWeaponModes().filter((key) => key !== "base" && powerupMap.has(key));
+}
+
+export function listActiveEffectDefinitions() {
+  return Object.values(powerupDefinitions).filter((definition) => definition.effect.type === "active");
 }
 
 export function getPowerupCategoryStyle(category) {

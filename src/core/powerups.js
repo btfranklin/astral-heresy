@@ -1,6 +1,7 @@
 import { addBonusScore, addGrazeCharge, combatTuning, pushBonusText } from "./combat.js";
-import { getPowerupDefinition } from "../data/powerups.js";
+import { getPowerupDefinition, listActiveEffectDefinitions } from "../data/powerups.js";
 import { getWeaponDefinition } from "../data/weapons.js";
+import { createPowerupNotice } from "../state/gameState.js";
 
 export const powerupTuning = {
   pickupNoticeDuration: 0.9,
@@ -17,31 +18,6 @@ export const powerupTuning = {
   burstCellGrazeFallback: 35,
   scoreShardValue: 55,
 };
-
-export function createActivePowerupState() {
-  return {
-    haloShield: 0,
-    chainSigil: 0,
-    grazeBloom: 0,
-    magnetCore: 0,
-    pointBlankSeal: 0,
-  };
-}
-
-export function createPowerupNotice() {
-  return {
-    title: "",
-    roleTag: "",
-    category: "utility",
-    timer: 0,
-    hudTimer: 0,
-    ribbonTimer: 0,
-    color: "#79ffe1",
-    sigil: "hex",
-    x: 0,
-    y: 0,
-  };
-}
 
 export function resetPowerupNotice(state) {
   state.powerupNotice = createPowerupNotice();
@@ -98,31 +74,31 @@ export function decayPowerupState(state, player, dt) {
 
 export function listActivePowerups(player) {
   const entries = [];
-  if (player.weaponMode !== "base") {
+  if (player.weaponMode !== "base" && player.weaponTimer > 0) {
+    const weapon = getWeaponDefinition(player.weaponMode);
     entries.push({
-      key: player.weaponMode,
-      label: getWeaponDefinition(player.weaponMode).shortLabel,
+      key: weapon.key,
+      label: weapon.shortLabel,
       category: "weapon",
+      color: weapon.pickupColor,
+      duration: weapon.duration,
+      sides: weapon.hudSides,
       timer: player.weaponTimer,
     });
   }
 
-  const catalogMap = {
-    haloShield: "halo-shield",
-    chainSigil: "chain-sigil",
-    grazeBloom: "graze-bloom",
-    magnetCore: "magnet-core",
-    pointBlankSeal: "point-blank-seal",
-  };
-
-  for (const [effectKey, powerupKey] of Object.entries(catalogMap)) {
-    if (player.activePowerups[effectKey] > 0) {
-      const definition = getPowerupDefinition(powerupKey);
+  for (const definition of listActiveEffectDefinitions()) {
+    const effectKey = definition.effect.effectKey;
+    const timer = player.activePowerups[effectKey] || 0;
+    if (timer > 0) {
       entries.push({
-        key: powerupKey,
-        label: definition?.shortLabel || powerupKey,
-        category: definition?.category || "utility",
-        timer: player.activePowerups[effectKey],
+        key: definition.key,
+        label: definition.shortLabel,
+        category: definition.category,
+        color: definition.pickupColor,
+        duration: definition.duration,
+        sides: definition.hudSides,
+        timer,
       });
     }
   }

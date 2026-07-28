@@ -13,6 +13,7 @@ const weaponDefinitions = {
     label: "Sanctioned Lances",
     shortLabel: "Standard",
     duration: 0,
+    hudSides: 4,
     pickupColor: "#79ffe1",
     pickupAccent: "#bff8ff",
     cooldown(focus) {
@@ -34,6 +35,7 @@ const weaponDefinitions = {
     label: "Choir Scatter",
     shortLabel: "Spread",
     duration: 10,
+    hudSides: 4,
     pickupColor: "#ff8fd8",
     pickupAccent: "#fff0fb",
     cooldown(focus) {
@@ -55,6 +57,7 @@ const weaponDefinitions = {
     label: "Psalter Lance",
     shortLabel: "Pierce",
     duration: 10,
+    hudSides: 4,
     pickupColor: "#ffd58e",
     pickupAccent: "#fff3d2",
     cooldown(focus) {
@@ -77,6 +80,7 @@ const weaponDefinitions = {
     label: "Litany Beam",
     shortLabel: "Beam",
     duration: 8,
+    hudSides: 4,
     pickupColor: "#9efbff",
     pickupAccent: "#f2ffff",
     cooldown(focus) {
@@ -100,6 +104,7 @@ const weaponDefinitions = {
     label: "Censer Orbitals",
     shortLabel: "Orbitals",
     duration: 10,
+    hudSides: 4,
     pickupColor: "#9efbff",
     pickupAccent: "#fff7d5",
     cooldown(focus) {
@@ -134,6 +139,7 @@ const weaponDefinitions = {
     label: "Weakpoint Amplifier",
     shortLabel: "Amplify",
     duration: 8,
+    hudSides: 4,
     pickupColor: "#ffd58e",
     pickupAccent: "#fff7d8",
     cooldown(focus) {

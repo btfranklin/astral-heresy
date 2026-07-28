@@ -160,9 +160,12 @@ The dedicated powerup lane validates:
 - `Orbitals`, `Weakpoint Amplifier`, and `Point-Blank Seal`
 - score-shard routing and weakpoint-brand damage behavior
 
-Install the development tools once with `npm install`, then run the Chromium contract suite:
+Install the development tools and Playwright's Chromium build once, then run the
+Chromium contract suite:
 
 ```bash
+npm install
+npx playwright install chromium
 node scripts/check_runtime_browser_smoke.mjs
 ```
 
@@ -176,7 +179,8 @@ That lane validates:
 - native animation-frame progression and cancellation
 - idempotent cleanup followed by real input and resize events
 - absence of unexpected page exceptions, console errors, failed requests, bad local responses, and dialogs
-- current-run screenshots and traces under `output/playwright/`
+- current-run screenshots under `output/playwright/`, with traces retained there
+  when a test fails
 
 ## Constraints Worth Remembering
 

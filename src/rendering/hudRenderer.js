@@ -1,38 +1,6 @@
 import { combatTuning, getChainMultiplier } from "../core/combat.js";
+import { listActivePowerups, powerupTuning } from "../core/powerups.js";
 import { drawGlowCircle } from "./drawHelpers.js";
-
-const effectSigils = [
-  {
-    key: "haloShield",
-    color: "#bdfdff",
-    duration: 12,
-    sides: 6,
-  },
-  {
-    key: "chainSigil",
-    color: "#ffb356",
-    duration: 10,
-    sides: 4,
-  },
-  {
-    key: "grazeBloom",
-    color: "#ff9fda",
-    duration: 10,
-    sides: 8,
-  },
-  {
-    key: "magnetCore",
-    color: "#8fe8ff",
-    duration: 10,
-    sides: 6,
-  },
-  {
-    key: "pointBlankSeal",
-    color: "#ff8f8f",
-    duration: 10,
-    sides: 3,
-  },
-];
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
@@ -75,31 +43,10 @@ function drawTimedSigil(ctx, x, y, effect, state) {
   ctx.restore();
 }
 
-function getActiveEffectSigils(player) {
-  const effects = [];
-  if (player.weaponMode !== "base" && player.weaponTimer > 0) {
-    effects.push({
-      key: "weapon",
-      color: player.weaponMode === "amplifier" ? "#ffd58e" : "#9efbff",
-      duration: 10,
-      timer: player.weaponTimer,
-      sides: 4,
-    });
-  }
-  for (const definition of effectSigils) {
-    const timer = player.activePowerups[definition.key] || 0;
-    if (timer > 0) {
-      effects.push({ ...definition, timer });
-    }
-  }
-  return effects
-    .sort((a, b) => b.timer - a.timer)
+function drawActiveEffectSigils(ctx, player, state) {
+  const effects = listActivePowerups(player)
     .slice(0, 6)
     .map((effect, index) => ({ ...effect, index }));
-}
-
-function drawActiveEffectSigils(ctx, player, state) {
-  const effects = getActiveEffectSigils(player);
   if (effects.length === 0 || state.over) return;
   const spread = effects.length === 1 ? 0 : Math.min(1.35, 0.38 * (effects.length - 1));
   const start = -spread * 0.5;
@@ -156,7 +103,7 @@ function drawBurstPips(ctx, player, state) {
 
 function drawChainCue(ctx, player, state) {
   if (state.over || state.chainLevel <= 0 || state.chainTimer <= 0) return;
-  const alpha = clamp01(state.chainTimer / 2.25);
+  const alpha = clamp01(state.chainTimer / combatTuning.chainWindow);
   ctx.save();
   ctx.globalAlpha = 0.35 + alpha * 0.45;
   ctx.textAlign = "center";
@@ -376,7 +323,7 @@ export function drawPlayerUI(ctx, player, state, stages) {
 
   if (state.powerupNotice?.ribbonTimer > 0 && !state.over) {
     const notice = state.powerupNotice;
-    const alpha = Math.min(1, notice.ribbonTimer / 0.55);
+    const alpha = Math.min(1, notice.ribbonTimer / powerupTuning.pickupRibbonDuration);
     ctx.save();
     ctx.strokeStyle = `${notice.color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
     ctx.lineWidth = 2;
@@ -389,7 +336,7 @@ export function drawPlayerUI(ctx, player, state, stages) {
 
   if (state.powerupNotice?.timer > 0 && !state.over) {
     const notice = state.powerupNotice;
-    const alpha = Math.min(1, notice.timer / 0.9);
+    const alpha = Math.min(1, notice.timer / powerupTuning.pickupNoticeDuration);
     const lift = (1 - alpha) * 18;
     const x = player.x;
     const y = player.y - 58 - lift;

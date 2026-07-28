@@ -32,6 +32,8 @@ export function attack(options = {}) {
     weakpointDamageMultiplier: options.weakpointDamageMultiplier ?? null,
     weakpointBrandDuration: options.weakpointBrandDuration ?? 0,
     grazed: false,
+    hitTargetKeys: [],
+    hitCounted: false,
   };
 }
 
