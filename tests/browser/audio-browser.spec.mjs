@@ -143,6 +143,201 @@ test("offline rendered worlds and endings stay finite, bounded, decaying, and au
   expect(results.death.impact.rms / results.death.impact.rightRms).toBeLessThan(1.3);
 });
 
+test("complete score renders distinct processions and survives real-browser transport stalls", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const rendered = await page.evaluate(async () => {
+    const { createAudioEngine } = await import("/src/audio/audioEngine.js");
+    const sampleRate = 12_000;
+    const duration = 8;
+
+    async function renderScore({
+      stageKey,
+      stageIndex,
+      bossKey = null,
+      bossPhaseIndex = -1,
+    }) {
+      const context = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
+      const audio = createAudioEngine({
+        contextFactory: () => context,
+        enableWorklet: false,
+        seed: 0x51a7e,
+        scoreLookahead: duration,
+      });
+      audio.init();
+      audio.beginRun({
+        active: true,
+        time: 0,
+        stageKey,
+        stageIndex,
+        stageProgress: bossKey ? 1 : 0.6,
+        loopIndex: 0,
+        hull: 5,
+        hullRatio: 1,
+        bossKey,
+        bossPhaseIndex,
+        bossPhaseProgress: 0.4,
+        bossProgress: 0.4,
+        chainRatio: 0.6,
+        grazeRatio: 0.7,
+        densityRatio: 0.55,
+        playerX: 640,
+        playfieldMinX: 0,
+        playfieldMaxX: 1280,
+      });
+      const buffer = await context.startRendering();
+      const channel = buffer.getChannelData(0);
+
+      function stats(startSeconds, endSeconds) {
+        const start = Math.floor(startSeconds * sampleRate);
+        const end = Math.floor(endSeconds * sampleRate);
+        let sum = 0;
+        let squares = 0;
+        let peak = 0;
+        let crossings = 0;
+        let previous = channel[start] || 0;
+        for (let index = start; index < end; index += 1) {
+          const sample = channel[index];
+          sum += sample;
+          squares += sample * sample;
+          peak = Math.max(peak, Math.abs(sample));
+          if ((sample >= 0) !== (previous >= 0)) crossings += 1;
+          previous = sample;
+        }
+        const length = Math.max(1, end - start);
+        return {
+          rms: Math.sqrt(squares / length),
+          dc: sum / length,
+          peak,
+          crossingRate: crossings / length,
+        };
+      }
+
+      return {
+        early: stats(0.5, 2),
+        middle: stats(3, 4.5),
+        late: stats(6, 7.5),
+      };
+    }
+
+    return Object.fromEntries(await Promise.all([
+      ["nebula", { stageKey: "nebula-gate", stageIndex: 0 }],
+      [
+        "seraph",
+        {
+          stageKey: "nebula-gate",
+          stageIndex: 0,
+          bossKey: "seraph",
+          bossPhaseIndex: 2,
+        },
+      ],
+      ["crystal", { stageKey: "crystalline-choir", stageIndex: 1 }],
+      [
+        "prism",
+        {
+          stageKey: "crystalline-choir",
+          stageIndex: 1,
+          bossKey: "prism",
+          bossPhaseIndex: 2,
+        },
+      ],
+      ["abyss", { stageKey: "abyssal-cathedral", stageIndex: 2 }],
+      [
+        "cathedral",
+        {
+          stageKey: "abyssal-cathedral",
+          stageIndex: 2,
+          bossKey: "cathedral",
+          bossPhaseIndex: 2,
+        },
+      ],
+    ].map(async ([key, options]) => [key, await renderScore(options)])));
+  });
+
+  for (const score of Object.values(rendered)) {
+    for (const window of Object.values(score)) {
+      expect(window.rms).toBeGreaterThan(0.0001);
+      expect(Math.abs(window.dc)).toBeLessThan(0.02);
+      expect(window.peak).toBeLessThan(0.98);
+    }
+    expect(
+      new Set(Object.values(score).map(({ crossingRate }) => crossingRate.toFixed(5))).size
+    ).toBeGreaterThan(1);
+  }
+  const signatures = Object.values(rendered).map(({ early, middle, late }) =>
+    [
+      early.crossingRate.toFixed(4),
+      middle.crossingRate.toFixed(4),
+      late.rms.toFixed(4),
+    ].join(":")
+  );
+  expect(new Set(signatures).size).toBe(6);
+
+  const errors = await openAndLaunch(page);
+  await expect
+    .poll(() => page.evaluate(() => window.__astralHeresy.debugAudioDiagnostics().scoreBar))
+    .toBeGreaterThanOrEqual(1);
+  await expect
+    .poll(() => page.evaluate(() => window.__astralHeresy.debugAudioDiagnostics().rms))
+    .toBeGreaterThan(0.00001);
+
+  const beforeState = await page.evaluate(() => ({
+    stageIndex: window.__astralHeresy.state.stageIndex,
+    hp: window.__astralHeresy.player.hp,
+  }));
+  const study = await page.evaluate(() => {
+    const game = window.__astralHeresy;
+    game.debugSetAudioWorld({
+      stageKey: "nebula-gate",
+      bossKey: "seraph",
+      bossPhaseIndex: 1,
+      bossPhaseProgress: 0.5,
+    });
+    const diagnostics = game.debugSetAudioScore({
+      soloBus: "harmony",
+      arrangementTier: 2,
+      restartPhrase: true,
+    });
+    return {
+      diagnostics,
+      invalid: game.debugSetAudioScore({ soloBus: "invalid" }),
+      state: { stageIndex: game.state.stageIndex, hp: game.player.hp },
+    };
+  });
+  expect(study.invalid).toBe(false);
+  expect(study.state).toEqual(beforeState);
+  expect(study.diagnostics).toMatchObject({
+    scoreSectionKey: "seraph",
+    scorePhaseKey: "halo-bloom",
+    scoreBpm: 138,
+    scoreMeter: "4/4",
+    scoreArrangementTier: 2,
+  });
+
+  const skippedBefore = study.diagnostics.skippedLateScoreSteps;
+  await page.evaluate(() => {
+    const until = performance.now() + 900;
+    while (performance.now() < until) {
+      // Deliberately block the main thread while the audio clock advances.
+    }
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__astralHeresy.debugAudioDiagnostics().skippedLateScoreSteps)
+    )
+    .toBeGreaterThan(skippedBefore);
+
+  const finalDiagnostics = await page.evaluate(() => {
+    const game = window.__astralHeresy;
+    game.debugClearAudioScore();
+    game.debugClearAudioWorld();
+    return game.debugAudioDiagnostics();
+  });
+  expect(finalDiagnostics.activePercussionVoices).toBeLessThanOrEqual(12);
+  expect(errors).toEqual([]);
+});
+
 test("real gameplay death rings past game over and an immediate restart severs the old graph", async ({
   page,
 }) => {

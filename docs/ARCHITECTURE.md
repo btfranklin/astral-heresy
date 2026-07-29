@@ -110,6 +110,12 @@ Current intended direction:
 - `audio/` is a one-way observer. [`../src/audio/audioState.js`](../src/audio/audioState.js)
   projects a bounded scalar snapshot at the composition root; the audio engine
   cannot retain or mutate gameplay state.
+  [`../src/audio/musicProfiles.js`](../src/audio/musicProfiles.js) owns frozen
+  authored score identities, unequal chord spans, meter-aware percussion, and
+  chord-indexed accompaniment paths, while
+  [`../src/audio/musicSequencer.js`](../src/audio/musicSequencer.js) is a pure
+  deterministic planner in integer musical steps. Only the audio engine owns
+  Web Audio nodes, AudioParams, score lookahead, voice budgets, and lifecycle.
 - The combat economy now lives mainly in `systems/collisionSystem.js`, `systems/combatSystem.js`, `systems/playerSystem.js`, and `core/combat.js`. Keep graze, burst, chain, and loop-two rules in those seams rather than spreading them into renderers.
 - Desktop combat-space ownership now flows through `state.playfield` plus the stage director in `core/director.js`. Keep lane geometry and saturation budgeting centralized there; do not reintroduce per-stage viewport math or ad hoc enemy-count caps. The director's same-frame reservation model is part of that contract: gates are authoritative within a single stage-update pass, not advisory suggestions that later waves can ignore.
 - `ui/` should depend on state shape and DOM only.

@@ -100,9 +100,12 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 ### Procedural Audio
 
 - `node scripts/run_fast_tests.mjs runtime`
-  - Validates all stage and boss-phase profiles, delay/frequency/feedback
-    bounds, state projection and pan clamping, the semantic cue registry,
-    priority stealing and repetition budgets, body crossfade cleanup, ending
+  - Validates acoustic and musical profiles, deterministic harmony/percussion
+    planning, distinct four-bar processions, unequal chord spans, urgent boss
+    rhythms, minor-key voicings, chord-aligned sustained accompaniment,
+    explicitly declared non-chord tensions, frame-partition-independent scheduling,
+    quantized state projection, delay/frequency/feedback bounds, pan clamping,
+    semantic and score voice budgets, body/score crossfade cleanup, ending
     idempotence, immediate reset, disposal, and worklet
     success/load-failure/processor-error fallback.
 - `node scripts/check_structure.mjs`
@@ -110,8 +113,11 @@ Run the smallest lane that actually covers the change, then widen out if the edi
     edge.
 - `node scripts/check_runtime_browser_smoke.mjs`
   - Confirms a single post-gesture context, `enhanced` worklet status, bounded
-    live graph counts, gameplay-routed lethal death, an audible tail after the
-    results overlay, and cancellation by immediate restart.
+    live graph counts, an advancing Canticle transport, audible chord changes
+    and distinct rendered signatures for all six encounters,
+    main-thread-stall recovery without a rhythmic backlog, gameplay-routed
+    lethal death, an audible tail after the results overlay, and cancellation
+    by immediate restart.
   - Fixed-seed `OfflineAudioContext` scenarios assert finite samples, low DC,
     peak below `0.98`, audible decaying death/victory tails, mono-safe death
     impact, and measurably distinct stage profiles.
@@ -120,6 +126,9 @@ Run the smallest lane that actually covers the change, then widen out if the edi
     [`RUNTIME.md`](./RUNTIME.md), covering all worlds and nine phases, dense cue
     readability, worklet status, death/restart, victory, laptop speakers,
     headphones, clicks, and feedback stability.
+  - Compare the six encounter processions as a set: their harmonic rhythm,
+    chord color, tempo, and percussion must remain recognizable without
+    relying on a lead melody.
 
 ### Rendering Performance
 

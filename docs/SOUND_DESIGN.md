@@ -13,7 +13,11 @@ The composition and lifecycle root is
 [`../src/audio/audioEngine.js`](../src/audio/audioEngine.js). The authored
 world profiles live in
 [`../src/audio/audioProfiles.js`](../src/audio/audioProfiles.js), semantic
-event recipes live in [`../src/audio/sfx.js`](../src/audio/sfx.js), and the
+event recipes live in [`../src/audio/sfx.js`](../src/audio/sfx.js), musical
+identities live in
+[`../src/audio/musicProfiles.js`](../src/audio/musicProfiles.js), deterministic
+phrase planning lives in
+[`../src/audio/musicSequencer.js`](../src/audio/musicSequencer.js), and the
 optional sample-level memory processor lives in
 [`../src/audio/worklets/resonantMemoryProcessor.js`](../src/audio/worklets/resonantMemoryProcessor.js).
 
@@ -23,17 +27,23 @@ Music and effects do not occupy unrelated aesthetic worlds. The harmonic
 field, weapon reports, grazes, impacts, rewards, bosses, death, and victory all
 belong to one instrument.
 
-That instrument has three audible layers:
+That instrument has five audible layers:
 
-1. **Glyph:** an immediate foreground cue with a stable gameplay meaning.
-2. **Resonance:** the glyph excites the current world's synthetic acoustic
+1. **Procession:** a recurring chord progression voiced through the current
+   world's synthetic matter.
+2. **Ritual pulse:** synthetic percussion that provides a dependable clock and
+   a sense of formal progress.
+3. **Glyph:** an immediate foreground cue with a stable gameplay meaning.
+4. **Resonance:** score and glyphs excite the current world's synthetic acoustic
    body.
-3. **Memory:** decaying traces of recent action return as part of the field.
+5. **Memory:** decaying traces of recent action return as part of the field.
 
-The dry glyph keeps play readable. Resonance gives the world material
-character. Memory makes a run feel inhabited by what just happened.
+Progression and pulse give the instrument direction without competing with
+combat for melodic attention. The dry glyph keeps play readable. Resonance
+gives the world material character. Memory makes a run feel inhabited by what
+just happened.
 
-## Existing Principles
+## Principles
 
 ### Game State Becomes Musical State
 
@@ -51,12 +61,57 @@ The field reads one bounded projection of the live run:
 Audio observes gameplay in one direction. It never feeds decisions back into
 the simulation.
 
+### Authored Harmonic Identity
+
+Every world owns a fixed minor mode, four-bar harmonic cycle, cadence, harmonic
+rhythm, meter, and percussion vocabulary. Chords are not required to occupy
+equal spans, and encounters are not transpositions of one shared template.
+These authored elements return often enough to become familiar.
+
+Procedure changes voicing, density, rhythmic subdivision, and acoustic
+excitation. It never improvises a lead line. Harmonic recurrence, not a
+procedural melody, carries musical identity; the foreground remains available
+to weapons, threats, impacts, and movement.
+
+Every sustained pitched source is part of that recurrence. Pedal, pulse,
+danger, and loop voices each follow an authored path through the complete cycle.
+They may move independently through chord tones, but they cannot hold an
+unrelated ambient pitch. A non-chord tone is permitted only when the musical
+profile declares its exact location as a deliberate tension. Air, friction,
+pressure, and diffuse motion use unpitched noise and resonant tails instead of
+free-running pitched drones.
+
+The score is deterministic in musical time. Gameplay event order cannot alter
+the progression, and a delayed browser frame never causes missed strikes to
+fire as a backlog.
+
+### Musical State Changes At Musical Boundaries
+
+Within an active stage or boss identity, gameplay changes arrangement rather
+than rewriting tempo or harmony. Encounter transitions select the newly
+authored tempo, meter, and cycle.
+
+- stage progress develops the four-bar cycle from statement to response to
+  threshold
+- bosses introduce a darker related progression, a substantial tempo increase,
+  and a more threatening drive
+- boss phases transform chord voicing, register, and percussion
+- chain may open an upper chord voice
+- graze charge may admit a high ritual accent
+- density admits bounded percussion layers
+- low hull adds a restrained heartbeat
+- Loop II retains the score under sharpened tuning and firmer subdivision
+
+These changes enter on beats or bars. Frame-by-frame values continue shaping
+texture, width, roughness, damping, and pressure without rewriting notes.
+
 ### Sacred Harmony Through Synthetic Matter
 
-The harmonic foundation remains plain: root, `5/4` major third, and `3/2`
-fifth. Open fifths and octave relationships recur in milestone and end-state
-cues. These relationships suggest drones, bells, organ pipes, and choral
-stability.
+The home sonority is root, `6/5` minor third, and `3/2` fifth. Moving harmony
+uses familiar twelve-tone minor-modal pitches around that pure tonic. Open
+fifths, minor thirds, semitone pressure, and octave relationships recur in
+milestone and end-state cues. These relationships suggest bells, organ pipes,
+choral gravity, and ritual danger.
 
 Their material is artificial. Sine and triangle waves provide purity; custom
 periodic waves expose selected overtones; square and sawtooth waves provide
@@ -91,6 +146,10 @@ victory. It does not report every enemy projectile or every score shard.
 Aggregate bullet and enemy density may change the pressure of the field, but
 bullet-heavy scenes never become a wall of literal trigger sounds.
 
+The complete score remains clearly audible, but important glyphs briefly lower
+the music bus and retain a four-to-six-decibel foreground advantage. Fire and
+graze do not pump the score.
+
 ### Magnitude Is More Than Volume
 
 Small actions are short and narrow. Larger actions occupy more register, excite
@@ -120,14 +179,68 @@ The stage roots retain the original identity:
 | Crystalline Choir | 196.00 Hz, G3 |
 | Abyssal Cathedral | 146.83 Hz, D3 |
 
-Root, third, fifth, air, pulse, danger, and loop voices form a persistent
-field. Custom periodic spectra distinguish the worlds without turning them
-into unrelated soundtracks. Parameter changes use smoothed Web Audio
-automation so state transitions breathe rather than step.
+A tonic pedal, two alternating four-voice harmony banks, and authored pulse,
+danger, and loop paths form the pitched field. Each chord carries the next
+note for every one of those persistent voices. The paths can rise, fall, or
+hold through different chord members instead of mechanically doubling one
+fixed scale degree. Nebula and Seraph retain the tonic pedal against the final
+`B7(b9)` as their one declared cadence tension.
+
+Each chord is prepared on the silent bank, then voice-led into place through a
+short crossfade. Persistent accompaniment retunes on the same chord boundary.
+The outgoing chord is allowed to decay through the resonator instead of
+audibly gliding between unrelated targets. The air layer is filtered noise,
+not another oscillator.
+
+Custom periodic spectra distinguish the worlds without turning them into
+unrelated soundtracks. Parameter changes use smoothed Web Audio automation so
+state transitions breathe rather than step.
 
 Loop II multiplies the root by `1.06`. The familiar world returns roughly one
-semitone sharp, with stronger feedback and memory activity. It is the same
-instrument under strain.
+semitone sharp, with firmer percussion, more strained voicing, stronger
+feedback, and greater memory activity. It is the same instrument under strain.
+
+## Processions And Ritual Pulse
+
+Every stage develops one recurring four-bar cycle through three statements:
+foundation, response, and threshold. Chord boundaries move independently of
+bar lines, so a fleeting harmonic facet can interrupt a long-held body or a
+dominant can occupy the weight of several ordinary changes. Boss cycles state
+their identity in the first bar because their duration depends on player
+performance.
+
+| Encounter | Tempo and meter | Mode and progression; eighth-note spans |
+| --- | --- | --- |
+| Nebula Gate | 96 BPM, 6/8 | E natural minor: `Em(add9) [9] – Cmaj7/E [3] – Am(add9)/E [6] – B7(b9) [6]` |
+| Seraph of Orbits | 138 BPM, 4/4 | E Phrygian: `Em(add b9) [8] – Fmaj7/E [4] – Bbm/E [12] – B7(b9) [8]` |
+| Crystalline Choir | 118 BPM, 4/4 | G harmonic-minor facets: `Gm(add9) [8] – G5(add2,4,b7) [4] – G+(maj7) [12] – D7sus(b9) [8]` |
+| Prism Leviathan | 152 BPM, 4/4 | G altered-diminished: `Gm(add b9) [6] – Ab+/G [6] – Db7(#11)/G [4] – D7(b9) [8] – Ebm/G [4] – D7sus(b9) [4]` |
+| Abyssal Cathedral | 82 BPM, 12/8 | D descending abyssal minor: `Dm(add9) [12] – Cm(add9)/D [6] – Bbm(add6)/D [12] – A7(b9)/D [18]` |
+| Cathedral Maw | 136 BPM, 4/4 | D Phrygian dominant: `Dm(add b9) [12] – Ebmaj7/D [4] – Cm/D [8] – A7(b9)/D [4] – Dm [4]` |
+
+Stage progress develops orchestration around the same cycle. Boss entry changes
+the mode, harmonic rhythm, voicing pressure, register, tempo, meter, and pulse
+on a primary beat.
+Boss phases retain their progression while rotating inversions, opening or
+contracting the chord body, and changing the percussion ritual. No score voice
+states a melody above it, and no acoustic layer introduces an independent
+ambient pitch.
+
+Percussion is generated from the same materials as the rest of the instrument:
+decaying sine pitch drops, filtered noise impacts, tuned modal knocks,
+metallic partials, and high-passed ticks. Low pulse remains centered and dry
+enough to define time. Wider placement and stronger acoustic excitation belong
+to selected high accents and tails.
+
+Stage percussion leaves room for semantic glyphs and for the world to breathe.
+Every boss is materially faster and more forceful. Seraph uses an explicit
+four-on-the-floor orbital assault; Prism uses a syncopated `0–3–4–6` fractured
+motor; Cathedral Maw uses a heavy `3+3+2` asymmetric procession. Their upper
+strikes, fills, and phase accents grow denser without allowing percussion to
+displace critical cues.
+
+Individual projectiles never become percussion triggers. Fire and every other
+semantic glyph remain immediate and unquantized.
 
 ## Acoustic Bodies
 
@@ -237,9 +350,10 @@ crossfade toward the next world or Loop II.
 ## Memory Processing
 
 The optional AudioWorklet retains a bounded four-second stereo history of the
-generated excitation field. Preallocated, windowed grain voices return quiet
-fragments according to the active world, graze, chain, density, boss phase, and
-ending state.
+generated excitation field, including quiet fragments of harmony and
+percussion.
+Preallocated, windowed grain voices return traces according to the active
+world, graze, chain, density, boss phase, and ending state.
 
 The processor performs no allocation or logging in its render callback. If the
 worklet is unavailable, fails to load, or raises a processor error, the native
@@ -248,14 +362,16 @@ loading, enhanced, or in fallback mode.
 
 ## Mix, Safety, And Lifecycle
 
-The engine owns dry-glyph, harmonic-field, excitation-send, resonant-return,
-and master buses. A soft waveshaper, compressor, and analyser terminate the
-mix.
+The engine owns dry-glyph, harmony, percussion, combined-music, harmonic-field,
+excitation-send, resonant-return, protected-ending, and master buses. A soft
+waveshaper, compressor, and analyser terminate the mix.
 
 The following rules are part of the design:
 
 - semantic glyphs remain above their wet tails
+- score voices have independent hard budgets and can never displace glyphs
 - critical information keeps a centered component
+- important glyphs briefly duck the combined music bus
 - feedback, tails, and active voices are bounded
 - generated noise and impulse buffers are cached
 - at most one active and one fading acoustic body may exist
@@ -266,11 +382,13 @@ The following rules are part of the design:
 
 ## Inspection And Verification
 
-`window.__astralHeresy` exposes narrow audio diagnostics, a temporary
-audio-only scene override, a validated semantic cue trigger, and a method to
-clear the override. These surfaces do not mutate gameplay.
+`window.__astralHeresy` exposes narrow audio and score diagnostics, a temporary
+audio-only scene override, score-bus solo and arrangement controls, a
+validated semantic cue trigger, and methods to clear the overrides. These
+surfaces do not mutate gameplay.
 
-Deterministic tests own profile and recipe contracts. Real Chromium owns native
-Web Audio, worklet, rendered-signal, lifecycle, tail, and stress behavior.
-Installed Safari remains the manual listening gate for browser-specific audio
+Deterministic tests own score planning, profile, recipe, scheduling, and
+lifecycle contracts. Real Chromium owns native Web Audio, worklet,
+rendered-signal, transport, tail, and stress behavior. Installed Safari remains
+the manual listening gate for musical balance and browser-specific audio
 quality. See [`QUALITY.md`](./QUALITY.md) and [`RUNTIME.md`](./RUNTIME.md).

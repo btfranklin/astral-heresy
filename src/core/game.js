@@ -392,6 +392,14 @@ export function createGame({
       audio.clearDebugWorld();
       return audio.getDiagnostics();
     },
+    debugSetAudioScore(options) {
+      if (!audio.setDebugScore(options)) return false;
+      return audio.getDiagnostics();
+    },
+    debugClearAudioScore() {
+      audio.clearDebugScore();
+      return audio.getDiagnostics();
+    },
     debugPlayAudioEvent(kind, payload = {}) {
       return audio.playDebugEvent(kind, payload);
     },

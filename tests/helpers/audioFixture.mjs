@@ -19,9 +19,11 @@ export function createAudioParam(value = 0) {
       this.automation.push({ method: "exponential", value: next, at });
     },
     cancelAndHoldAtTime(at) {
+      this.automation = this.automation.filter((event) => event.at <= at);
       this.automation.push({ method: "hold", at });
     },
     cancelScheduledValues(at) {
+      this.automation = this.automation.filter((event) => event.at < at);
       this.automation.push({ method: "cancel", at });
     },
   };
@@ -119,6 +121,7 @@ export class RecordingAudioContext {
     const listeners = new Map();
     const node = this.record(createAudioNode({
       buffer: null,
+      playbackRate: createAudioParam(1),
       startCalls: [],
       stopCalls: [],
       start(...args) {
@@ -195,11 +198,13 @@ export function makeAudioWorld(overrides = {}) {
     time: 0,
     stageKey: "nebula-gate",
     stageIndex: 0,
+    stageProgress: 0,
     loopIndex: 0,
     hull: 5,
     hullRatio: 1,
     bossKey: null,
     bossPhaseIndex: -1,
+    bossPhaseProgress: 0,
     bossProgress: 0,
     chainRatio: 0,
     grazeRatio: 0,

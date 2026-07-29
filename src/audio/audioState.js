@@ -14,6 +14,7 @@ export function projectAudioWorld(state, player, stages) {
     ? playfield.maxX
     : Math.max(minX + 1, state.view?.width || 1);
   const boss = state.boss;
+  const bossPhase = boss?.phases?.[boss.phaseIndex] ?? null;
   const enemyDensity = ratio(state.density?.liveEnemies || 0, state.density?.maxEnemies || 1);
   const bulletDensity = ratio(
     state.density?.liveEnemyBullets || 0,
@@ -25,11 +26,16 @@ export function projectAudioWorld(state, player, stages) {
     time: Number.isFinite(state.time) ? state.time : 0,
     stageKey: stage?.key ?? "nebula-gate",
     stageIndex: Math.max(0, state.stageIndex || 0),
+    stageProgress: ratio(state.stageTime || 0, stage?.duration || 0),
     loopIndex: Math.max(0, state.loopIndex || 0),
     hull: Math.max(0, player.hp || 0),
     hullRatio: ratio(player.hp || 0, 5),
     bossKey: boss?.key ?? null,
     bossPhaseIndex: boss?.phaseIndex ?? -1,
+    bossPhaseProgress:
+      boss && Number.isFinite(boss.phaseHp) && Number.isFinite(bossPhase?.hp) && bossPhase.hp > 0
+        ? clamp(1 - boss.phaseHp / bossPhase.hp)
+        : 0,
     bossProgress: boss ? clamp(1 - boss.hp / Math.max(1, boss.maxHp)) : 0,
     chainRatio: ratio(state.chainLevel || 0, 12),
     grazeRatio: ratio(state.grazeCharge || 0, 100),

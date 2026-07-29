@@ -130,7 +130,28 @@ The results overlay should appear immediately while diagnostics report
 
 `debugAudioDiagnostics()` reports context and engine state, current stage and
 boss identity, worklet status, active temporary voices, resonant bodies,
-active/retired graphs, an owned-node count, and analyser peak/RMS.
+active/retired graphs, an owned-node count, analyser peak/RMS, and the active
+score section, phase, BPM, meter, bar, beat, chord, arrangement tier, scheduled
+horizon, late-step skips, and bounded percussion voice counts.
+
+The Canticle Layer can be inspected without changing gameplay:
+
+```js
+const game = window.__astralHeresy
+
+game.debugSetAudioScore({
+  soloBus: "harmony",
+  arrangementTier: 2,
+  restartPhrase: true,
+})
+
+game.debugSetAudioScore({ soloBus: "percussion", restartPhrase: true })
+game.debugClearAudioScore()
+```
+
+`soloBus` accepts `harmony`, `percussion`, or `null`.
+`arrangementTier` accepts `0`, `1`, `2`, or `null`. Invalid values fail closed.
+These controls and the existing world override affect audio only.
 
 ### Render-Study Mode
 
@@ -308,13 +329,17 @@ Run this matrix in installed Safari after audio work. Use a fresh origin from
 | Study | What to accept |
 | --- | --- |
 | Context and memory | No context before launch; one running context afterward; record `enhanced` or an intentional `fallback` with no gameplay error |
+| Nebula procession | Nebula breathes through its unequal 9–3–6–6 E-minor spans; pulse and dust establish 6/8 without introducing a lead line |
+| Seraph score | Boss entry accelerates into 138 BPM E Phrygian and a forceful four-on-the-floor drive; Crown Spiral, Halo Bloom, and Starfall Rite remain distinct |
+| Sustained voices | Pedal, pulse, danger, and loop tones move with the current chord; no unrelated ambient pitch or accidental dissonance appears when a layer enters |
+| Score study | Harmony and percussion solos are each coherent; clearing the solo restores the same cycle without changing gameplay |
 | Nebula Gate | Airy, diffuse, slowly moving resonance; Seraph phases progress from orbital pulse to opened halo to descending memory |
-| Crystalline Choir | Short glass ringing; Prism phases progress from precise lattice to sidebands to folded, alternating dispersion |
-| Abyssal Cathedral | Dark subharmonic mass and long decay; Cathedral phases progress from formants to lengthened combs to a narrowed maw |
+| Crystalline Choir | Quartal and augmented glass facets sound unlike Nebula; Prism accelerates to a syncopated fractured motor and progresses from precise lattice to sidebands to folded dispersion |
+| Abyssal Cathedral | The slow chromatic descent and long decay remain massive; Cathedral Maw accelerates into an asymmetric 3+3+2 drive and progresses from formants to lengthened combs to a narrowed maw |
 | Dense play | Fire and graze remain legible; no projectile chatter, runaway feedback, or masking wall |
 | Shield, hit, death | Shield reads bright and nonlethal; ordinary hit reads downward; death is singular, collapses inward, and rings behind the immediate overlay |
 | Mid-tail restart | Press `R` during death; no click, leaked requiem, or old-stage resonance enters the new sortie |
 | Final victory | Outward defeat gesture converges to root/fifth and reaches silence separately from death |
 | Laptop speakers | Fire, graze, shield, hit, boss structure, and death remain distinguishable at moderate volume |
 | Headphones | Wet tails can widen, but critical glyphs stay centered and mono-safe; motion is smooth rather than jumpy |
-| General quality | No obvious clicks, DC-like pressure, stalled audio, processor errors, or escalating feedback across stage changes |
+| General quality | No obvious clicks, DC-like pressure, stalled audio, timing backlog, processor errors, high-frequency fatigue, or escalating feedback across stage changes |
