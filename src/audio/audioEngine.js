@@ -408,9 +408,9 @@ export function createAudioEngine({
     );
     createAccompanimentVoice(
       graph,
-      "pedal",
+      "bass",
       "triangle",
-      initialAccompanimentFrequency("pedal"),
+      initialAccompanimentFrequency("bass"),
       "lowpass",
       680
     );
@@ -1292,7 +1292,7 @@ export function createAudioEngine({
     const pulseWave = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(world.time * 2.7 * transform.pulseRate));
     const dangerWave = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(world.time * 8.2));
     const baseGains = {
-      pedal: 0.016,
+      bass: 0.016,
       pulse: 0.012 + bossWeight * 0.055 * transform.pulseGain * pulseWave,
       danger: lowHullWeight * 0.05 * dangerWave,
       loop: (world.loopIndex > 0 ? 1 : 0) * 0.03 * (0.4 + 0.6 * pulseWave),

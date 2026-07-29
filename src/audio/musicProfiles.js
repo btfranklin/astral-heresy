@@ -7,8 +7,22 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function chord(key, label, semitones, durationSteps) {
-  return { key, label, semitones, durationSteps };
+function chord(
+  key,
+  label,
+  romanNumeral,
+  harmonicFunction,
+  semitones,
+  durationSteps
+) {
+  return {
+    key,
+    label,
+    romanNumeral,
+    harmonicFunction,
+    semitones,
+    durationSteps,
+  };
 }
 
 function accompanimentVoice(octave, semitones, deliberateTensions = []) {
@@ -153,16 +167,16 @@ export const musicProfiles = deepFreeze({
     mode: "natural-minor",
     scaleSemitones: [0, 2, 3, 5, 7, 8, 10],
     progression: [
-      chord("e-minor-add9", "Em(add9)", [0, 3, 7, 14], 9),
-      chord("c-major7-over-e", "Cmaj7/E", [0, 3, 7, 8], 3),
-      chord("a-minor-add9-over-e", "Am(add9)/E", [0, 5, 8, 14], 6),
-      chord("b7-flat9", "B7(b9)", [-1, 5, 7, 8], 6),
+      chord("e-minor", "Em", "i", "tonic", [0, 3, 7, 12], 6),
+      chord("c-major", "C", "VI", "predominant", [0, 3, 8, 12], 6),
+      chord("g-major", "G", "III", "tonic-substitute", [-2, 3, 7, 10], 6),
+      chord("d-major", "D", "VII", "dominant", [-2, 2, 5, 10], 6),
     ],
     accompanimentVoices: {
-      pedal: accompanimentVoice(-1, [0, 0, 0, 0], [3]),
-      pulse: accompanimentVoice(0, [7, 3, 8, 7]),
-      danger: accompanimentVoice(1, [3, 8, 5, -1]),
-      loop: accompanimentVoice(1, [14, 7, 14, 8]),
+      bass: accompanimentVoice(-1, [0, 8, 3, -2]),
+      pulse: accompanimentVoice(0, [7, 3, 7, 5]),
+      danger: accompanimentVoice(1, [3, 8, 10, 2]),
+      loop: accompanimentVoice(1, [12, 12, 10, 10]),
     },
     percussion: {
       identity: "orbital",
@@ -202,19 +216,20 @@ export const musicProfiles = deepFreeze({
     bpm: 138,
     meter: fourFour,
     cycleBars: 4,
-    mode: "phrygian",
-    scaleSemitones: [0, 1, 3, 5, 7, 8, 10],
+    mode: "minor-with-raised-leading-tone",
+    scaleSemitones: [0, 2, 3, 5, 7, 8, 10, 11],
     progression: [
-      chord("e-minor-add-flat9", "Em(add b9)", [0, 3, 7, 13], 8),
-      chord("f-major7-over-e", "Fmaj7/E", [0, 1, 5, 8], 4),
-      chord("b-flat-minor-over-e", "Bbm/E", [0, 1, 6, 10], 12),
-      chord("b7-flat9", "B7(b9)", [-1, 5, 7, 8], 8),
+      chord("e-minor", "Em", "i", "tonic", [0, 3, 7, 12], 8),
+      chord("d-major", "D", "VII", "dominant", [-2, 2, 5, 10], 8),
+      chord("c-major", "C", "VI", "predominant", [0, 3, 8, 12], 8),
+      chord("a-minor", "Am", "iv", "predominant", [0, 5, 8, 12], 4),
+      chord("b-dominant-seven", "B7", "V7", "dominant", [2, 5, 7, 11], 4),
     ],
     accompanimentVoices: {
-      pedal: accompanimentVoice(-1, [0, 0, 0, 0], [3]),
-      pulse: accompanimentVoice(0, [7, 5, 6, 7]),
-      danger: accompanimentVoice(1, [3, 1, 10, -1]),
-      loop: accompanimentVoice(1, [13, 8, 6, 8]),
+      bass: accompanimentVoice(-1, [0, -2, -4, -7, -5]),
+      pulse: accompanimentVoice(0, [7, 5, 3, 0, 2]),
+      danger: accompanimentVoice(1, [3, 2, 8, 8, -1]),
+      loop: accompanimentVoice(1, [12, 10, 12, 12, 5]),
     },
     percussion: fourOnFloorPercussion("orbital-assault", {
       low: "circular-low",
@@ -232,19 +247,19 @@ export const musicProfiles = deepFreeze({
     bpm: 118,
     meter: fourFour,
     cycleBars: 4,
-    mode: "harmonic-minor-facets",
-    scaleSemitones: [0, 2, 3, 5, 7, 8, 11],
+    mode: "natural-minor",
+    scaleSemitones: [0, 2, 3, 5, 7, 8, 10],
     progression: [
-      chord("g-minor-add9", "Gm(add9)", [0, 3, 7, 14], 8),
-      chord("g-quartal", "G5(add2,4,b7)", [0, 2, 5, 10], 4),
-      chord("g-augmented-major7", "G+(maj7)", [0, 4, 8, 11], 12),
-      chord("d7-sus-flat9", "D7sus(b9)", [-1, 2, 5, 7], 8),
+      chord("g-minor", "Gm", "i", "tonic", [0, 3, 7, 12], 8),
+      chord("c-minor", "Cm", "iv", "predominant", [0, 5, 8, 12], 8),
+      chord("f-major", "F", "VII", "dominant", [-2, 2, 5, 10], 8),
+      chord("b-flat-major", "B♭", "III", "tonic-substitute", [-2, 3, 7, 10], 8),
     ],
     accompanimentVoices: {
-      pedal: accompanimentVoice(-1, [0, 0, 0, -1]),
-      pulse: accompanimentVoice(0, [7, 5, 8, 7]),
-      danger: accompanimentVoice(1, [3, 10, 11, 2]),
-      loop: accompanimentVoice(1, [14, 2, 4, 5]),
+      bass: accompanimentVoice(-1, [0, 5, -2, 3]),
+      pulse: accompanimentVoice(0, [7, 8, 5, 7]),
+      danger: accompanimentVoice(1, [3, 5, 2, 3]),
+      loop: accompanimentVoice(1, [12, 12, 10, 10]),
     },
     percussion: {
       identity: "refracted",
@@ -285,21 +300,21 @@ export const musicProfiles = deepFreeze({
     bpm: 152,
     meter: fourFour,
     cycleBars: 4,
-    mode: "altered-diminished",
-    scaleSemitones: [0, 1, 3, 4, 6, 8, 10, 11],
+    mode: "minor-with-raised-leading-tone",
+    scaleSemitones: [0, 2, 3, 5, 7, 8, 10, 11],
     progression: [
-      chord("g-minor-add-flat9", "Gm(add b9)", [0, 3, 7, 13], 6),
-      chord("a-flat-augmented-over-g", "Ab+/G", [0, 1, 5, 9], 6),
-      chord("d-flat7-sharp11-over-g", "Db7(#11)/G", [0, 4, 6, 10], 4),
-      chord("d7-flat9", "D7(b9)", [-1, 5, 7, 8], 8),
-      chord("e-flat-minor-over-g", "Ebm/G", [0, 3, 8, 11], 4),
-      chord("d7-sus-flat9", "D7sus(b9)", [-1, 2, 7, 8], 4),
+      chord("g-minor", "Gm", "i", "tonic", [0, 3, 7, 12], 8),
+      chord("c-minor", "Cm", "iv", "predominant", [0, 5, 8, 12], 8),
+      chord("f-major", "F", "VII", "dominant", [-2, 2, 5, 10], 4),
+      chord("b-flat-major", "B♭", "III", "tonic-substitute", [-2, 3, 7, 10], 4),
+      chord("e-flat-major", "E♭", "VI", "predominant", [0, 3, 8, 12], 4),
+      chord("d-dominant-seven", "D7", "V7", "dominant", [2, 5, 7, 11], 4),
     ],
     accompanimentVoices: {
-      pedal: accompanimentVoice(-1, [0, 0, 0, -1, 0, -1]),
-      pulse: accompanimentVoice(0, [7, 5, 6, 7, 8, 7]),
-      danger: accompanimentVoice(1, [3, 9, 10, 8, 11, 2]),
-      loop: accompanimentVoice(1, [13, 1, 4, 5, 3, 8]),
+      bass: accompanimentVoice(-1, [0, 5, -2, 3, -4, -5]),
+      pulse: accompanimentVoice(0, [7, 8, 5, 7, 3, 2]),
+      danger: accompanimentVoice(1, [3, 5, 2, 3, 8, -1]),
+      loop: accompanimentVoice(1, [12, 12, 10, 10, 12, 5]),
     },
     percussion: fracturedMotorPercussion(),
   },
@@ -313,19 +328,19 @@ export const musicProfiles = deepFreeze({
     bpm: 82,
     meter: twelveEight,
     cycleBars: 4,
-    mode: "descending-abyssal-minor",
-    scaleSemitones: [0, 1, 3, 5, 6, 7, 8, 10],
+    mode: "minor-with-raised-leading-tone",
+    scaleSemitones: [0, 2, 3, 5, 7, 8, 10, 11],
     progression: [
-      chord("d-minor-add9", "Dm(add9)", [0, 3, 7, 14], 12),
-      chord("c-minor-add9-over-d", "Cm(add9)/D", [0, 3, 5, 10], 6),
-      chord("b-flat-minor-add6-over-d", "Bbm(add6)/D", [0, 3, 6, 8], 12),
-      chord("a7-flat9-over-d", "A7(b9)/D", [-1, 2, 7, 8], 18),
+      chord("d-minor", "Dm", "i", "tonic", [0, 3, 7, 12], 12),
+      chord("c-major", "C", "VII", "dominant", [-2, 2, 5, 10], 12),
+      chord("b-flat-major", "B♭", "VI", "predominant", [0, 3, 8, 12], 12),
+      chord("a-dominant-seven", "A7", "V7", "dominant", [2, 5, 7, 11], 12),
     ],
     accompanimentVoices: {
-      pedal: accompanimentVoice(-1, [0, 0, 0, -1]),
-      pulse: accompanimentVoice(0, [7, 5, 6, 7]),
-      danger: accompanimentVoice(1, [3, 10, 8, 2]),
-      loop: accompanimentVoice(1, [14, 3, 6, 8]),
+      bass: accompanimentVoice(-1, [0, -2, -4, -5]),
+      pulse: accompanimentVoice(0, [7, 5, 3, 2]),
+      danger: accompanimentVoice(1, [3, 2, 8, -1]),
+      loop: accompanimentVoice(1, [12, 10, 12, 5]),
     },
     percussion: {
       identity: "processional",
@@ -365,20 +380,21 @@ export const musicProfiles = deepFreeze({
     bpm: 136,
     meter: fourFour,
     cycleBars: 4,
-    mode: "phrygian-dominant",
-    scaleSemitones: [0, 1, 4, 5, 7, 8, 10],
+    mode: "minor-with-raised-leading-tone",
+    scaleSemitones: [0, 2, 3, 5, 7, 8, 10, 11],
     progression: [
-      chord("d-minor-add-flat9", "Dm(add b9)", [0, 3, 7, 13], 12),
-      chord("e-flat-major7-over-d", "Ebmaj7/D", [0, 1, 5, 8], 4),
-      chord("c-minor-over-d", "Cm/D", [0, 3, 8, 10], 8),
-      chord("a7-flat9-over-d", "A7(b9)/D", [-1, 2, 7, 8], 4),
-      chord("d-minor", "Dm", [0, 3, 7, 12], 4),
+      chord("d-minor", "Dm", "i", "tonic", [0, 3, 7, 12], 8),
+      chord("b-flat-major", "B♭", "VI", "predominant", [0, 3, 8, 12], 8),
+      chord("f-major", "F", "III", "tonic-substitute", [-2, 3, 7, 10], 4),
+      chord("c-major", "C", "VII", "dominant", [-2, 2, 5, 10], 4),
+      chord("g-minor", "Gm", "iv", "predominant", [0, 5, 8, 12], 4),
+      chord("a-dominant-seven", "A7", "V7", "dominant", [2, 5, 7, 11], 4),
     ],
     accompanimentVoices: {
-      pedal: accompanimentVoice(-1, [0, 0, 0, -1, 0]),
-      pulse: accompanimentVoice(0, [7, 5, 8, 7, 3]),
-      danger: accompanimentVoice(1, [1, 8, 10, 2, 7]),
-      loop: accompanimentVoice(1, [12, 1, 3, 8, 12]),
+      bass: accompanimentVoice(-1, [0, -4, 3, -2, 5, -5]),
+      pulse: accompanimentVoice(0, [7, 3, 7, 5, 8, 2]),
+      danger: accompanimentVoice(1, [3, 8, 3, 2, 5, -1]),
+      loop: accompanimentVoice(1, [12, 12, 10, 10, 12, 5]),
     },
     percussion: asymmetricProcessionPercussion(),
   },
@@ -388,7 +404,7 @@ export const musicPhaseTransforms = deepFreeze({
   seraph: [
     {
       key: "crown-spiral",
-      inversionPattern: [0, 1, 0, 1],
+      inversionPattern: [0, 1, 0, 1, 0],
       openChordIndexes: [],
       contractChordIndexes: [],
       extraPercussion: [
@@ -400,7 +416,7 @@ export const musicPhaseTransforms = deepFreeze({
     },
     {
       key: "halo-bloom",
-      inversionPattern: [0, 0, 0, 0],
+      inversionPattern: [0, 0, 0, 0, 0],
       openChordIndexes: [1, 2],
       contractChordIndexes: [],
       extraPercussion: [
@@ -412,7 +428,7 @@ export const musicPhaseTransforms = deepFreeze({
     },
     {
       key: "starfall-rite",
-      inversionPattern: [0, 0, 1, 1],
+      inversionPattern: [0, 0, 1, 1, 0],
       openChordIndexes: [],
       contractChordIndexes: [1, 2],
       extraPercussion: [
@@ -468,7 +484,7 @@ export const musicPhaseTransforms = deepFreeze({
   cathedral: [
     {
       key: "chorus-of-fangs",
-      inversionPattern: [0, 0, 1, 0, 1],
+      inversionPattern: [0, 0, 1, 0, 1, 0],
       openChordIndexes: [2],
       contractChordIndexes: [],
       extraPercussion: [
@@ -481,7 +497,7 @@ export const musicPhaseTransforms = deepFreeze({
     },
     {
       key: "spine-cathedral",
-      inversionPattern: [0, 1, 0, 1, 0],
+      inversionPattern: [0, 1, 0, 1, 0, 1],
       openChordIndexes: [0, 4],
       contractChordIndexes: [],
       extraPercussion: [
@@ -494,9 +510,9 @@ export const musicPhaseTransforms = deepFreeze({
     },
     {
       key: "maw-singularity",
-      inversionPattern: [0, 0, 0, 1, 0],
+      inversionPattern: [0, 0, 0, 1, 0, 1],
       openChordIndexes: [],
-      contractChordIndexes: [1, 2, 3],
+      contractChordIndexes: [1, 2, 3, 4],
       extraPercussion: [
         { step: 7, instrument: "body", velocity: 0.58 },
         { step: 15, instrument: "body", velocity: 0.62 },

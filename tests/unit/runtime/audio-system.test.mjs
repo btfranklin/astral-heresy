@@ -283,7 +283,7 @@ test("persistent pitched voices follow authored chord paths while modulation rem
   assert.equal(accompaniment.length, 4);
   assert.deepEqual(
     accompaniment.map(({ frequency }) => frequency.value),
-    [-12, 7, 15, 26].map(
+    [-12, 7, 15, 24].map(
       (semitones) => 164.81 * 2 ** (semitones / 12)
     )
   );
@@ -296,7 +296,7 @@ test("persistent pitched voices follow authored chord paths while modulation rem
 
   context.advance(0.2);
   audio.updateWorld(makeAudioWorld({ time: 0.2 }));
-  for (const [index, expected] of [-12, 7, 15, 26]
+  for (const [index, expected] of [-12, 7, 15, 24]
     .map((semitones) => 164.81 * 2 ** (semitones / 12))
     .entries()) {
     assert.equal(

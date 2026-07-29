@@ -101,13 +101,13 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 
 - `node scripts/run_fast_tests.mjs runtime`
   - Validates acoustic and musical profiles, deterministic harmony/percussion
-    planning, distinct four-bar processions, unequal chord spans, urgent boss
-    rhythms, minor-key voicings, chord-aligned sustained accompaniment,
-    explicitly declared non-chord tensions, frame-partition-independent scheduling,
-    quantized state projection, delay/frequency/feedback bounds, pan clamping,
-    semantic and score voice budgets, body/score crossfade cleanup, ending
-    idempotence, immediate reset, disposal, and worklet
-    success/load-failure/processor-error fallback.
+    planning, distinct functional popular-minor processions, conventional
+    bar/half-bar harmonic rhythm, urgent boss rhythms, restrained triad and
+    dominant-seventh voicings, chord-aligned sustained accompaniment,
+    frame-partition-independent scheduling, quantized state projection,
+    delay/frequency/feedback bounds, pan clamping, semantic and score voice
+    budgets, body/score crossfade cleanup, ending idempotence, immediate reset,
+    disposal, and worklet success/load-failure/processor-error fallback.
 - `node scripts/check_structure.mjs`
   - Validates the literal AudioWorklet URL as an exact, reachable runtime-module
     edge.

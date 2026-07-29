@@ -157,6 +157,8 @@ export function planMusicCycle({
       durationSteps: entry.durationSteps,
       chordIndex,
       key: entry.key,
+      romanNumeral: entry.romanNumeral,
+      harmonicFunction: entry.harmonicFunction,
       semitones: voiceChord(entry, chordIndex, transform, chainActive),
       accompaniment: planAccompaniment(profile, chordIndex),
       pitchMultiplier,

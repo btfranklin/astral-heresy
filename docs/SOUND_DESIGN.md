@@ -64,22 +64,29 @@ the simulation.
 ### Authored Harmonic Identity
 
 Every world owns a fixed minor mode, four-bar harmonic cycle, cadence, harmonic
-rhythm, meter, and percussion vocabulary. Chords are not required to occupy
-equal spans, and encounters are not transpositions of one shared template.
-These authored elements return often enough to become familiar.
+rhythm, meter, and percussion vocabulary. Each cycle begins from a curated,
+recognizable popular-minor progression. Functional movement comes first:
+tonic, tonic substitute, predominant, and dominant roles establish an audible
+direction before inversion, register, or synthetic color is applied.
+
+The score uses mostly ordinary triads and dominant sevenths. Extensions,
+pedals, and non-chord tones are exceptional colors, never the premise of the
+progression. Encounters are not transpositions of one shared template, but
+their differences come from familiar root movement, cadence, rhythm, tempo,
+and orchestration rather than arbitrary chromatic novelty.
 
 Procedure changes voicing, density, rhythmic subdivision, and acoustic
 excitation. It never improvises a lead line. Harmonic recurrence, not a
 procedural melody, carries musical identity; the foreground remains available
 to weapons, threats, impacts, and movement.
 
-Every sustained pitched source is part of that recurrence. Pedal, pulse,
-danger, and loop voices each follow an authored path through the complete cycle.
-They may move independently through chord tones, but they cannot hold an
-unrelated ambient pitch. A non-chord tone is permitted only when the musical
-profile declares its exact location as a deliberate tension. Air, friction,
-pressure, and diffuse motion use unpitched noise and resonant tails instead of
-free-running pitched drones.
+Every sustained pitched source is part of that recurrence. Bass, pulse,
+danger, and loop voices each follow an authored, smoothly connected path
+through the complete cycle. They may move independently through chord tones,
+but they cannot hold an unrelated ambient pitch. A non-chord tone is permitted
+only when the musical profile declares its exact location as a deliberate
+tension. Air, friction, pressure, and diffuse motion use unpitched noise and
+resonant tails instead of free-running pitched drones.
 
 The score is deterministic in musical time. Gameplay event order cannot alter
 the progression, and a delayed browser frame never causes missed strikes to
@@ -179,12 +186,12 @@ The stage roots retain the original identity:
 | Crystalline Choir | 196.00 Hz, G3 |
 | Abyssal Cathedral | 146.83 Hz, D3 |
 
-A tonic pedal, two alternating four-voice harmony banks, and authored pulse,
+A moving bass path, two alternating four-voice harmony banks, and authored pulse,
 danger, and loop paths form the pitched field. Each chord carries the next
 note for every one of those persistent voices. The paths can rise, fall, or
 hold through different chord members instead of mechanically doubling one
-fixed scale degree. Nebula and Seraph retain the tonic pedal against the final
-`B7(b9)` as their one declared cadence tension.
+fixed scale degree. The current processions require no sustained non-chord
+tones; dominant sevenths supply cadence tension from inside the harmony.
 
 Each chord is prepared on the silent bank, then voice-led into place through a
 short crossfade. Persistent accompaniment retunes on the same chord boundary.
@@ -203,24 +210,24 @@ feedback, and greater memory activity. It is the same instrument under strain.
 ## Processions And Ritual Pulse
 
 Every stage develops one recurring four-bar cycle through three statements:
-foundation, response, and threshold. Chord boundaries move independently of
-bar lines, so a fleeting harmonic facet can interrupt a long-held body or a
-dominant can occupy the weight of several ordinary changes. Boss cycles state
-their identity in the first bar because their duration depends on player
-performance.
+foundation, response, and threshold. Harmonic rhythm uses clear bar and
+half-bar subdivisions. Four-chord loops normally grant one bar to each chord;
+five- and six-chord boss cycles retain long opening statements and place
+shorter changes near the cadence. Boss cycles state their identity in the first
+bar because their duration depends on player performance.
 
-| Encounter | Tempo and meter | Mode and progression; eighth-note spans |
+| Encounter | Tempo and meter | Functional progression; eighth-note spans |
 | --- | --- | --- |
-| Nebula Gate | 96 BPM, 6/8 | E natural minor: `Em(add9) [9] – Cmaj7/E [3] – Am(add9)/E [6] – B7(b9) [6]` |
-| Seraph of Orbits | 138 BPM, 4/4 | E Phrygian: `Em(add b9) [8] – Fmaj7/E [4] – Bbm/E [12] – B7(b9) [8]` |
-| Crystalline Choir | 118 BPM, 4/4 | G harmonic-minor facets: `Gm(add9) [8] – G5(add2,4,b7) [4] – G+(maj7) [12] – D7sus(b9) [8]` |
-| Prism Leviathan | 152 BPM, 4/4 | G altered-diminished: `Gm(add b9) [6] – Ab+/G [6] – Db7(#11)/G [4] – D7(b9) [8] – Ebm/G [4] – D7sus(b9) [4]` |
-| Abyssal Cathedral | 82 BPM, 12/8 | D descending abyssal minor: `Dm(add9) [12] – Cm(add9)/D [6] – Bbm(add6)/D [12] – A7(b9)/D [18]` |
-| Cathedral Maw | 136 BPM, 4/4 | D Phrygian dominant: `Dm(add b9) [12] – Ebmaj7/D [4] – Cm/D [8] – A7(b9)/D [4] – Dm [4]` |
+| Nebula Gate | 96 BPM, 6/8 | E minor `i–VI–III–VII`: `Em [6] – C [6] – G [6] – D [6]` |
+| Seraph of Orbits | 138 BPM, 4/4 | E minor descent and cadence `i–VII–VI–iv–V7`: `Em [8] – D [8] – C [8] – Am [4] – B7 [4]` |
+| Crystalline Choir | 118 BPM, 4/4 | G minor `i–iv–VII–III`: `Gm [8] – Cm [8] – F [8] – B♭ [8]` |
+| Prism Leviathan | 152 BPM, 4/4 | G minor circle and cadence `i–iv–VII–III–VI–V7`: `Gm [8] – Cm [8] – F [4] – B♭ [4] – E♭ [4] – D7 [4]` |
+| Abyssal Cathedral | 82 BPM, 12/8 | D Andalusian minor `i–VII–VI–V7`: `Dm [12] – C [12] – B♭ [12] – A7 [12]` |
+| Cathedral Maw | 136 BPM, 4/4 | D minor extended pop cadence `i–VI–III–VII–iv–V7`: `Dm [8] – B♭ [8] – F [4] – C [4] – Gm [4] – A7 [4]` |
 
 Stage progress develops orchestration around the same cycle. Boss entry changes
-the mode, harmonic rhythm, voicing pressure, register, tempo, meter, and pulse
-on a primary beat.
+the harmonic function sequence, harmonic rhythm, voicing pressure, register,
+tempo, meter, and pulse on a primary beat.
 Boss phases retain their progression while rotating inversions, opening or
 contracting the chord body, and changing the percussion ritual. No score voice
 states a melody above it, and no acoustic layer introduces an independent

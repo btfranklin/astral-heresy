@@ -329,13 +329,13 @@ Run this matrix in installed Safari after audio work. Use a fresh origin from
 | Study | What to accept |
 | --- | --- |
 | Context and memory | No context before launch; one running context afterward; record `enhanced` or an intentional `fallback` with no gameplay error |
-| Nebula procession | Nebula breathes through its unequal 9–3–6–6 E-minor spans; pulse and dust establish 6/8 without introducing a lead line |
-| Seraph score | Boss entry accelerates into 138 BPM E Phrygian and a forceful four-on-the-floor drive; Crown Spiral, Halo Bloom, and Starfall Rite remain distinct |
-| Sustained voices | Pedal, pulse, danger, and loop tones move with the current chord; no unrelated ambient pitch or accidental dissonance appears when a layer enters |
+| Nebula procession | The familiar `Em–C–G–D` minor-pop loop breathes one chord per 6/8 bar; pulse and dust establish motion without introducing a lead line |
+| Seraph score | Boss entry accelerates into the descending `Em–D–C–Am–B7` cadence at 138 BPM with a forceful four-on-the-floor drive; Crown Spiral, Halo Bloom, and Starfall Rite remain distinct |
+| Sustained voices | Bass, pulse, danger, and loop tones move with the current chord; no unrelated ambient pitch or accidental dissonance appears when a layer enters |
 | Score study | Harmony and percussion solos are each coherent; clearing the solo restores the same cycle without changing gameplay |
 | Nebula Gate | Airy, diffuse, slowly moving resonance; Seraph phases progress from orbital pulse to opened halo to descending memory |
-| Crystalline Choir | Quartal and augmented glass facets sound unlike Nebula; Prism accelerates to a syncopated fractured motor and progresses from precise lattice to sidebands to folded dispersion |
-| Abyssal Cathedral | The slow chromatic descent and long decay remain massive; Cathedral Maw accelerates into an asymmetric 3+3+2 drive and progresses from formants to lengthened combs to a narrowed maw |
+| Crystalline Choir | The `Gm–Cm–F–B♭` loop sounds unlike Nebula; Prism extends it through `E♭–D7`, accelerates to a syncopated fractured motor, and progresses from precise lattice to sidebands to folded dispersion |
+| Abyssal Cathedral | The slow `Dm–C–B♭–A7` Andalusian descent and long decay remain massive; Cathedral Maw expands into a six-chord pop-minor cadence with an asymmetric 3+3+2 drive and progresses from formants to lengthened combs to a narrowed maw |
 | Dense play | Fire and graze remain legible; no projectile chatter, runaway feedback, or masking wall |
 | Shield, hit, death | Shield reads bright and nonlethal; ordinary hit reads downward; death is singular, collapses inward, and rings behind the immediate overlay |
 | Mid-tail restart | Press `R` during death; no click, leaked requiem, or old-stage resonance enters the new sortie |

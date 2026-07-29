@@ -111,8 +111,8 @@ Current intended direction:
   projects a bounded scalar snapshot at the composition root; the audio engine
   cannot retain or mutate gameplay state.
   [`../src/audio/musicProfiles.js`](../src/audio/musicProfiles.js) owns frozen
-  authored score identities, unequal chord spans, meter-aware percussion, and
-  chord-indexed accompaniment paths, while
+  authored functional progressions, conventional phrase subdivisions,
+  meter-aware percussion, and chord-indexed accompaniment paths, while
   [`../src/audio/musicSequencer.js`](../src/audio/musicSequencer.js) is a pure
   deterministic planner in integer musical steps. Only the audio engine owns
   Web Audio nodes, AudioParams, score lookahead, voice budgets, and lifecycle.

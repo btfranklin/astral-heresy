@@ -22,7 +22,7 @@ const profileKeys = [
   "cathedral",
 ];
 
-test("all encounters define frozen, unequal, and distinct minor processions", () => {
+test("all encounters define frozen, functional, and distinct popular-minor processions", () => {
   const profiles = listMusicProfiles();
   assert.deepEqual(profiles.map(({ key }) => key), profileKeys);
   assert.deepEqual(profiles.map(({ bpm }) => bpm), [96, 138, 118, 152, 82, 136]);
@@ -32,6 +32,20 @@ test("all encounters define frozen, unequal, and distinct minor processions", ()
   );
 
   const signatures = new Set();
+  const harmonicFunctions = new Set([
+    "tonic",
+    "tonic-substitute",
+    "predominant",
+    "dominant",
+  ]);
+  const expectedNumerals = {
+    "nebula-gate": ["i", "VI", "III", "VII"],
+    seraph: ["i", "VII", "VI", "iv", "V7"],
+    "crystalline-choir": ["i", "iv", "VII", "III"],
+    prism: ["i", "iv", "VII", "III", "VI", "V7"],
+    "abyssal-cathedral": ["i", "VII", "VI", "V7"],
+    cathedral: ["i", "VI", "III", "VII", "iv", "V7"],
+  };
   for (const profile of profiles) {
     assert.equal(Object.isFrozen(profile), true);
     assert.deepEqual(profile.homeRatios, [1, 1.2, 1.5]);
@@ -45,7 +59,9 @@ test("all encounters define frozen, unequal, and distinct minor processions", ()
     );
     assert.equal(
       profile.progression.every(
-        ({ semitones, durationSteps }) =>
+        ({ romanNumeral, harmonicFunction, semitones, durationSteps }) =>
+          typeof romanNumeral === "string" &&
+          harmonicFunctions.has(harmonicFunction) &&
           Number.isInteger(durationSteps) &&
           durationSteps > 0 &&
           semitones.length === 4 &&
@@ -56,12 +72,22 @@ test("all encounters define frozen, unequal, and distinct minor processions", ()
       ),
       true
     );
-    assert.equal(
-      new Set(profile.progression.map(({ durationSteps }) => durationSteps)).size > 1,
-      true
+    assert.equal(profile.progression[0].harmonicFunction, "tonic");
+    assert.deepEqual(
+      profile.progression.map(({ romanNumeral }) => romanNumeral),
+      expectedNumerals[profile.key]
     );
+    for (const entry of profile.progression) {
+      const chordPitchClasses = new Set(entry.semitones.map(pitchClass));
+      if (entry.romanNumeral === "V7") {
+        assert.equal(chordPitchClasses.size, 4);
+        assert.equal(entry.harmonicFunction, "dominant");
+      } else {
+        assert.equal(chordPitchClasses.size, 3);
+      }
+    }
     assert.deepEqual(Object.keys(profile.accompanimentVoices), [
-      "pedal",
+      "bass",
       "pulse",
       "danger",
       "loop",
@@ -108,6 +134,7 @@ test("all encounters define frozen, unequal, and distinct minor processions", ()
 
   for (const boss of profiles.filter(({ kind }) => kind === "boss")) {
     assert.equal(boss.bpm > getMusicProfile(boss.stageKey).bpm, true);
+    assert.equal(boss.progression.at(-1).romanNumeral, "V7");
   }
 });
 
@@ -131,7 +158,26 @@ test("boss percussion is urgent without forcing every encounter into one beat", 
   );
 });
 
-test("every sustained accompaniment path belongs to its chord or declares its tension", () => {
+test("base harmony banks use close voice leading through every loop", () => {
+  for (const profile of listMusicProfiles()) {
+    const voicedChords = profile.progression.map(({ semitones }) => semitones);
+    const loopedChords = [...voicedChords, voicedChords[0]];
+    for (let chordIndex = 1; chordIndex < loopedChords.length; chordIndex += 1) {
+      const previous = loopedChords[chordIndex - 1];
+      const current = loopedChords[chordIndex];
+      const movements = current.map((semitones, voiceIndex) =>
+        Math.abs(semitones - previous[voiceIndex])
+      );
+      assert.equal(
+        Math.max(...movements) <= 3,
+        true,
+        `${profile.key} voice leading exceeds a minor third at chord ${chordIndex}`
+      );
+    }
+  }
+});
+
+test("every sustained accompaniment path belongs to its chord", () => {
   const declaredTensions = [];
   for (const profile of listMusicProfiles()) {
     for (const [role, voice] of Object.entries(profile.accompanimentVoices)) {
@@ -156,34 +202,35 @@ test("every sustained accompaniment path belongs to its chord or declares its te
     }
   }
 
-  assert.deepEqual(declaredTensions, [
-    ["nebula-gate", "pedal", 3, 0],
-    ["seraph", "pedal", 3, 0],
-  ]);
+  assert.deepEqual(declaredTensions, []);
 });
 
-test("planner emits cumulative unequal chord spans and meter-aware percussion", () => {
+test("planner emits conventional phrase subdivisions and meter-aware percussion", () => {
   const expectations = {
-    "nebula-gate": { steps: [0, 9, 12, 18], durations: [9, 3, 6, 6], cycle: 24 },
-    seraph: { steps: [0, 8, 12, 24], durations: [8, 4, 12, 8], cycle: 32 },
+    "nebula-gate": { steps: [0, 6, 12, 18], durations: [6, 6, 6, 6], cycle: 24 },
+    seraph: {
+      steps: [0, 8, 16, 24, 28],
+      durations: [8, 8, 8, 4, 4],
+      cycle: 32,
+    },
     "crystalline-choir": {
-      steps: [0, 8, 12, 24],
-      durations: [8, 4, 12, 8],
+      steps: [0, 8, 16, 24],
+      durations: [8, 8, 8, 8],
       cycle: 32,
     },
     prism: {
-      steps: [0, 6, 12, 16, 24, 28],
-      durations: [6, 6, 4, 8, 4, 4],
+      steps: [0, 8, 16, 20, 24, 28],
+      durations: [8, 8, 4, 4, 4, 4],
       cycle: 32,
     },
     "abyssal-cathedral": {
-      steps: [0, 12, 18, 30],
-      durations: [12, 6, 12, 18],
+      steps: [0, 12, 24, 36],
+      durations: [12, 12, 12, 12],
       cycle: 48,
     },
     cathedral: {
-      steps: [0, 12, 16, 24, 28],
-      durations: [12, 4, 8, 4, 4],
+      steps: [0, 8, 16, 20, 24, 28],
+      durations: [8, 8, 4, 4, 4, 4],
       cycle: 32,
     },
   };
@@ -200,6 +247,16 @@ test("planner emits cumulative unequal chord spans and meter-aware percussion", 
     assert.deepEqual(
       plan.chords.map(({ durationSteps }) => durationSteps),
       expected.durations
+    );
+    assert.deepEqual(
+      plan.chords.map(({ romanNumeral }) => romanNumeral),
+      getMusicProfile(sectionKey).progression.map(({ romanNumeral }) => romanNumeral)
+    );
+    assert.deepEqual(
+      plan.chords.map(({ harmonicFunction }) => harmonicFunction),
+      getMusicProfile(sectionKey).progression.map(
+        ({ harmonicFunction }) => harmonicFunction
+      )
     );
     assert.equal(
       [...plan.chords, ...plan.percussion].every(
@@ -219,10 +276,10 @@ test("planner emits cumulative unequal chord spans and meter-aware percussion", 
       ]
     ),
     [
-      ["pedal", -12, false],
+      ["bass", -12, false],
       ["pulse", 7, false],
       ["danger", 15, false],
-      ["loop", 26, false],
+      ["loop", 24, false],
     ]
   );
 });
