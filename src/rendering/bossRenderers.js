@@ -287,35 +287,28 @@ export function drawBossPrism(ctx, state, boss, resources) {
     resources
   );
 
-  const segmentCount = 7 + phase * 2;
+  const segmentCount = 8 + phase * 2;
   const separation = (0.84 + phaseEase * 0.16) * (1 - attackCharge * 0.16);
   ctx.save();
-  ctx.rotate(Math.sin(time * 0.23) * 0.1);
+  ctx.rotate(time * 0.14 + Math.sin(time * 0.23) * 0.1);
   for (let i = segmentCount - 1; i >= 0; i--) {
-    const t = i / Math.max(1, segmentCount - 1);
-    let x;
-    let y;
-    if (phase === 1) {
-      const coilAngle = -0.45 + t * Math.PI * 1.55;
-      x = (0.22 + Math.cos(coilAngle) * 0.7) * boss.r * separation;
-      y = Math.sin(coilAngle) * boss.r * 0.6;
-    } else if (phase === 2) {
-      x = (t - 0.22) * boss.r * 2.15 * separation;
-      y = (Math.sin(t * Math.PI) - 0.35) * boss.r * 0.62 * phaseEase;
-    } else {
-      x = (t - 0.2) * boss.r * 2.35 * separation;
-      y = Math.sin(t * Math.PI * 2.1 + time * 0.2) * boss.r * 0.5 * phaseEase;
-    }
-    const size = boss.r * (0.46 - t * 0.2);
+    const angle = (i / segmentCount) * TAU;
+    // Opposite crystals share size and radius, so motion stays centered on the core.
+    const wave = phase === 3 ? Math.sin(angle * 2 + time * 0.6) * 0.12 * phaseEase : 0;
+    const radiusX = (phase === 2 ? 1.36 : 1.2) + wave;
+    const radiusY = (phase === 2 ? 1.02 : 1.2) + wave;
+    const x = Math.cos(angle) * boss.r * radiusX * separation;
+    const y = Math.sin(angle) * boss.r * radiusY * separation;
+    const size = boss.r * (0.24 + Math.cos(angle * 2) * 0.035);
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(Math.cos(t * Math.PI * 1.55 + time * 0.32) * 0.62);
+    ctx.rotate(angle + Math.PI / 4);
     ctx.fillStyle = "rgba(24,31,70,0.94)";
     ctx.beginPath();
-    ctx.moveTo(-size * 0.7, 0);
+    ctx.moveTo(-size * 0.72, 0);
     ctx.lineTo(0, -size * 0.72);
-    ctx.lineTo(size * 0.76, 0);
-    ctx.lineTo(0, size * 0.64);
+    ctx.lineTo(size * 0.72, 0);
+    ctx.lineTo(0, size * 0.72);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = i % 2 ? "rgba(255,150,230,0.86)" : "rgba(144,247,255,0.92)";
@@ -323,7 +316,7 @@ export function drawBossPrism(ctx, state, boss, resources) {
     ctx.stroke();
     ctx.fillStyle = "rgba(226,244,255,0.35)";
     ctx.beginPath();
-    ctx.moveTo(-size * 0.7, 0);
+    ctx.moveTo(-size * 0.72, 0);
     ctx.lineTo(0, -size * 0.72);
     ctx.lineTo(0, 0);
     ctx.closePath();

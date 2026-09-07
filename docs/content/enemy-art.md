@@ -30,7 +30,9 @@ creating projectiles. See [Runtime](../RUNTIME.md) for the study URLs.
 Each boss has a distinct body and phase shape:
 
 - Seraph uses three separate wing pairs with open gaps between them.
-- Prism uses a curved chain of crystal segments with dark facets.
+- Prism uses a centered ring of crystal segments with dark facets. Its phases
+  use a circle, an ellipse, and a moving wave. Opposite segments keep equal
+  sizes and radii so the ring stays centered while it opens or contracts.
 - Cathedral uses broken towers, ribs, and a deep doorway mouth.
 
 Phase changes alter the body arrangement. Keep the central target visible and
