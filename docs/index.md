@@ -11,6 +11,7 @@ This directory is the system of record for repository knowledge that should surv
 - [`QUALITY.md`](./QUALITY.md): verification matrix and golden repo invariants
 - [`RUNTIME.md`](./RUNTIME.md): runbook, debug surfaces, and smoke-test flows
 - [`content/stages-bosses.md`](./content/stages-bosses.md): stage and boss authoring contract
+- [`content/enemy-art.md`](./content/enemy-art.md): enemy shapes, attack poses, and defeat effects
 - [`generated/content-inventory.md`](./generated/content-inventory.md): generated reference for stages, bosses, phases, showcase keys, and pattern helpers
 
 ## Maintenance Rules

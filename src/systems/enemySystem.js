@@ -58,13 +58,16 @@ export function updateEnemies(state, dt) {
     if (!enemyAI || !pos || !vel) continue;
 
     enemyAI.t += dt;
+    enemyAI.attackRelease = Math.max(0, (enemyAI.attackRelease || 0) - dt);
 
     if (enemyAI.behavior) {
       enemyAI.behavior(entity, dt, state);
     }
 
     if (enemyAI.fire) {
+      const previousShot = enemyAI.nextShot;
       enemyAI.fire(entity, dt, state);
+      if (previousShot <= dt && enemyAI.nextShot > 0) enemyAI.attackRelease = 0.18;
     }
 
     if (state.playfield.active) {

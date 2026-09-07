@@ -272,8 +272,29 @@ test("repeated enemy, boss, HUD, and playfield primitives use batched path submi
   boss.phaseIndex = 2;
   const bossCtx = createRecording2dContext();
   drawBossByKey(bossCtx, bossState.state, boss);
-  assert.equal(bossCtx.calls.filter((call) => call.type === "stroke").length, 7);
-  assert.equal(bossCtx.calls.filter((call) => call.type === "save").length, 13);
+  const bossStrokeCount = bossCtx.calls.filter((call) => call.type === "stroke").length;
+  const bossSaveCount = bossCtx.calls.filter((call) => call.type === "save").length;
+  const bossRestoreCount = bossCtx.calls.filter((call) => call.type === "restore").length;
+  assert.ok(bossStrokeCount <= 24, `Boss rendering used ${bossStrokeCount} strokes.`);
+  assert.equal(bossSaveCount, bossRestoreCount, "Boss rendering keeps the canvas stack balanced.");
+
+  const cathedral = createBossInstance(
+    "cathedral",
+    makeBossContext(bossState.state, bossState.player)
+  );
+  cathedral.phaseIndex = 2;
+  cathedral.phaseTime = 1;
+  cathedral.cooldowns = { "maw-singularity-lanes": 0.1 };
+  const cathedralCtx = createRecording2dContext();
+  drawBossByKey(cathedralCtx, bossState.state, cathedral);
+  const pathCoordinateLimit = cathedral.r * 3;
+  const pathCalls = new Set(["moveTo", "lineTo", "quadraticCurveTo", "ellipse"]);
+  for (const call of cathedralCtx.calls.filter(({ type }) => pathCalls.has(type))) {
+    assert.ok(
+      call.args.every((value) => Number.isFinite(value) && Math.abs(value) <= pathCoordinateLimit),
+      `${call.type} exceeds the boss-local geometry bound.`
+    );
+  }
 
   const playfieldCtx = createRecording2dContext();
   const renderer = createCanvasRenderer(playfieldCtx);
@@ -290,5 +311,28 @@ test("repeated enemy, boss, HUD, and playfield primitives use batched path submi
     3,
     "The playfield rails, all markers, and static player HUD each use one stroke."
   );
+  renderer.dispose();
+});
+
+test("defeat debris draws finite vector paths without allocating particle sprites", () => {
+  const factory = createCanvasFactory();
+  const ctx = createRecording2dContext();
+  const renderer = createCanvasRenderer(ctx, { createCanvas: factory.createCanvas });
+  const { state, player } = prepareStaticState();
+  const particles = ["feather", "crystal", "rib", "ash"].map((shape, index) => {
+    const particle = createParticle(index, "#ffe7f6", 6);
+    Object.assign(particle.components.render, { shape, angle: 0.5, spin: -2 });
+    return particle;
+  });
+  renderer.render(state, player, stageDefinitions, createBuckets());
+  const surfaces = factory.canvases.length;
+  ctx.calls.length = 0;
+  renderer.render(state, player, stageDefinitions, createBuckets({ particles }));
+  assert.equal(factory.canvases.length, surfaces);
+  assert.ok(ctx.calls.some(({ type }) => type === "quadraticCurveTo"));
+  assert.ok(ctx.calls.some(({ type }) => type === "rotate"));
+  for (const call of ctx.calls) {
+    assert.ok(call.args.filter((value) => typeof value === "number").every(Number.isFinite));
+  }
   renderer.dispose();
 });

@@ -491,19 +491,20 @@ test("renders deterministic showcase surfaces in the real browser", async ({
   page,
   browserErrors: _browserErrors,
 }, testInfo) => {
+  test.setTimeout(60_000);
   const scenarios = [
-    {
-      name: "enemy-halo",
-      path: "/?mode=render&enemy=halo",
-      showcase: { type: "enemy", key: "halo" },
-      target: { type: "enemy", key: "halo" },
-    },
-    {
-      name: "boss-prism",
-      path: "/?mode=render&boss=prism&phase=3",
-      showcase: { type: "boss", key: "prism", phase: 3 },
-      target: { type: "boss", key: "prism", phaseIndex: 2 },
-    },
+    ...["cherub", "halo", "oracle", "shard", "weaver", "harp", "spear", "throne", "fang"].map((key) => ({
+      name: `enemy-${key}`,
+      path: `/?mode=render&enemy=${key}`,
+      showcase: { type: "enemy", key },
+      target: { type: "enemy", key },
+    })),
+    ...["seraph", "prism", "cathedral"].flatMap((key) => [1, 2, 3].map((phase) => ({
+      name: `boss-${key}-${phase}`,
+      path: `/?mode=render&boss=${key}&phase=${phase}`,
+      showcase: { type: "boss", key, phase },
+      target: { type: "boss", key, phaseIndex: phase - 1 },
+    }))),
   ];
 
   for (const scenario of scenarios) {

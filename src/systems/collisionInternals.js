@@ -1,3 +1,4 @@
+import { spawnDefeatParticles } from "./particleSystem.js";
 import { removeEntity } from "../entities/entityFactory.js";
 import {
   addBonusScore,
@@ -118,7 +119,7 @@ export function rewardKill(
   spawnScoreShardEntities
 ) {
   const reward = enemy.components.reward;
-  spawnParticle(state, enemyPos.x, enemyPos.y, "#79ffe1", 18, 220, 0.9, 3);
+  spawnDefeatParticles(state, enemyPos.x, enemyPos.y, enemy.components.render?.renderKey, spawnParticle);
   sfxEnemyPop(audio, { x: enemyPos.x, y: enemyPos.y });
   state.kills += 1;
   state.score += enemyHealth.maxHp * 140;

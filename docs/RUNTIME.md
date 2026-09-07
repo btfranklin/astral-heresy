@@ -174,6 +174,7 @@ Render-study mode:
 - skips the normal start flow
 - sets `state.showcase`
 - spawns a fixed showcase enemy or boss
+- previews enemy preparation and release poses on a two-second cycle without firing bullets
 - is the fastest way to inspect silhouettes and boss phase labeling
 
 See [`generated/content-inventory.md`](./generated/content-inventory.md) for the current valid showcase keys.

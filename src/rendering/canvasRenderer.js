@@ -298,6 +298,50 @@ function drawScoreShards(ctx, scoreShards, player, resources) {
   ctx.restore();
 }
 
+function drawDebris(ctx, pos, render, age) {
+  const size = render.size;
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(render.angle + age * render.spin);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = render.color;
+  ctx.strokeStyle = render.color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  if (render.shape === "feather") {
+    ctx.moveTo(0, -size * 1.7);
+    ctx.quadraticCurveTo(size, -size * 0.3, 0, size);
+    ctx.quadraticCurveTo(-size * 0.7, 0, 0, -size * 1.7);
+    ctx.fill();
+    ctx.strokeStyle = "#827697";
+    ctx.moveTo(0, -size);
+    ctx.lineTo(0, size * 1.4);
+    ctx.stroke();
+  } else if (render.shape === "crystal") {
+    ctx.moveTo(0, -size * 1.6);
+    ctx.lineTo(size * 0.65, size * 0.3);
+    ctx.lineTo(-size * 0.3, size);
+    ctx.lineTo(-size * 0.65, -size * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#476b91";
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 1.6);
+    ctx.lineTo(0, size * 0.3);
+    ctx.lineTo(-size * 0.3, size);
+    ctx.closePath();
+    ctx.fill();
+  } else if (render.shape === "rib") {
+    ctx.lineWidth = Math.max(1.5, size * 0.35);
+    ctx.moveTo(-size * 0.6, size);
+    ctx.quadraticCurveTo(-size, -size * 1.5, size * 0.8, -size);
+    ctx.stroke();
+  } else {
+    ctx.fillRect(-size * 0.5, -size * 0.5, size, size);
+  }
+  ctx.restore();
+}
+
 function drawParticles(ctx, particles, spriteCache, detail, dpr) {
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -308,7 +352,9 @@ function drawParticles(ctx, particles, spriteCache, detail, dpr) {
     if (!life || !pos || !render) continue;
     const alpha = 1 - life.age / life.life;
     ctx.globalAlpha = Math.max(0, alpha);
-    if (detail === "minimal") {
+    if (render.shape) {
+      drawDebris(ctx, pos, render, life.age);
+    } else if (detail === "minimal") {
       ctx.fillStyle = render.color;
       ctx.fillRect(pos.x - render.size, pos.y - render.size, render.size * 2, render.size * 2);
     } else {

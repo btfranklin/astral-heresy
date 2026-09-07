@@ -53,6 +53,7 @@ export function ai(options = {}) {
     fire: options.fire || null,
     wobble: options.wobble || 0,
     nextShot: 0,
+    attackRelease: 0,
   };
 }
 

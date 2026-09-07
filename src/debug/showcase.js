@@ -102,7 +102,13 @@ export function updateShowcaseScene(state, dt) {
     for (const entity of state.entities) {
       if (entity.type !== "enemy") continue;
       const ai = entity.components.ai;
-      if (ai) ai.t += dt;
+      if (ai) {
+        ai.t += dt;
+        // Preview a shot pose without creating projectiles.
+        const cycle = ai.t % 2;
+        ai.nextShot = 2 - cycle;
+        ai.attackRelease = Math.max(0, 0.18 - cycle);
+      }
       if (ai?.behavior) {
         ai.behavior(entity, dt, state);
       }

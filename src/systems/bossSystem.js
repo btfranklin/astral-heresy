@@ -1,3 +1,4 @@
+import { spawnDefeatParticles } from "./particleSystem.js";
 import { lerp } from "../core/math.js";
 import { sfxBossDefeat, sfxBossPhase, sfxVictory } from "../audio/sfx.js";
 import { removeEntity } from "../entities/entityFactory.js";
@@ -71,7 +72,7 @@ export function defeatBoss(state, player, boss, spawnParticle, audio, stages) {
     }
   }
 
-  spawnParticle(state, boss.x, boss.y, "#ffffff", 120, 360, 1.4, 4);
+  spawnDefeatParticles(state, boss.x, boss.y, boss.key, spawnParticle, true);
   state.pulse = 1;
   state.shake = 18;
   if (state.stageIndex >= stages.length) {
