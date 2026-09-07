@@ -8,7 +8,7 @@
     "test:performance": "playwright test --config=playwright.performance.config.mjs"
   },
   "devDependencies": {
-    "@playwright/test": ">=1.61.1",
-    "acorn": ">=8.17.0"
+    "@playwright/test": ">=1.63.0",
+    "acorn": ">=8.18.0"
   }
 }
