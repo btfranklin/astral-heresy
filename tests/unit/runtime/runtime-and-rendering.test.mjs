@@ -32,6 +32,7 @@ import { drawBossUI, drawBossWeakpoint, drawPlayerUI } from "../../../src/render
 import { createGameState } from "../../../src/state/gameState.js";
 import { createPlayerState } from "../../../src/state/playerState.js";
 import { createInputSystem } from "../../../src/systems/inputSystem.js";
+import { updatePlayer } from "../../../src/systems/playerSystem.js";
 import { spawnEnemy } from "../../../src/systems/enemySystem.js";
 import { createInterfaceController } from "../../../src/ui/interfaceController.js";
 import { makeAudioSpy, makeBossContext, makeState } from "../../helpers/fixtures.mjs";
@@ -93,7 +94,7 @@ test("sfx helpers emit validated semantic cues while recipes preserve their glyp
 
 test("input orchestration attaches handlers, updates state, resets held controls, and detaches", async () => {
   await withInputListenerEnvironment(({ windowTarget, documentTarget }) => {
-    const { state } = makeState();
+    const { state, player } = makeState();
     const canvas = createElementRecorder({ rect: { left: 10, top: 20, width: 640, height: 360 } });
     const input = createInputSystem(state, canvas);
     input.attach();
@@ -117,13 +118,27 @@ test("input orchestration attaches handlers, updates state, resets held controls
     assert.equal(state.input.KeyZ, false);
     assert.equal(state.input.KeyA, false);
     assert.equal(state.input.PointerFire, false);
+    assert.equal(state.input.pointerX, null);
+    assert.equal(state.input.pointerY, null);
     assert.equal(state.input.pointerEnabled, false, "Resetting held controls preserves the mode preference.");
 
+    state.input.pointerEnabled = true;
+    player.x = 640;
+    player.y = 620;
+    updatePlayer(state, player, makeAudioSpy(), 0.1);
+    assert.deepEqual({ x: player.x, y: player.y }, { x: 640, y: 620 }, "blur should clear the stale pointer target");
+
+    canvas.emit("pointermove", { clientX: 500, clientY: 300 });
     documentTarget.emit("keydown", { code: "ArrowRight" });
     documentTarget.hidden = true;
     documentTarget.visibilityState = "hidden";
     documentTarget.emit("visibilitychange");
     assert.equal(state.input.ArrowRight, false);
+    assert.equal(state.input.pointerX, null);
+    assert.equal(state.input.pointerY, null);
+    const hiddenPosition = { x: player.x, y: player.y };
+    updatePlayer(state, player, makeAudioSpy(), 0.1);
+    assert.deepEqual({ x: player.x, y: player.y }, hiddenPosition, "hidden visibility should clear the stale pointer target");
 
     input.detach();
     assert.equal(getListenerCount(windowTarget, "blur"), 0);

@@ -37,7 +37,9 @@ The local server sends `Cache-Control: no-store` and ignores stale conditional v
 - Restart after loss: `Enter` or `R`
 - Toggle pointer steering for testing: `M`
 
-Held movement/fire input is cleared on `window.blur` and when the document becomes hidden. Alt-tabbing or switching tabs should never leave the ship drifting or auto-firing when focus returns.
+Held movement/fire input and the pointer-steering target are cleared on
+`window.blur` and when the document becomes hidden. Alt-tabbing or switching
+tabs should never leave the ship drifting or auto-firing when focus returns.
 
 ## Debug And Inspection Surfaces
 

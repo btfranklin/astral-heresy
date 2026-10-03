@@ -394,9 +394,11 @@ test("uses native keyboard, pointer, blur, visibility, and restart behavior", as
         fire: window.__astralHeresy.state.input.KeyZ,
         left: window.__astralHeresy.state.input.KeyA,
         pointerFire: window.__astralHeresy.state.input.PointerFire,
+        pointerX: window.__astralHeresy.state.input.pointerX,
+        pointerY: window.__astralHeresy.state.input.pointerY,
       }))
     )
-    .toEqual({ fire: false, left: false, pointerFire: false });
+    .toEqual({ fire: false, left: false, pointerFire: false, pointerX: null, pointerY: null });
   await page.keyboard.up("z");
   await page.keyboard.up("a");
   await page.mouse.up();
@@ -417,6 +419,8 @@ test("uses native keyboard, pointer, blur, visibility, and restart behavior", as
           fire: window.__astralHeresy.state.input.KeyZ,
           left: window.__astralHeresy.state.input.KeyA,
           pointerFire: window.__astralHeresy.state.input.PointerFire,
+          pointerX: window.__astralHeresy.state.input.pointerX,
+          pointerY: window.__astralHeresy.state.input.pointerY,
         })
       );
     });
@@ -424,7 +428,7 @@ test("uses native keyboard, pointer, blur, visibility, and restart behavior", as
   await openGame(page, "/?visibility-return=1");
   expect(
     await page.evaluate(() => JSON.parse(localStorage.getItem("browser-visibility-snapshot")))
-  ).toEqual({ visibilityState: "hidden", fire: false, left: false, pointerFire: false });
+  ).toEqual({ visibilityState: "hidden", fire: false, left: false, pointerFire: false, pointerX: null, pointerY: null });
 
   await launchWithClick(page);
   await page.keyboard.down("m");

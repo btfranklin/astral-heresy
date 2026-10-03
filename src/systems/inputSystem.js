@@ -23,6 +23,8 @@ export function createInputSystem(state, gameCanvas) {
       state.input[code] = false;
     }
     state.input.PointerFire = false;
+    state.input.pointerX = null;
+    state.input.pointerY = null;
   }
 
   function setPointerPosition(event) {
