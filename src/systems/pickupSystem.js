@@ -120,8 +120,14 @@ export function updatePickups(state, player, dt) {
     const pullRadius = getPickupAttractionRadius(player);
     if (distance < pullRadius) {
       const pull = Math.max(0, 1 - distance / pullRadius);
-      vel.vx += (dx / Math.max(1, distance)) * pull * 180 * dt;
-      vel.vy += (dy / Math.max(1, distance)) * pull * 240 * dt;
+      if (entity.type === "pickup" && item.spawnPause <= 0) {
+        const directionScale = pull / Math.max(1, distance);
+        vel.vx = dx * directionScale * 180;
+        vel.vy = dy * directionScale * 240;
+      } else {
+        vel.vx += (dx / Math.max(1, distance)) * pull * 180 * dt;
+        vel.vy += (dy / Math.max(1, distance)) * pull * 240 * dt;
+      }
     }
 
     const minX = state.playfield.active ? state.playfield.minX - 90 : -80;

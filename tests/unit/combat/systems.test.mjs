@@ -17,7 +17,7 @@ import { createEntity } from "../../../src/entities/entityFactory.js";
 import { collider, health, position, velocity } from "../../../src/entities/components.js";
 import { stageDefinitions } from "../../../src/data/stages.js";
 import { combatTuning } from "../../../src/core/combat.js";
-import { makeAudioSpy, makeBossContext, makeState, withRandomSequence } from "../../helpers/fixtures.mjs";
+import { handleWithBuckets, makeAudioSpy, makeBossContext, makeState, withRandomSequence } from "../../helpers/fixtures.mjs";
 
 test("bullet system spawns, updates, homes, turns, wobbles, and cleans up bullets", async () => {
   const { state, player } = makeState();
@@ -237,6 +237,71 @@ test("pickup fall speed resumes after its spawn pause at each frame rate", () =>
       assert.equal(pickup.components.position.y > 200 + fallSpeed * 0.3, fallSpeed > 0);
       assert.equal(pickup.components.velocity.vy, fallSpeed);
     }
+  }
+});
+
+test("magnet pursues pickups from every direction across frame rates", () => {
+  const starts = [
+    [-250, 0],
+    [250, 0],
+    [0, -250],
+    [0, 250],
+    [-175, -175],
+    [175, 175],
+    [-175, 175],
+    [175, -175],
+  ];
+
+  for (const step of [1 / 30, 1 / 60, 1 / 120]) {
+    for (const [offsetX, offsetY] of starts) {
+      const { state, player } = makeState();
+      player.x = 640;
+      player.y = 360;
+      player.activePowerups.magnetCore = 10;
+      const pickup = spawnPickup(state, "beam", player.x + offsetX, player.y + offsetY, { vy: 0 });
+      const audio = makeAudioSpy();
+      let elapsed = 0;
+      for (; elapsed < 10 && !pickup.dead; elapsed += step) {
+        updateCombat(state, player, step);
+        updateMovement(state, step);
+        updatePickups(state, player, step);
+        handleWithBuckets(state, player, audio);
+      }
+      assert.equal(pickup.dead, true, `pickup at (${offsetX}, ${offsetY}) should be collected at ${Math.round(1 / step)} Hz`);
+      assert.equal(state.scoreBonuses.pickup > 0, true, "pickup must be collected, not removed offscreen");
+      assert.equal(elapsed < 10, true, "pickup must be collected while Magnet Core is active");
+    }
+
+    const { state: nearbyState, player: nearbyPlayer } = makeState();
+    nearbyPlayer.x = 640;
+    nearbyPlayer.y = 360;
+    const nearbyPickup = spawnPickup(nearbyState, "beam", nearbyPlayer.x - 120, nearbyPlayer.y, { vy: 0 });
+    const nearbyAudio = makeAudioSpy();
+    for (let elapsed = 0; elapsed < 10 && !nearbyPickup.dead; elapsed += step) {
+      updateCombat(nearbyState, nearbyPlayer, step);
+      updateMovement(nearbyState, step);
+      updatePickups(nearbyState, nearbyPlayer, step);
+      handleWithBuckets(nearbyState, nearbyPlayer, nearbyAudio);
+    }
+    assert.equal(nearbyPickup.dead, true, "base attraction should collect a nearby pickup without Magnet Core");
+    assert.equal(nearbyState.scoreBonuses.pickup > 0, true, "nearby pickup must be collected, not removed offscreen");
+
+    const { state: shardState, player: shardPlayer } = makeState();
+    shardPlayer.x = 640;
+    shardPlayer.y = 360;
+    shardPlayer.activePowerups.magnetCore = 10;
+    const [shard] = spawnScoreShards(shardState, shardPlayer.x + 250, shardPlayer.y, 1, { seedOffset: Math.PI / 2 });
+    const shardAudio = makeAudioSpy();
+    let shardElapsed = 0;
+    for (; shardElapsed < 10 && !shard.dead; shardElapsed += step) {
+      updateCombat(shardState, shardPlayer, step);
+      updateMovement(shardState, step);
+      updatePickups(shardState, shardPlayer, step);
+      handleWithBuckets(shardState, shardPlayer, shardAudio);
+    }
+    assert.equal(shard.dead, true, `score shard should keep its attraction at ${Math.round(1 / step)} Hz`);
+    assert.equal(shardState.scoreBonuses.shard > 0, true, "score shard must be collected, not removed offscreen");
+    assert.equal(shardElapsed < 10, true, "score shard must be collected while Magnet Core is active");
   }
 });
 
