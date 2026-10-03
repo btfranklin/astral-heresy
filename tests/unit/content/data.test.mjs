@@ -23,6 +23,16 @@ import { createBossInstance, getBossDefinition, listBossShowcaseEntries } from "
 import { getEnemyArchetype, listEnemyShowcaseEntries } from "../../../src/data/enemies.js";
 import { getStageDefinition, stageDefinitions } from "../../../src/data/stages.js";
 import { makeContentContext } from "../../helpers/fixtures.mjs";
+import { createPlayfieldContext } from "../../../src/state/playfieldState.js";
+
+test("content fixture uses the same random lane midpoint as the runtime", (t) => {
+  t.mock.method(Math, "random", () => 0.5);
+  const fixture = makeContentContext();
+  const runtime = createPlayfieldContext({ playfield: fixture.playfield });
+  for (const padding of [0, 48, 120]) {
+    assert.equal(fixture.playfield.randomX(padding), runtime.randomX(padding));
+  }
+});
 
 test("pattern helpers emit deterministic bullet layouts and cooldowns", () => {
   const radial = [];

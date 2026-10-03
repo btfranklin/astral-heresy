@@ -118,7 +118,7 @@ export function makeContentContext() {
       return 280 + (1000 - 280) * fraction;
     },
     randomX(padding = 0) {
-      return 280 + padding + (1000 - 560 - padding * 2) * 0.5;
+      return 280 + padding + (1000 - 280 - padding * 2) * 0.5;
     },
     clampX(x, padding = 0) {
       return Math.max(280 + padding, Math.min(1000 - padding, x));
