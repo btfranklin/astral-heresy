@@ -240,6 +240,34 @@ test("pickup fall speed resumes after its spawn pause at each frame rate", () =>
   }
 });
 
+test("pickup resumes its authored fall speed after it leaves attraction range", () => {
+  for (const fallSpeed of [54, 81, 0]) {
+    const { state, player } = makeState();
+    player.x = 640;
+    player.y = 200;
+    const pickup = spawnPickup(state, "beam", 640, 300, {
+      vy: fallSpeed,
+      spawnPause: 0,
+    });
+
+    updatePickups(state, player, 1 / 60);
+    assert.equal(pickup.components.velocity.vy < 0, true, "attraction should pull the pickup toward the player");
+    player.x = 1100;
+    player.y = 550;
+    for (let elapsed = 0; elapsed < 10; elapsed += 1 / 60) {
+      updateMovement(state, 1 / 60);
+      updatePickups(state, player, 1 / 60);
+    }
+
+    assert.equal(pickup.components.velocity.vy, fallSpeed);
+    if (fallSpeed === 0) {
+      assert.equal(pickup.components.position.y > 298, true, "zero fall speed must not leave the pickup moving upward");
+    } else {
+      assert.equal(pickup.components.position.y > 500, true, "pickup should resume downward travel after leaving range");
+    }
+  }
+});
+
 test("magnet pursues pickups from every direction across frame rates", () => {
   const starts = [
     [-250, 0],

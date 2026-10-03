@@ -128,6 +128,8 @@ export function updatePickups(state, player, dt) {
         vel.vx += (dx / Math.max(1, distance)) * pull * 180 * dt;
         vel.vy += (dy / Math.max(1, distance)) * pull * 240 * dt;
       }
+    } else if (entity.type === "pickup" && item.spawnPause <= 0) {
+      vel.vy = item.fallSpeed;
     }
 
     const minX = state.playfield.active ? state.playfield.minX - 90 : -80;
