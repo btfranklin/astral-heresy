@@ -43,6 +43,36 @@ tabs should never leave the ship drifting or auto-firing when focus returns.
 
 ## Debug And Inspection Surfaces
 
+### Seeded Gameplay
+
+Add `seed` to the URL to repeat gameplay random values:
+
+- `/?seed=42`
+- `/?mode=render&enemy=cherub&seed=42`
+
+The seed must be a decimal integer from `0` to `4294967295`. An absent, empty,
+or invalid seed uses normal random values. Read the active seed from
+`window.__astralHeresy.state.randomSeed` or the `seed` field in
+`window.render_game_to_text()`. A value of `null` means no fixed seed is active.
+
+The seed controls stage choices, fire variation, random lane positions, and
+bullet motion phases. Each game owns its sequence. Restart resets that
+sequence and the entity ID counter. Loop two continues the current sequence.
+Particles, camera shake, and audio use separate random sources.
+
+To repeat a fault, use the same seed, viewport, input, and update time steps.
+A seed does not record input or fix the browser frame rate. For a fixed update
+sequence, use the existing console control:
+
+```js
+const game = window.__astralHeresy;
+game.resetGame(true);
+game.advanceTime(8000);
+```
+
+Both calls run before the browser can deliver another animation frame. Record
+the seed and viewport with the resulting state when reporting a fault.
+
 ### Global Handle
 
 [`../src/index.js`](../src/index.js) exposes the created game as `window.__astralHeresy`.
@@ -337,7 +367,7 @@ headless renderers and is recorded as metadata rather than treated as a failure.
 
 - WebGL is required for the animated background. Failure is surfaced through an alert in the composition root.
 - The repo has no build step. Browser-native ES modules are the execution model.
-- Randomness is not seeded. If determinism matters, document the intended RNG boundary before changing it.
+- Seeded gameplay follows the boundary documented in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Repeatable runs require the same input and update time steps.
 - Browser-visible runtime changes must pass the Chromium contract lane; screenshots remain useful for readability judgments beyond its pixel assertions.
 - Rendering-performance telemetry is opt-in and informational; do not interpret a green run as proof that a numeric frame budget was met.
 - `window.__astralHeresy.dispose()` cancels animation frames, detaches listeners, releases WebGL resources, stops/disconnects Web Audio nodes, and closes the audio context.

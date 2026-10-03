@@ -129,7 +129,7 @@ test("rewardKill, pickup collection, shard collection, and graze helpers update 
   assert.equal(spawnedShards[0].options.category, "risk");
   assert.equal(state.scoreBonuses.close > 0, true);
 
-  const pickupEntity = createEntity("pickup", {
+  const pickupEntity = createEntity(state, "pickup", {
     position: position(player.x, player.y),
     pickup: pickup({ kind: "halo-shield" }),
   });
@@ -138,7 +138,7 @@ test("rewardKill, pickup collection, shard collection, and graze helpers update 
   assert.equal(pickupEntity.dead, true);
   assert.equal(audio.events.at(-1).kind, "pickup");
 
-  const shardEntity = createEntity("scoreShard", {
+  const shardEntity = createEntity(state, "scoreShard", {
     scoreShard: scoreShard({ value: 40 }),
     position: position(player.x, player.y),
     collider: collider(4),

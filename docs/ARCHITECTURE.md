@@ -80,10 +80,11 @@ must not gain benchmark-only branches or counters.
 ## State Ownership
 
 - [`../src/state/gameState.js`](../src/state/gameState.js): global run state, input flags, entity list, viewport metrics, scoring, boss/run lifecycle
+- [`../src/state/random.js`](../src/state/random.js): random generator owned by each run
 - [`../src/state/playerState.js`](../src/state/playerState.js): player position, speed, fire cadence, invulnerability, hit points, burst state, weapon mode, and viewport-derived movement bounds
 - [`../src/state/playfieldState.js`](../src/state/playfieldState.js): shared combat-lane geometry for open desktop play, player bounds, and stage-safe playfield helpers
 - [`../src/state/runReset.js`](../src/state/runReset.js): shared fresh-run and loop-transition reset helpers
-- [`../src/entities/entityFactory.js`](../src/entities/entityFactory.js): entity IDs, lifecycle, and deferred deletion
+- [`../src/entities/entityFactory.js`](../src/entities/entityFactory.js): state-owned entity IDs, lifecycle, and deferred deletion
 - [`../src/entities/components.js`](../src/entities/components.js): component payload shapes used by systems and renderers
 - [`../src/entities/entityBuckets.js`](../src/entities/entityBuckets.js): frame-local typed views used by collision and rendering
 
@@ -93,6 +94,22 @@ The repo uses a lightweight ECS-style approach:
 - Systems mutate state and entity components.
 - Renderers read state and draw.
 - The DOM UI mirrors state through [`../src/ui/interfaceController.js`](../src/ui/interfaceController.js).
+
+## Gameplay Random Values
+
+Each game state owns a random generator and an entity ID counter. A valid
+`seed` URL parameter selects a fixed generator. A fresh run resets that
+generator and the ID counter. A loop transition continues the same run.
+
+Stage choices, enemy fire variation, random lane positions, and bullet motion
+phases use this generator. Content calls `ctx.random()` or
+`ctx.rand(min, max)`. These functions read the current generator so a restart
+also resets random values in content closures.
+
+Particles, camera shake, and audio use separate random sources. Drawing and
+audio scheduling do not consume the gameplay sequence. Repeatable gameplay
+requires the same seed, viewport, input, and sequence of update time steps.
+The seed does not record input or fix the browser frame rate.
 
 ## Source Areas
 

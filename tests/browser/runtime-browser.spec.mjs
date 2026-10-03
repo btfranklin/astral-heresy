@@ -208,6 +208,46 @@ test("boots real modules, renders with Canvas and WebGL, and initializes audio a
   await cdp.detach();
 });
 
+test("repeats seeded gameplay after restart and reload", async ({ page, browserErrors: _browserErrors }) => {
+  const replay = () => page.evaluate(() => {
+    const game = window.__astralHeresy;
+    game.resetGame(true);
+    game.player.invuln = 60;
+    game.state.input.KeyZ = true;
+    game.debugSpawnPickup("beam", 280, 140, { spawnPause: 0 });
+    game.advanceTime(8000);
+    return {
+      seed: JSON.parse(game.renderGameToText()).seed,
+      score: game.state.score,
+      kills: game.state.kills,
+      entities: game.state.entities
+        .filter(({ type }) => type !== "particle")
+        .map(({ id, type, components }) => ({ id, type, components })),
+    };
+  });
+
+  for (const seed of [42, 0]) {
+    await openGame(page, `/?seed=${seed}`);
+    await launchWithClick(page);
+    const first = await replay();
+    expect(first.seed).toBe(seed);
+    expect(first.entities.some(({ type }) => type === "enemyBullet")).toBe(true);
+    expect(await replay()).toEqual(first);
+    await openGame(page, `/?seed=${seed}`);
+    await launchWithClick(page);
+    expect(await replay()).toEqual(first);
+    if (seed === 42) {
+      await openGame(page, "/?seed=43");
+      await launchWithClick(page);
+      expect((await replay()).entities).not.toEqual(first.entities);
+    }
+  }
+
+  await openGame(page, "/?seed=invalid");
+  expect(await page.evaluate(() => window.__astralHeresy.state.randomSeed)).toBeNull();
+  await launchWithClick(page);
+});
+
 test("keeps idle animation callbacks alive while invalidating only changed render surfaces", async ({
   page,
   browserErrors: _browserErrors,

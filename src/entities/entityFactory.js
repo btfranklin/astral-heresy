@@ -1,8 +1,6 @@
-let nextId = 1;
-
-export function createEntity(type, components) {
+export function createEntity(state, type, components) {
   return {
-    id: nextId++,
+    id: state.nextEntityId++,
     type,
     components,
     dead: false,

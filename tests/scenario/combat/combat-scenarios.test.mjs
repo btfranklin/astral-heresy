@@ -189,7 +189,7 @@ test("stage director reservations and one-shot fallbacks stay authoritative with
   normalState.nextSine = 99;
   const normalSpawns = [];
   stageNebula.update(normalState, 1, 1 / 60, {
-    view: state.view,
+    ...makeBossContext(state, player),
     player,
     playfield,
     loopIndex: 0,
@@ -216,7 +216,7 @@ test("stage director reservations and one-shot fallbacks stay authoritative with
   eliteState.orbitalsEliteDone = true;
   const eliteSpawns = [];
   stageNebula.update(eliteState, 17.6, 1 / 60, {
-    view: state.view,
+    ...makeBossContext(state, player),
     player,
     playfield,
     loopIndex: 0,
@@ -244,7 +244,7 @@ test("stage director reservations and one-shot fallbacks stay authoritative with
   gauntletState.sealDone = true;
   const setpieceSpawns = [];
   stageAbyss.update(gauntletState, 11.1, 1 / 60, {
-    view: state.view,
+    ...makeBossContext(state, player),
     player,
     playfield,
     loopIndex: 0,
@@ -379,7 +379,7 @@ test("authored one-shot stage beats honor density retry delays", () => {
     const spawns = [];
     let gateCalls = 0;
     const ctx = {
-      view: state.view,
+      ...makeBossContext(state, player),
       player,
       playfield: createPlayfieldContext(state),
       loopIndex: scenario.loopIndex || 0,
@@ -422,7 +422,7 @@ test("Nebula and Crystal side entries move toward the playfield on every layout"
         const { state, player } = makeState({ width, height });
         const spawns = [];
         const ctx = {
-          view: state.view,
+          ...makeBossContext(state, player),
           player,
           playfield: createPlayfieldContext(state),
           loopIndex: 0,
@@ -510,7 +510,7 @@ test("seraph starfall stays inside the desktop lane and nebula early pacing stay
     refreshDensityState(state, stageNebula);
     director.beginFrame();
     stageNebula.update(stageState, t, 1 / 60, {
-      view: state.view,
+      ...makeBossContext(state, player),
       player,
       playfield,
       director,

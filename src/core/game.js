@@ -1,4 +1,5 @@
 import { createFrameTimer } from "./time.js";
+import { rand } from "./math.js";
 import { createEventBus } from "./events.js";
 import { createPlayfieldContext } from "../state/playfieldState.js";
 import { createGameState } from "../state/gameState.js";
@@ -26,6 +27,7 @@ import { projectAudioWorld } from "../audio/audioState.js";
 import { flushEntities } from "../entities/entityFactory.js";
 import { createInterfaceController } from "../ui/interfaceController.js";
 import { getShowcaseConfig, updateShowcaseScene } from "../debug/showcase.js";
+import { getRandomSeed } from "../debug/randomSeed.js";
 
 export function createGame({
   bgCanvas,
@@ -44,7 +46,7 @@ export function createGame({
     return null;
   }
 
-  const state = createGameState();
+  const state = createGameState({ seed: getRandomSeed() });
   const events = createEventBus();
   const audio = createAudioEngine();
   const player = createPlayerState(window.innerWidth, window.innerHeight);
@@ -59,6 +61,8 @@ export function createGame({
   const dataContext = {
     view: state.view,
     player,
+    random: () => state.random(),
+    rand: (min, max) => rand(min, max, state.random),
     playfield: playfieldContext,
     director: stageDirector,
     spawnEnemyBullet: (x, y, angle, speed, opts) =>
@@ -231,6 +235,7 @@ export function createGame({
 
     return {
       coordinateSystem: "origin top-left; +x right; +y down",
+      seed: state.randomSeed,
       mode: state.showcase
         ? "showcase"
         : !state.started

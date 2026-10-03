@@ -52,10 +52,10 @@ export function laneX(playfield, fraction) {
   return playfield.minX + (playfield.maxX - playfield.minX) * fraction;
 }
 
-export function randomLaneX(playfield, padding = 0) {
+export function randomLaneX(playfield, padding = 0, random = Math.random) {
   const min = playfield.minX + padding;
   const max = playfield.maxX - padding;
-  return min + Math.random() * Math.max(1, max - min);
+  return min + random() * Math.max(1, max - min);
 }
 
 export function clampToLane(playfield, x, padding = 0) {
@@ -90,7 +90,7 @@ export function createPlayfieldContext(state) {
       return laneX(state.playfield, fraction);
     },
     randomX(padding = 0) {
-      return randomLaneX(state.playfield, padding);
+      return randomLaneX(state.playfield, padding, state.random);
     },
     clampX(x, padding = 0) {
       return clampToLane(state.playfield, x, padding);

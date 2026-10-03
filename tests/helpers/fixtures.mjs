@@ -1,4 +1,5 @@
 import { createStageDirector } from "../../src/core/director.js";
+import { rand } from "../../src/core/math.js";
 import { createGameState } from "../../src/state/gameState.js";
 import { createPlayfield, createPlayfieldContext } from "../../src/state/playfieldState.js";
 import { createPlayerState } from "../../src/state/playerState.js";
@@ -6,8 +7,8 @@ import { buildEntityBuckets } from "../../src/entities/entityBuckets.js";
 import { handleCollisions } from "../../src/systems/collisionSystem.js";
 import { spawnPickup, spawnScoreShards } from "../../src/systems/pickupSystem.js";
 
-export function makeState({ width = 1280, height = 720, started = true } = {}) {
-  const state = createGameState();
+export function makeState({ width = 1280, height = 720, started = true, seed = null } = {}) {
+  const state = createGameState({ seed });
   state.started = started;
   state.view.width = width;
   state.view.height = height;
@@ -72,6 +73,8 @@ export function makeBossContext(state, player, overrides = {}) {
   return {
     view: state.view,
     player,
+    random: () => state.random(),
+    rand: (min, max) => rand(min, max, state.random),
     playfield: createPlayfieldContext(state),
     director: createStageDirector(state),
     loopIndex: 0,
@@ -139,6 +142,8 @@ export function makeContentContext() {
     spawnEnemyCalls,
     spawnPickupCalls,
     spawnScoreShardCalls,
+    random: () => Math.random(),
+    rand: (min, max) => rand(min, max),
     loopIndex: 1,
     playfield,
     director: {

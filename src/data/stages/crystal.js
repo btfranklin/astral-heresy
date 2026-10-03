@@ -1,4 +1,4 @@
-import { lerp, rand } from "../../core/math.js";
+import { lerp } from "../../core/math.js";
 import { scaledCount } from "../../core/director.js";
 import { emitAimedBurst, emitRadial, emitSpiral } from "../patterns.js";
 import { gateRecurringWave, runOneShotEncounter } from "../stageRuntime.js";
@@ -40,8 +40,8 @@ export const stageCrystal = {
         ctx.spawnEnemy("shard", {
           x: lane.randomX(40),
           y: -40,
-          vx: rand(-30, 30),
-          vy: rand(70, 110),
+          vx: ctx.rand(-30, 30),
+          vy: ctx.rand(70, 110),
           fire(enemy, dtInner) {
             const ai = enemy.components.ai;
             const pos = enemy.components.position;
@@ -51,9 +51,9 @@ export const stageCrystal = {
               emitRadial(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(10, gate.bulletScale, 6), 160, {
                 r: 3,
                 color: "#a5d9ff",
-                turn: rand(-0.8, 0.8),
+                turn: ctx.rand(-0.8, 0.8),
               });
-              ai.nextShot = 1.8 + Math.random() * 0.3;
+              ai.nextShot = 1.8 + ctx.random() * 0.3;
             }
           },
         });
@@ -61,8 +61,8 @@ export const stageCrystal = {
           ctx.spawnEnemy("shard", {
             x: lane.randomX(44),
             y: -44,
-            vx: rand(-44, 44),
-            vy: rand(86, 120),
+            vx: ctx.rand(-44, 44),
+            vy: ctx.rand(86, 120),
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
               const pos = enemy.components.position;
@@ -72,7 +72,7 @@ export const stageCrystal = {
                 emitRadial(ctx.spawnEnemyBullet, pos.x, pos.y, scaledCount(6, gate.bulletScale, 4), 170, {
                   r: 3,
                   color: "#d8f0ff",
-                  turn: rand(-0.5, 0.5),
+                  turn: ctx.rand(-0.5, 0.5),
                 });
                 ai.nextShot = 1.35;
               }
@@ -130,7 +130,7 @@ export const stageCrystal = {
           ctx.spawnEnemy("shard", {
             x: lane.randomX(56),
             y: -28,
-            vx: rand(-42, 42),
+            vx: ctx.rand(-42, 42),
             vy: 105,
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
@@ -147,7 +147,7 @@ export const stageCrystal = {
                   {
                     r: 3,
                     color: "#a5d9ff",
-                    turn: rand(-0.9, 0.9),
+                    turn: ctx.rand(-0.9, 0.9),
                   }
                 );
                 ai.nextShot = 1.45;
@@ -167,12 +167,12 @@ export const stageCrystal = {
         priority: "normal",
       });
       if (gate) {
-        const sign = Math.random() < 0.5 ? -1 : 1;
+        const sign = ctx.random() < 0.5 ? -1 : 1;
         ctx.spawnEnemy("harp", {
           x: sign < 0 ? lane.leftEdge - 40 : lane.rightEdge + 40,
-          y: rand(80, ctx.view.height * 0.35),
-          vx: -sign * rand(80, 120),
-          vy: rand(10, 30),
+          y: ctx.rand(80, ctx.view.height * 0.35),
+          vx: -sign * ctx.rand(80, 120),
+          vy: ctx.rand(10, 30),
           fire(enemy, dtInner) {
             const ai = enemy.components.ai;
             const pos = enemy.components.position;
@@ -199,7 +199,7 @@ export const stageCrystal = {
         if (burstEscort && gate.escortScale > 0.5) {
           ctx.spawnEnemy("shard", {
             x: sign < 0 ? lane.rightEdge + 30 : lane.leftEdge - 30,
-            y: rand(100, ctx.view.height * 0.32),
+            y: ctx.rand(100, ctx.view.height * 0.32),
             vx: sign * 130,
             vy: 24,
             fire(enemy, dtInner) {

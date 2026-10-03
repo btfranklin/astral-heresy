@@ -30,7 +30,7 @@ export function spawnPickup(state, kind, x, y, overrides = {}, spawnOptions = {}
 
   return addEntity(
     state,
-    createEntity("pickup", {
+    createEntity(state, "pickup", {
       position: position(spawnX, y),
       velocity: velocity(overrides.vx ?? 0, overrides.vy ?? 54),
       collider: collider(radius),
@@ -70,7 +70,7 @@ export function spawnScoreShards(state, x, y, count = 4, options = {}, spawnOpti
     shards.push(
       addEntity(
         state,
-        createEntity("scoreShard", {
+        createEntity(state, "scoreShard", {
           position: position(spawnX, y),
           velocity: velocity(Math.cos(angle) * speed, Math.sin(angle) * speed - 20),
           collider: collider(radius),

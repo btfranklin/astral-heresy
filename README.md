@@ -21,6 +21,10 @@ Then open `http://127.0.0.1:7666/`.
 `./scripts/play.sh` chooses a fresh local port for each run so Safari cannot reuse native modules from an older source revision. You can pin it when needed with `PORT=8686 ./scripts/play.sh`.
 The local server also disables browser caching so subsequent reloads keep one consistent ES-module graph.
 
+For repeatable gameplay, open `http://127.0.0.1:7666/?seed=42`. Restart uses the
+same seed. See [`docs/RUNTIME.md`](./docs/RUNTIME.md) for the seed controls and
+the conditions needed to repeat a run.
+
 ## Repository Map
 
 - [`AGENTS.md`](./AGENTS.md): short task router for coding agents

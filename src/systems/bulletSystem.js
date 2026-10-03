@@ -8,7 +8,7 @@ export function spawnEnemyBullet(state, x, y, angle, speed, opts = {}) {
   const vy = Math.sin(angle) * speed;
   return addEntity(
     state,
-    createEntity("enemyBullet", {
+    createEntity(state, "enemyBullet", {
       position: position(x, y),
       velocity: velocity(vx, vy),
       collider: collider(opts.r || 4),
@@ -22,7 +22,7 @@ export function spawnEnemyBullet(state, x, y, angle, speed, opts = {}) {
         damage: opts.damage ?? 1,
         source: "enemy",
       }),
-      bullet: bulletMotion(opts),
+      bullet: bulletMotion(opts, state.random),
     })
   );
 }
@@ -33,7 +33,7 @@ export function spawnPlayerBullet(state, x, y, angle, speed, opts = {}) {
   state.shotsFired += 1;
   return addEntity(
     state,
-    createEntity("playerBullet", {
+    createEntity(state, "playerBullet", {
       position: position(x, y),
       velocity: velocity(vx, vy),
       collider: collider(opts.r || 3),
@@ -52,7 +52,7 @@ export function spawnPlayerBullet(state, x, y, angle, speed, opts = {}) {
         weakpointBrandDuration: opts.weakpointBrandDuration,
         source: "player",
       }),
-      bullet: bulletMotion({}),
+      bullet: bulletMotion({}, state.random),
     })
   );
 }

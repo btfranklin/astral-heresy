@@ -1,7 +1,7 @@
 export const TAU = Math.PI * 2;
 
-export function rand(min, max) {
-  return min + Math.random() * (max - min);
+export function rand(min, max, random = Math.random) {
+  return min + random() * (max - min);
 }
 
 export function clamp(value, min, max) {

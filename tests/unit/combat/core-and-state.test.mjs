@@ -231,7 +231,7 @@ test("game state and player state create and reset their defaults", () => {
   state.view.width = 1280;
   state.view.height = 720;
   state.started = true;
-  state.entities.push(createEntity("enemy", { position: position(0, 0) }));
+  state.entities.push(createEntity(state, "enemy", { position: position(0, 0) }));
   state.loopIndex = 1;
   resetGameState(state);
   assert.equal(state.started, false);
@@ -256,7 +256,7 @@ test("run reset helpers centralize fresh starts and loop transitions", () => {
   const player = createPlayerState(1280, 720);
 
   state.started = true;
-  state.entities.push(createEntity("enemy", { position: position(0, 0) }));
+  state.entities.push(createEntity(state, "enemy", { position: position(0, 0) }));
   player.hp = 1;
   player.weaponMode = "beam";
   player.weaponLabel = "Beam";
@@ -329,6 +329,7 @@ test("playfield helpers compute lane geometry, envelopes, and context projection
 });
 
 test("entity factory, components, buckets, and particles behave deterministically", async () => {
+  const { state } = makeState();
   const buckets = createEntityBuckets();
   assert.deepEqual(Object.keys(buckets), ["enemies", "enemyBullets", "playerBullets", "pickups", "scoreShards", "particles"]);
 
@@ -340,8 +341,8 @@ test("entity factory, components, buckets, and particles behave deterministicall
     assert.equal(seededAttack.pierce, 1);
   });
 
-  const entityA = createEntity("enemy", { position: position(1, 2), velocity: velocity(3, 4) });
-  const entityB = createEntity("pickup", {
+  const entityA = createEntity(state, "enemy", { position: position(1, 2), velocity: velocity(3, 4) });
+  const entityB = createEntity(state, "pickup", {
     pickup: pickup({ kind: "spread", duration: 10 }),
     collider: collider(12),
     render: render({ color: "#fff" }),
@@ -354,13 +355,12 @@ test("entity factory, components, buckets, and particles behave deterministicall
   assert.equal(entityB.id > entityA.id, true);
   assert.equal(entityB.components.reward.dropKey, "spread");
 
-  const { state } = makeState();
   addEntity(state, entityA);
-  addEntity(state, createEntity("enemyBullet", { position: position(0, 0) }));
-  addEntity(state, createEntity("playerBullet", { position: position(0, 0) }));
+  addEntity(state, createEntity(state, "enemyBullet", { position: position(0, 0) }));
+  addEntity(state, createEntity(state, "playerBullet", { position: position(0, 0) }));
   addEntity(state, entityB);
-  addEntity(state, createEntity("scoreShard", { position: position(0, 0) }));
-  addEntity(state, createEntity("particle", { position: position(0, 0), lifetime: lifetime(1), render: render({ size: 2 }) }));
+  addEntity(state, createEntity(state, "scoreShard", { position: position(0, 0) }));
+  addEntity(state, createEntity(state, "particle", { position: position(0, 0), lifetime: lifetime(1), render: render({ size: 2 }) }));
   const built = buildEntityBuckets(state);
   assert.equal(built.enemies.length, 1);
   assert.equal(built.enemyBullets.length, 1);

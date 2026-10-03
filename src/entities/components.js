@@ -37,12 +37,12 @@ export function attack(options = {}) {
   };
 }
 
-export function bulletMotion(options) {
+export function bulletMotion(options, random = Math.random) {
   return {
     turn: options.turn || 0,
     homing: options.homing || 0,
     wobble: options.wobble || 0,
-    seed: options.seed || Math.random() * Math.PI * 2,
+    seed: options.seed ?? random() * Math.PI * 2,
   };
 }
 

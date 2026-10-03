@@ -1,4 +1,5 @@
 import { createPlayfield } from "./playfieldState.js";
+import { createRandom } from "./random.js";
 
 export function createScoreBonuses() {
   return {
@@ -88,9 +89,12 @@ function createDefaults(width = 0, height = 0) {
   };
 }
 
-export function createGameState() {
+export function createGameState({ seed = null } = {}) {
   return {
     ...createDefaults(),
+    randomSeed: seed,
+    random: createRandom(seed),
+    nextEntityId: 1,
     input: {
       pointerEnabled: true,
     },
@@ -104,7 +108,11 @@ export function createGameState() {
 }
 
 export function resetGameState(state) {
+  const randomSeed = state.randomSeed;
   Object.assign(state, createDefaults(state.view.width, state.view.height));
+  state.randomSeed = randomSeed;
+  state.random = createRandom(randomSeed);
+  state.nextEntityId = 1;
   state.input = {
     pointerEnabled: true,
   };

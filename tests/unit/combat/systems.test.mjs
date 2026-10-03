@@ -106,7 +106,7 @@ test("enemy and movement systems merge archetypes, run ai hooks, clamp lane drif
   });
   assert.equal(shardRewardEnemy.components.reward.scoreShardCount, 3);
 
-  const mover = createEntity("particle", {
+  const mover = createEntity(state, "particle", {
     position: position(10, 20),
     velocity: velocity(100, -50),
   });

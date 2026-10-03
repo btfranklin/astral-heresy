@@ -1,4 +1,4 @@
-import { lerp, rand } from "../../core/math.js";
+import { lerp } from "../../core/math.js";
 import { scaledCount } from "../../core/director.js";
 import { emitAimedBurst, emitRadial, emitSpiral } from "../patterns.js";
 import { gateRecurringWave, runOneShotEncounter } from "../stageRuntime.js";
@@ -36,14 +36,14 @@ export const stageNebula = {
         priority: "normal",
       });
       if (gate) {
-        const side = Math.random() < 0.5 ? -1 : 1;
+        const side = ctx.random() < 0.5 ? -1 : 1;
         const startX = side < 0 ? lane.leftEdge - 42 : lane.rightEdge + 42;
         const primaryBurst = t < 10 ? 2 : scaledCount(4, gate.bulletScale, 2);
         ctx.spawnEnemy("cherub", {
           x: startX,
-          y: rand(90, ctx.view.height * 0.34),
-          vx: -side * rand(86, 132),
-          vy: rand(20, 44),
+          y: ctx.rand(90, ctx.view.height * 0.34),
+          vx: -side * ctx.rand(86, 132),
+          vy: ctx.rand(20, 44),
           behavior(enemy, dtInner) {
             const vel = enemy.components.velocity;
             if (!vel) return;
@@ -59,16 +59,16 @@ export const stageNebula = {
                 r: 4,
                 color: "#ffa7f0",
               });
-              ai.nextShot = 1.7 + Math.random() * 0.35;
+              ai.nextShot = 1.7 + ctx.random() * 0.35;
             }
           },
         });
         if (escortActive && gate.escortScale > 0.5) {
           ctx.spawnEnemy("cherub", {
             x: side < 0 ? lane.rightEdge + 38 : lane.leftEdge - 38,
-            y: rand(110, ctx.view.height * 0.36),
-            vx: side * rand(108, 144),
-            vy: rand(16, 28),
+            y: ctx.rand(110, ctx.view.height * 0.36),
+            vx: side * ctx.rand(108, 144),
+            vy: ctx.rand(16, 28),
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
               const pos = enemy.components.position;
@@ -109,7 +109,7 @@ export const stageNebula = {
           x: lane.randomX(48),
           y: -30,
           vx: 0,
-          vy: rand(50, 78),
+          vy: ctx.rand(50, 78),
           fire(enemy, dtInner) {
             const ai = enemy.components.ai;
             const pos = enemy.components.position;
@@ -119,7 +119,7 @@ export const stageNebula = {
               emitRadial(ctx.spawnEnemyBullet, pos.x, pos.y, haloCount, 120, {
                 r: 3,
                 color: "#85c7ff",
-                turn: t < 12 ? rand(-0.26, 0.26) : rand(-0.4, 0.4),
+                turn: t < 12 ? ctx.rand(-0.26, 0.26) : ctx.rand(-0.4, 0.4),
               });
               ai.nextShot = 2.45;
             }
@@ -129,8 +129,8 @@ export const stageNebula = {
           ctx.spawnEnemy("cherub", {
             x: lane.randomX(52),
             y: -26,
-            vx: rand(-40, 40),
-            vy: rand(98, 132),
+            vx: ctx.rand(-40, 40),
+            vy: ctx.rand(98, 132),
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
               const pos = enemy.components.position;
@@ -171,8 +171,8 @@ export const stageNebula = {
           x: lane.randomX(56),
           y: -20,
           vx: 0,
-          vy: rand(40, 68),
-          wobble: rand(1.8, 2.6),
+          vy: ctx.rand(40, 68),
+          wobble: ctx.rand(1.8, 2.6),
           behavior(enemy, dtInner) {
             const pos = enemy.components.position;
             const ai = enemy.components.ai;
@@ -198,8 +198,8 @@ export const stageNebula = {
           ctx.spawnEnemy("cherub", {
             x: lane.randomX(60),
             y: -28,
-            vx: rand(-60, 60),
-            vy: rand(92, 128),
+            vx: ctx.rand(-60, 60),
+            vy: ctx.rand(92, 128),
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
               const pos = enemy.components.position;

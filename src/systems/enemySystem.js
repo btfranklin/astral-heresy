@@ -18,7 +18,7 @@ export function spawnEnemy(state, archetypeKey, overrides = {}, spawnOptions = {
       : opts.x;
   return addEntity(
     state,
-    createEntity("enemy", {
+    createEntity(state, "enemy", {
       position: position(spawnX, opts.y),
       velocity: velocity(opts.vx ?? 0, opts.vy ?? 40),
       collider: collider(radius),

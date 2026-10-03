@@ -34,6 +34,8 @@ Each stage object currently provides:
 - `view`
 - `player`
 - `loopIndex`
+- `random()`
+- `rand(min, max)`
 - `playfield`
 - `director`
 - `spawnEnemyBullet(x, y, angle, speed, opts)`
@@ -44,6 +46,11 @@ Stage `update()` owns:
 
 - enemy spawn timing
 - enemy movement/fire closures
+
+Use `ctx.random()` and `ctx.rand(min, max)` for gameplay random values. The
+runtime reads the generator owned by game state, including after a restart.
+`playfield.randomX(padding)` uses the same sequence. Direct calls to
+`Math.random()` in authored content would bypass seeded runs.
 
 The runtime stage system owns the transition into `bossKey` once the accumulated
 stage time reaches `duration`; authored `update()` functions only produce the

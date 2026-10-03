@@ -9,6 +9,10 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
 - Desktop combat space is owned by `state.playfield` and the stage director. Authored stage and boss content should use playfield geometry instead of ad hoc viewport math.
 - Stage density gating is authoritative within a frame. `gateWave()` decisions budget against live plus reserved capacity, so later waves in the same tick must not assume the original density snapshot still applies.
 - Runtime inspection surfaces stay explicit and local: use `window.__astralHeresy`, render-study mode, the deterministic Node harnesses, and the Chromium contract suite instead of one-off debug branches.
+- Seeded gameplay uses the generator owned by game state. Stage content uses
+  `ctx.random()` or `ctx.rand(min, max)`. Fresh resets restart the sequence and
+  entity IDs; loop transitions continue them. Drawing and audio must not
+  consume gameplay random values.
 - Audio observes a projected scalar world and never mutates gameplay. Native
   Web Audio is the complete baseline; the memory worklet is a graceful
   enhancement.
@@ -75,6 +79,8 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 - `node scripts/run_fast_tests.mjs combat`
   - Primary fast lane for graze, burst, chain, density gating, boss damage rules, loop transitions, and authored encounter fallback behavior.
   - Includes coverage that every authored one-shot stage beat honors the stage director's retry delay before spawning.
+  - Checks seed bounds, independent game sequences, entity IDs, and random
+    choices across fresh resets and loop transitions.
 - `node scripts/check_combat_smoke.mjs`
   - Compatibility wrapper for the `combat` fast-test group.
 - `node scripts/check_powerup_smoke.mjs`
@@ -92,6 +98,8 @@ Run the smallest lane that actually covers the change, then widen out if the edi
 - `node scripts/check_runtime_browser_smoke.mjs`
   - Required for changes to startup, DOM/input lifecycle, visibility, viewport geometry, Canvas/WebGL, Web Audio, animation scheduling, or teardown.
   - Captures current-run screenshots for startup and representative render-study scenes while using pixel and browser-error assertions as the automated rendering gate.
+  - Checks seeded gameplay after restart and reload with fixed input and
+    update time steps through the public runtime controls.
 - Installed Safari manual smoke
   - Required after changing the native-module graph, local serving path, or startup flow, and when repairing a Safari-reported regression.
   - Launch with `./scripts/play.sh`, click `Launch Sortie`, confirm active gameplay begins, and check Safari's JavaScript console for startup errors.

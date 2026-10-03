@@ -8,7 +8,7 @@ export function spawnParticle(state, x, y, color, count, speed, life, size, shap
     const spd = rand(speed * 0.4, speed);
     addEntity(
       state,
-      createEntity("particle", {
+      createEntity(state, "particle", {
         position: position(x, y),
         velocity: velocity(Math.cos(ang) * spd, Math.sin(ang) * spd),
         lifetime: lifetime(life),

@@ -1,4 +1,4 @@
-import { lerp, rand } from "../../core/math.js";
+import { lerp } from "../../core/math.js";
 import { scaledCount } from "../../core/director.js";
 import { emitAimedBurst, emitRadial, emitSpiral } from "../patterns.js";
 import { gateRecurringWave, runOneShotEncounter } from "../stageRuntime.js";
@@ -40,8 +40,8 @@ export const stageAbyss = {
         ctx.spawnEnemy("spear", {
           x: baseX,
           y: -30,
-          vx: rand(-40, 40),
-          vy: rand(90, 130),
+          vx: ctx.rand(-40, 40),
+          vy: ctx.rand(90, 130),
           fire(enemy, dtInner) {
             const ai = enemy.components.ai;
             const pos = enemy.components.position;
@@ -58,10 +58,10 @@ export const stageAbyss = {
         });
         if (gate.escortScale > 0.5) {
           ctx.spawnEnemy("spear", {
-            x: lane.clampX(baseX + rand(-72, 72), 40),
+            x: lane.clampX(baseX + ctx.rand(-72, 72), 40),
             y: -54,
-            vx: rand(-32, 32),
-            vy: rand(104, 142),
+            vx: ctx.rand(-32, 32),
+            vy: ctx.rand(104, 142),
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
               const pos = enemy.components.position;
@@ -113,7 +113,7 @@ export const stageAbyss = {
           ctx.spawnEnemy("spear", {
             x: lane.randomX(56),
             y: -34,
-            vx: rand(-70, 70),
+            vx: ctx.rand(-70, 70),
             vy: 120,
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
@@ -209,7 +209,7 @@ export const stageAbyss = {
           for (const laneFraction of [0.22, 0.34, 0.5, 0.66, 0.78]) {
             ctx.spawnEnemy("spear", {
               x: lane.laneX(laneFraction),
-              y: -40 - rand(0, 40),
+              y: -40 - ctx.rand(0, 40),
               vx: 0,
               vy: 126,
               hp: inLoopTwo ? 5 : 4,
