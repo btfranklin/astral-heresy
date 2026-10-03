@@ -84,6 +84,24 @@ test("enemy hit pass spends bullets and routes kill rewards", () => {
   assert.equal(state.kills, 1);
 });
 
+test("enemy hit pass applies simultaneous shots and stops when the target dies", () => {
+  for (const hp of [10, 2]) {
+    const { state, player } = makeState();
+    const enemy = spawnEnemy(state, "cherub", { x: 640, y: 200, hp, vx: 0, vy: 0 });
+    const bullets = Array.from({ length: 3 }, () =>
+      spawnPlayerBullet(state, 640, 200, 0, 0, { damage: 1 })
+    );
+
+    resolveEnemyHits(makeCollisionContext(state, player, makeAudioSpy()));
+
+    const hitCount = Math.min(hp, bullets.length);
+    assert.equal(enemy.components.health.hp, hp - hitCount);
+    assert.equal(state.shotsHit, hitCount);
+    assert.equal(bullets.filter((bullet) => bullet.dead).length, hitCount);
+    assert.equal(state.kills, hp <= bullets.length ? 1 : 0);
+  }
+});
+
 test("collection pass handles pickups and score shards together", () => {
   const { state, player } = makeState();
   const audio = makeAudioSpy();

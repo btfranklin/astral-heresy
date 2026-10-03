@@ -97,7 +97,7 @@ export function resolvePlayerBulletEnemyHits({
       const dx = enemyPos.x - bulletPos.x;
       const dy = enemyPos.y - bulletPos.y;
       if (dx * dx + dy * dy < (enemyCol.r + bulletCol.r) ** 2) {
-        const hitApplied = damageEnemy(
+        damageEnemy(
           state,
           player,
           enemy,
@@ -108,7 +108,7 @@ export function resolvePlayerBulletEnemyHits({
           spawnPickupEntity,
           spawnScoreShardEntities
         );
-        if (hitApplied) break;
+        if (enemy.dead) break;
       }
     }
   }
