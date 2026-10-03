@@ -408,8 +408,11 @@ test("uses native keyboard, pointer, blur, visibility, and restart behavior", as
   ).toEqual({ visibilityState: "hidden", fire: false, left: false, pointerFire: false });
 
   await launchWithClick(page);
-  await page.keyboard.press("m");
+  await page.keyboard.down("m");
   await expect.poll(() => page.evaluate(() => window.__astralHeresy.state.input.pointerEnabled)).toBe(false);
+  await page.keyboard.down("m");
+  expect(await page.evaluate(() => window.__astralHeresy.state.input.pointerEnabled)).toBe(false);
+  await page.keyboard.up("m");
 
   await page.evaluate(() => {
     window.__astralHeresy.state.over = true;

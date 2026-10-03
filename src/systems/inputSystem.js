@@ -34,7 +34,7 @@ export function createInputSystem(state, gameCanvas) {
   function onKeyDown(event) {
     if (controlKeys.has(event.code)) event.preventDefault();
     if (event.code === "KeyM") {
-      state.input.pointerEnabled = state.input.pointerEnabled === false;
+      if (!event.repeat) state.input.pointerEnabled = state.input.pointerEnabled === false;
       return;
     }
     state.input[event.code] = true;

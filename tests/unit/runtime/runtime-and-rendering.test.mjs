@@ -102,6 +102,9 @@ test("input orchestration attaches handlers, updates state, resets held controls
     assert.equal(toggleEvent.defaultPrevented, true);
     assert.equal(state.input.pointerEnabled, false);
 
+    documentTarget.emit("keydown", { code: "KeyM", repeat: true });
+    assert.equal(state.input.pointerEnabled, false, "A held key must change the mode only once.");
+
     documentTarget.emit("keydown", { code: "KeyZ" });
     documentTarget.emit("keydown", { code: "KeyA" });
     canvas.emit("pointerdown", { clientX: 30, clientY: 40 });
