@@ -284,6 +284,25 @@ test("keeps idle animation callbacks alive while invalidating only changed rende
   });
 });
 
+test("keeps the background glow at the ship position", async ({ page, browserErrors: _browserErrors }) => {
+  await openGame(page);
+  const samples = await page.evaluate(() => {
+    const game = window.__astralHeresy;
+    const gl = document.getElementById("bg").getContext("webgl");
+    const pixel = new Uint8Array(4);
+    function readGreen(playerY) {
+      game.player.x = 640;
+      game.player.y = playerY;
+      game.advanceTime(0);
+      gl.readPixels(640, 100, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+      return pixel[1];
+    }
+    return { far: readGreen(120), near: readGreen(620), error: gl.getError() };
+  });
+  expect(samples.near - samples.far).toBeGreaterThan(10);
+  expect(samples.error).toBe(0);
+});
+
 test("projects representative gameplay state into the real HUD DOM", async ({
   page,
   browserErrors: _browserErrors,

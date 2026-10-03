@@ -259,7 +259,7 @@ test("WebGL rendering memoizes scalar signatures and uses its resized buffer sca
     gl.calls.find(
       (call) => call.type === "uniform2f" && call.args[0].name === "u_player"
     ).args.slice(1),
-    [640 * (1919 / 1280), 620 * (1079 / 720)]
+    [640 * (1919 / 1280), (720 - 620) * (1079 / 720)]
   );
 
   state.pulse = 0.5;

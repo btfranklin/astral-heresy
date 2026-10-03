@@ -179,7 +179,7 @@ export function createBackgroundRenderer(gl) {
     const scaleX = bufferWidth ? bufferScaleX : state.view.dpr;
     const scaleY = bufferHeight ? bufferScaleY : state.view.dpr;
     const playerX = player.x * scaleX;
-    const playerY = player.y * scaleY;
+    const playerY = (state.view.height - player.y) * scaleY;
     const laneMin = state.playfield.minX * scaleX;
     const laneMax = state.playfield.maxX * scaleX;
     const laneActive = state.playfield.active ? 1 : 0;
