@@ -64,6 +64,14 @@ continuous effect before idle drawing settles. The WebGL renderer also skips an
 identical scalar render signature, and `advanceTime()` always forces the Canvas
 projection synchronously.
 
+The WebGL background renderer owns `webglcontextlost` and
+`webglcontextrestored` listeners on its canvas. It prevents the default loss
+behavior, skips draws while the context is unavailable, then rebuilds its
+program and buffer and reapplies the latest viewport when the browser restores
+the context. It clears its render memo and marks the main loop dirty so an idle
+game draws the recovered background. Gameplay state stays in the composition
+root and does not change during this recovery.
+
 The opt-in Playwright performance lane observes this browser-owned loop from
 outside production modules. Timed RAF/CDP sampling and the separate untimed
 Canvas/DOM/allocation pass live under `tests/performance/`; production renderers

@@ -114,16 +114,16 @@ function createProgram(gl, vsSourceCode, fsSourceCode) {
   return program;
 }
 
-export function createBackgroundRenderer(gl) {
-  const program = createProgram(gl, vsSource, fsSource);
-  if (!program) {
-    throw new Error("Unable to initialize the WebGL background renderer.");
-  }
+export function createBackgroundRenderer(gl, { onRenderInvalidated } = {}) {
   let disposed = false;
+  let contextLost = false;
   let bufferWidth = 0;
   let bufferHeight = 0;
   let bufferScaleX = 1;
   let bufferScaleY = 1;
+  let layoutWidth = 0;
+  let layoutHeight = 0;
+  let layoutDpr = 1;
   const lastRender = {
     valid: false,
     resolutionWidth: 0,
@@ -136,44 +136,86 @@ export function createBackgroundRenderer(gl) {
     laneMax: 0,
     laneActive: 0,
   };
-  const attribs = {
-    a_position: gl.getAttribLocation(program, "a_position"),
-  };
-  const uniforms = {
-    u_resolution: gl.getUniformLocation(program, "u_resolution"),
-    u_time: gl.getUniformLocation(program, "u_time"),
-    u_player: gl.getUniformLocation(program, "u_player"),
-    u_pulse: gl.getUniformLocation(program, "u_pulse"),
-    u_lane: gl.getUniformLocation(program, "u_lane"),
-    u_laneActive: gl.getUniformLocation(program, "u_laneActive"),
-  };
+  function createResources() {
+    const program = createProgram(gl, vsSource, fsSource);
+    if (!program) return null;
+    const buffer = gl.createBuffer();
+    if (!buffer) {
+      gl.deleteProgram(program);
+      return null;
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+      gl.STATIC_DRAW
+    );
+    return {
+      program,
+      buffer,
+      attribs: { a_position: gl.getAttribLocation(program, "a_position") },
+      uniforms: {
+        u_resolution: gl.getUniformLocation(program, "u_resolution"),
+        u_time: gl.getUniformLocation(program, "u_time"),
+        u_player: gl.getUniformLocation(program, "u_player"),
+        u_pulse: gl.getUniformLocation(program, "u_pulse"),
+        u_lane: gl.getUniformLocation(program, "u_lane"),
+        u_laneActive: gl.getUniformLocation(program, "u_laneActive"),
+      },
+    };
+  }
 
-  const buffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-    gl.STATIC_DRAW
-  );
+  let resources = createResources();
+  if (!resources) {
+    throw new Error("Unable to initialize the WebGL background renderer.");
+  }
 
-  function resize(width, height, dpr) {
-    if (disposed) return;
+  function updateViewport() {
     bufferWidth =
       Number.isFinite(gl.drawingBufferWidth) && gl.drawingBufferWidth > 0
         ? gl.drawingBufferWidth
-        : Math.floor(width * dpr);
+        : Math.floor(layoutWidth * layoutDpr);
     bufferHeight =
       Number.isFinite(gl.drawingBufferHeight) && gl.drawingBufferHeight > 0
         ? gl.drawingBufferHeight
-        : Math.floor(height * dpr);
-    bufferScaleX = width > 0 ? bufferWidth / width : dpr;
-    bufferScaleY = height > 0 ? bufferHeight / height : dpr;
-    lastRender.valid = false;
+        : Math.floor(layoutHeight * layoutDpr);
+    bufferScaleX = layoutWidth > 0 ? bufferWidth / layoutWidth : layoutDpr;
+    bufferScaleY = layoutHeight > 0 ? bufferHeight / layoutHeight : layoutDpr;
     gl.viewport(0, 0, bufferWidth, bufferHeight);
   }
 
+  function handleContextLost(event) {
+    if (disposed) return;
+    event.preventDefault();
+    contextLost = true;
+    lastRender.valid = false;
+  }
+
+  function handleContextRestored() {
+    if (disposed) return;
+    resources = createResources();
+    if (!resources) return;
+    contextLost = false;
+    updateViewport();
+    lastRender.valid = false;
+    onRenderInvalidated?.();
+  }
+
+  const canvas = gl.canvas;
+  canvas?.addEventListener?.("webglcontextlost", handleContextLost);
+  canvas?.addEventListener?.("webglcontextrestored", handleContextRestored);
+
+  function resize(width, height, dpr) {
+    if (disposed) return;
+    layoutWidth = width;
+    layoutHeight = height;
+    layoutDpr = dpr;
+    updateViewport();
+    lastRender.valid = false;
+  }
+
   function render(state, player) {
-    if (disposed) return false;
+    if (disposed || contextLost || gl.isContextLost?.()) return false;
     const resolutionWidth = bufferWidth || Math.floor(state.view.width * state.view.dpr);
     const resolutionHeight = bufferHeight || Math.floor(state.view.height * state.view.dpr);
     const scaleX = bufferWidth ? bufferScaleX : state.view.dpr;
@@ -199,6 +241,7 @@ export function createBackgroundRenderer(gl) {
       return false;
     }
 
+    const { program, buffer, attribs, uniforms } = resources;
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.enableVertexAttribArray(attribs.a_position);
@@ -229,10 +272,13 @@ export function createBackgroundRenderer(gl) {
     if (disposed) return;
     disposed = true;
     lastRender.valid = false;
+    canvas?.removeEventListener?.("webglcontextlost", handleContextLost);
+    canvas?.removeEventListener?.("webglcontextrestored", handleContextRestored);
+    if (contextLost) return;
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.useProgram(null);
-    gl.deleteBuffer?.(buffer);
-    gl.deleteProgram(program);
+    gl.deleteBuffer?.(resources.buffer);
+    gl.deleteProgram(resources.program);
   }
 
   return { resize, render, dispose };

@@ -179,6 +179,25 @@ Render-study mode:
 
 See [`generated/content-inventory.md`](./generated/content-inventory.md) for the current valid showcase keys.
 
+## WebGL Context Recovery
+
+The background renderer handles context loss and restoration on the `#bg`
+canvas. It rebuilds its GPU resources and invalidates the main render loop after
+restoration, including when the game is idle.
+
+To check this in a browser that supports `WEBGL_lose_context`, open the console
+and run:
+
+```js
+const gl = document.querySelector("#bg").getContext("webgl");
+const loss = gl.getExtension("WEBGL_lose_context");
+loss.loseContext();
+setTimeout(() => loss.restoreContext(), 500);
+```
+
+Wait for the background to return. It should recover without a page reload or a
+change to the current game state.
+
 ## Smoke Test Path
 
 Run this after gameplay, UI, or content edits:

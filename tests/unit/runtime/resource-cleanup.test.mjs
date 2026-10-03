@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { createAudioEngine } from "../../../src/audio/audioEngine.js";
 import { createBackgroundRenderer } from "../../../src/rendering/glBackground.js";
+import { createEventTargetRecorder, getListenerCount } from "../../helpers/runtimeFixture.mjs";
 
 function createParam() {
   return {
@@ -124,12 +125,14 @@ class DisposableAudioContext {
 
 function createWebGLRecorder() {
   const calls = [];
+  const canvas = createEventTargetRecorder();
   const record = (type, result) => (...args) => {
     calls.push({ type, args });
     return typeof result === "function" ? result(...args) : result;
   };
   return {
     calls,
+    canvas,
     COMPILE_STATUS: 1,
     LINK_STATUS: 2,
     VERTEX_SHADER: 3,
@@ -270,4 +273,50 @@ test("WebGL rendering memoizes scalar signatures and uses its resized buffer sca
   renderer.resize(1280, 720, 1.5);
   assert.equal(renderer.render(state, player), true);
   assert.equal(gl.calls.filter((call) => call.type === "drawArrays").length, 3);
+});
+
+test("WebGL context restoration rebuilds resources and disposal removes its listeners", () => {
+  const gl = createWebGLRecorder();
+  let invalidations = 0;
+  const renderer = createBackgroundRenderer(gl, { onRenderInvalidated: () => invalidations += 1 });
+  const state = {
+    time: 0,
+    pulse: 0,
+    view: { width: 800, height: 400, dpr: 2 },
+    playfield: { minX: 48, maxX: 752, active: true },
+  };
+  const player = { x: 400, y: 300 };
+  renderer.resize(800, 400, 2);
+  assert.equal(renderer.render(state, player), true);
+
+  const lostEvent = gl.canvas.emit("webglcontextlost");
+  assert.equal(lostEvent.defaultPrevented, true);
+  assert.equal(renderer.render(state, player), false);
+  assert.equal(gl.calls.filter((call) => call.type === "drawArrays").length, 1);
+
+  gl.drawingBufferWidth = 1200;
+  gl.drawingBufferHeight = 600;
+  gl.canvas.emit("webglcontextrestored");
+  assert.equal(invalidations, 1);
+  assert.equal(renderer.render(state, player), true);
+  assert.deepEqual(
+    gl.calls.filter((call) => call.type === "viewport").at(-1).args,
+    [0, 0, 1200, 600]
+  );
+  assert.deepEqual(
+    gl.calls.filter((call) => call.type === "uniform2f" && call.args[0].name === "u_player").at(-1).args.slice(1),
+    [600, 150]
+  );
+
+  renderer.dispose();
+  renderer.dispose();
+  assert.equal(getListenerCount(gl.canvas, "webglcontextlost"), 0);
+  assert.equal(getListenerCount(gl.canvas, "webglcontextrestored"), 0);
+  assert.equal(gl.calls.filter((call) => call.type === "createBuffer").length, 2);
+  assert.equal(gl.calls.filter((call) => call.type === "createProgram").length, 2);
+  assert.equal(gl.calls.filter((call) => call.type === "deleteBuffer").length, 1);
+  assert.equal(gl.calls.filter((call) => call.type === "deleteProgram").length, 1);
+  const programCount = gl.calls.filter((call) => call.type === "createProgram").length;
+  gl.canvas.emit("webglcontextrestored");
+  assert.equal(gl.calls.filter((call) => call.type === "createProgram").length, programCount);
 });

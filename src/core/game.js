@@ -49,7 +49,7 @@ export function createGame({
   const audio = createAudioEngine();
   const player = createPlayerState(window.innerWidth, window.innerHeight);
   const inputSystem = createInputSystem(state, gameCanvas);
-  const backgroundRenderer = createBackgroundRenderer(gl);
+  const backgroundRenderer = createBackgroundRenderer(gl, { onRenderInvalidated: invalidateRender });
   const canvasRenderer = createCanvasRenderer(ctx);
   const interfaceController = createInterfaceController(documentRoot);
   const showcaseConfig = getShowcaseConfig();

@@ -653,6 +653,37 @@ test("reuses DPR-aware glow, HUD, and normalized particle sprites", async ({
   );
 });
 
+test("restores the WebGL background after context loss while idle", async ({ page, browserErrors: _browserErrors }) => {
+  await openGame(page);
+  const initialDraws = await page.evaluate(() => {
+    const canvas = document.getElementById("bg");
+    const gl = canvas.getContext("webgl");
+    window.__contextLossExtension = gl.getExtension("WEBGL_lose_context");
+    if (!window.__contextLossExtension) throw new Error("Context-loss extension is unavailable.");
+    const drawArrays = gl.drawArrays.bind(gl);
+    gl.drawArrays = (...args) => {
+      drawArrays(...args);
+      const pixel = new Uint8Array(4);
+      gl.readPixels(640, 360, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+      window.__restoredSurface = {
+        pixel: [...pixel],
+        error: gl.getError(),
+        mode: window.__astralHeresy.renderGameToText(),
+      };
+    };
+    window.__contextLossExtension.loseContext();
+    return window.__browserTest.webglDraws;
+  });
+  await expect.poll(() => page.evaluate(() => document.getElementById("bg").getContext("webgl").isContextLost())).toBe(true);
+  await page.evaluate(() => window.__contextLossExtension.restoreContext());
+  await expect.poll(() => page.evaluate(() => document.getElementById("bg").getContext("webgl").isContextLost())).toBe(false);
+  await expect.poll(() => page.evaluate(() => window.__browserTest.webglDraws)).toBeGreaterThan(initialDraws);
+  const rendered = await page.evaluate(() => window.__restoredSurface);
+  expect(rendered.pixel.some((value) => value > 0)).toBe(true);
+  expect(rendered.error).toBe(0);
+  expect(JSON.parse(rendered.mode).mode).toBe("start");
+});
+
 test("dispose releases browser resources and ignores later browser events", async ({
   page,
   context,
