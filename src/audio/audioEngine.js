@@ -929,6 +929,19 @@ export function createAudioEngine({
         Math.ceil((currentTime - section.startAt) / section.plan.secondsPerStep)
       );
       section.skippedLateSteps += Math.max(0, nextValidStep - section.nextStep);
+      const currentStep = Math.max(
+        0,
+        Math.floor((currentTime - section.startAt) / section.plan.secondsPerStep)
+      );
+      const phraseIndex = Math.floor(currentStep / section.plan.stepsPerCycle);
+      if (phraseIndex !== section.planPhraseIndex) refreshScorePlan(section, phraseIndex);
+      const localStep = currentStep % section.plan.stepsPerCycle;
+      const chord = section.plan.chords.findLast(({ step }) => step <= localStep);
+      const chordStep = phraseIndex * section.plan.stepsPerCycle + chord.step;
+      if (chordStep < nextValidStep && !section.scheduledChordBanks.has(chordStep)) {
+        // Restore missed harmony now. New controls still wait for their beat or bar.
+        scheduleHarmonyChord(graph, section, chord, currentTime, chordStep);
+      }
       section.nextStep = nextValidStep;
       stepTime = section.startAt + section.nextStep * section.plan.secondsPerStep;
     }

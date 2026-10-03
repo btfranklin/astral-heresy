@@ -399,6 +399,107 @@ test("pending chords retain their crossfade when chain control changes", async (
   }
 });
 
+test("late score updates recover current harmony without replaying percussion", async (t) => {
+  for (const [name, returnAt, harmony, accompaniment, nextChordAt] of [
+    ["within a cycle", 5.2, [-2, 3, 7, 10], [-9, 7, 22, 22], 5.975],
+    ["across multiple cycles", 18.2, [0, 3, 8, 12], [-4, 3, 20, 24], 19.1],
+  ]) {
+    await t.test(name, async () => {
+      const context = new RecordingAudioContext();
+      const audio = createAudioEngine({
+        contextFactory: () => context,
+        enableWorklet: false,
+      });
+      audio.init();
+      audio.beginRun(makeAudioWorld());
+      context.advance(0.2);
+      audio.updateWorld(makeAudioWorld({ time: 0.2 }));
+      const sourceCount = context.sources.length;
+
+      context.advance(returnAt - context.currentTime);
+      audio.updateWorld(makeAudioWorld({ time: returnAt, chainRatio: 1 }));
+      const notesAt = (at) => context.oscillators.slice(5).flatMap(
+        ({ frequency }) => frequency.automation.filter(
+          (event) => event.method === "set" && Math.abs(event.at - at) < 1e-9
+        ).map(({ value }) => value)
+      );
+      const toFrequency = (semitones) => 164.81 * 2 ** (semitones / 12);
+      assert.deepEqual(notesAt(returnAt), harmony.map(toFrequency));
+      assert.deepEqual(context.oscillators.slice(0, 4).map(
+        ({ frequency }) => frequency.automation.findLast(
+          (event) => event.method === "target" && Math.abs(event.at - returnAt) < 1e-9
+        )?.value
+      ), accompaniment.map(toFrequency));
+      assert.equal(context.sources.length, sourceCount);
+
+      const pitchedVoices = context.oscillators.filter((_voice, index) => index !== 4);
+      const recoveredAutomation = pitchedVoices.map(
+        ({ frequency }) => [...frequency.automation]
+      );
+      context.advance(0.01);
+      audio.updateWorld(makeAudioWorld({ time: context.currentTime, chainRatio: 1 }));
+      assert.deepEqual(pitchedVoices.map(
+        ({ frequency }) => frequency.automation
+      ), recoveredAutomation);
+
+      context.advance(nextChordAt - 0.15 - context.currentTime);
+      audio.updateWorld(makeAudioWorld({ time: context.currentTime, chainRatio: 1 }));
+      assert.equal(notesAt(nextChordAt).length, 4);
+      assert.equal(notesAt(returnAt).length, 4);
+      await audio.dispose();
+    });
+  }
+});
+
+test("late score updates retain a chord that was already scheduled", async () => {
+  const context = new RecordingAudioContext();
+  const audio = createAudioEngine({ contextFactory: () => context, enableWorklet: false });
+  audio.init();
+  audio.beginRun(makeAudioWorld());
+  for (const at of [0.2, 2]) {
+    context.advance(at - context.currentTime);
+    audio.updateWorld(makeAudioWorld({ time: at }));
+  }
+  const pitchedVoices = context.oscillators.filter((_voice, index) => index !== 4);
+  const frequencies = pitchedVoices.map(({ frequency }) => [...frequency.automation]);
+  const bankGains = context.nodes.filter(
+    ({ gain }) => gain?.automation.some(
+      ({ method, at }) => method === "linear" && Math.abs(at - 2.385) < 1e-9
+    )
+  );
+  const crossfades = bankGains.map(({ gain }) => [...gain.automation]);
+
+  context.advance(1.4);
+  audio.updateWorld(makeAudioWorld({ time: 3.4 }));
+  assert.deepEqual(pitchedVoices.map(({ frequency }) => frequency.automation), frequencies);
+  assert.deepEqual(bankGains.map(({ gain }) => gain.automation), crossfades);
+  await audio.dispose();
+});
+
+test("stall return on a chord boundary schedules its notes once", async () => {
+  const context = new RecordingAudioContext();
+  const audio = createAudioEngine({ contextFactory: () => context, enableWorklet: false });
+  audio.init();
+  audio.beginRun(makeAudioWorld());
+  context.advance(0.2);
+  audio.updateWorld(makeAudioWorld({ time: 0.2 }));
+  context.advance(2.025);
+  audio.updateWorld(makeAudioWorld({ time: 2.225, chainRatio: 1 }));
+
+  const notes = context.oscillators.slice(5).flatMap(
+    ({ frequency }) => frequency.automation.filter(
+      ({ method, at }) => method === "set" && Math.abs(at - 2.225) < 1e-9
+    ).map(({ value }) => value)
+  );
+  assert.deepEqual(notes, [
+    164.81,
+    164.81 * 2 ** (3 / 12),
+    164.81 * 2 ** (8 / 12),
+    659.24,
+  ]);
+  await audio.dispose();
+});
+
 test("ending before the first downbeat cancels every future chord fade-in", async () => {
   const context = new RecordingAudioContext();
   const audio = createAudioEngine({
