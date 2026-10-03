@@ -697,7 +697,44 @@ test("reuses DPR-aware glow, HUD, and normalized particle sprites", async ({
   );
 });
 
-test("keeps launch and restart controls reachable on short viewports", async ({ page, browserErrors: _browserErrors }) => {
+test("opens the creator website with Enter without restarting defeat or victory results", async ({
+  context,
+  page,
+  browserErrors: _browserErrors,
+}, testInfo) => {
+  await context.route("https://btfranklin.info/**", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<title>Creator website test</title>" })
+  );
+  await openGame(page);
+  await launchWithClick(page);
+
+  for (const victory of [false, true]) {
+    await page.evaluate((isVictory) => {
+      const game = window.__astralHeresy;
+      game.state.over = true;
+      game.state.victory = isVictory;
+      game.player.hp = isVictory ? 5 : 0;
+      game.advanceTime(16);
+    }, victory);
+    await expect(page.locator("#end-screen")).toBeVisible();
+    await expect(page.getByRole("heading", { name: victory ? "Convergence Complete" : "Ship Lost", exact: true })).toBeVisible();
+    await expect.poll(() => page.locator("#end-screen").evaluate((screen) => getComputedStyle(screen).opacity)).toBe("1");
+    const link = page.getByRole("link", { name: "btfranklin.info", exact: true });
+    await expect(link).toBeInViewport({ ratio: 1 });
+    await page.screenshot({ path: testInfo.outputPath(`creator-credit-${victory ? "victory" : "defeat"}.png`) });
+    const [website] = await Promise.all([
+      context.waitForEvent("page", { timeout: 5000 }),
+      link.press("Enter"),
+    ]);
+    await expect(website).toHaveURL("https://btfranklin.info/");
+    expect(await website.evaluate(() => window.opener)).toBeNull();
+    await website.close();
+    await expect(page.locator("#end-screen")).toBeVisible();
+    expect(await page.evaluate(() => window.__astralHeresy.state.over)).toBe(true);
+  }
+});
+
+test("keeps launch, restart, and creator link reachable on short viewports", async ({ page, browserErrors: _browserErrors }, testInfo) => {
   for (const viewport of [{ width: 390, height: 420 }, { width: 1280, height: 360 }]) {
     await page.setViewportSize(viewport);
     await openGame(page);
@@ -711,9 +748,12 @@ test("keeps launch and restart controls reachable on short viewports", async ({ 
       window.__astralHeresy.player.hp = 0;
     });
     await expect(page.locator("#end-screen")).toBeVisible();
+    await expect.poll(() => page.locator("#end-screen").evaluate((screen) => getComputedStyle(screen).opacity)).toBe("1");
     await page.mouse.move(viewport.width / 2, viewport.height / 2);
     await page.mouse.wheel(0, 2000);
     await expect(page.getByRole("button", { name: "Fly Again" })).toBeInViewport({ ratio: 1 });
+    await expect(page.getByRole("link", { name: "btfranklin.info", exact: true })).toBeInViewport({ ratio: 1 });
+    await page.screenshot({ path: testInfo.outputPath(`creator-credit-${viewport.width}x${viewport.height}.png`) });
     await page.getByRole("button", { name: "Fly Again" }).click();
     await expect.poll(() => page.evaluate(() => window.__astralHeresy.state.over)).toBe(false);
   }

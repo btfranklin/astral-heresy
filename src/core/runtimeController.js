@@ -150,6 +150,7 @@ export function createRuntimeController({
     handlers.startClick = () => startGame();
     handlers.restartClick = () => resetGame(true);
     handlers.keydown = (event) => {
+      if (event.code === "Enter" && event.target?.closest?.("a[href]")) return;
       if (!state.started && event.code === "Enter") {
         startGame();
       } else if (state.over && (event.code === "Enter" || event.code === "KeyR")) {

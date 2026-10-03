@@ -681,6 +681,31 @@ canvas {
   text-wrap: pretty;
 }
 
+.creator-credit {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(231, 243, 255, 0.7);
+  text-wrap: pretty;
+}
+
+.creator-credit a {
+  color: #79ffe1;
+  text-underline-offset: 3px;
+}
+
+.creator-credit a:hover {
+  color: #f7ffff;
+}
+
+.creator-credit a:focus-visible {
+  outline: 2px solid rgba(247, 255, 255, 0.95);
+  outline-offset: 4px;
+}
+
 #end-screen {
   position: absolute;
   inset: 0;
