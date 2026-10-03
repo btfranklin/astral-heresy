@@ -653,6 +653,28 @@ test("reuses DPR-aware glow, HUD, and normalized particle sprites", async ({
   );
 });
 
+test("keeps launch and restart controls reachable on short viewports", async ({ page, browserErrors: _browserErrors }) => {
+  for (const viewport of [{ width: 390, height: 420 }, { width: 1280, height: 360 }]) {
+    await page.setViewportSize(viewport);
+    await openGame(page);
+    await expect(page.getByRole("heading", { name: "Astral Heresy" })).toBeInViewport({ ratio: 1 });
+    await page.mouse.move(viewport.width / 2, viewport.height / 2);
+    await page.mouse.wheel(0, 2000);
+    await expect(page.getByRole("button", { name: "Launch Sortie" })).toBeInViewport({ ratio: 1 });
+    await launchWithClick(page);
+    await page.evaluate(() => {
+      window.__astralHeresy.state.over = true;
+      window.__astralHeresy.player.hp = 0;
+    });
+    await expect(page.locator("#end-screen")).toBeVisible();
+    await page.mouse.move(viewport.width / 2, viewport.height / 2);
+    await page.mouse.wheel(0, 2000);
+    await expect(page.getByRole("button", { name: "Fly Again" })).toBeInViewport({ ratio: 1 });
+    await page.getByRole("button", { name: "Fly Again" }).click();
+    await expect.poll(() => page.evaluate(() => window.__astralHeresy.state.over)).toBe(false);
+  }
+});
+
 test("restores the WebGL background after context loss while idle", async ({ page, browserErrors: _browserErrors }) => {
   await openGame(page);
   const initialDraws = await page.evaluate(() => {

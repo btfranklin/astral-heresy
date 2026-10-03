@@ -465,7 +465,8 @@ canvas {
   position: absolute;
   inset: 0;
   display: grid;
-  place-items: center;
+  place-items: safe center;
+  overflow-y: auto;
   padding:
     max(24px, env(safe-area-inset-top))
     max(24px, env(safe-area-inset-right))
@@ -684,7 +685,8 @@ canvas {
   position: absolute;
   inset: 0;
   display: grid;
-  place-items: center;
+  place-items: safe center;
+  overflow-y: auto;
   padding:
     max(24px, env(safe-area-inset-top))
     max(24px, env(safe-area-inset-right))
