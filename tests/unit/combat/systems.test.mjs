@@ -216,6 +216,30 @@ test("pickup and score-shard damping preserves the 60 Hz motion across frame par
   }
 });
 
+test("pickup fall speed resumes after its spawn pause at each frame rate", () => {
+  for (const step of [1 / 30, 1 / 60, 1 / 120]) {
+    for (const fallSpeed of [54, 81, 0]) {
+      const { state, player } = makeState();
+      player.x = -10_000;
+      player.y = -10_000;
+      const pickup = spawnPickup(state, "beam", 640, 200, {
+        vy: fallSpeed,
+        spawnPause: 0.24,
+      });
+      let elapsed = 0;
+      while (elapsed < 0.9) {
+        const dt = Math.min(step, 0.9 - elapsed);
+        updatePickups(state, player, dt);
+        updateMovement(state, dt);
+        elapsed += dt;
+      }
+
+      assert.equal(pickup.components.position.y > 200 + fallSpeed * 0.3, fallSpeed > 0);
+      assert.equal(pickup.components.velocity.vy, fallSpeed);
+    }
+  }
+});
+
 test("boss internals and boss system expose weakpoint windows, phase-break resets, and loop completion rules", () => {
   const { state, player } = makeState();
   const audio = makeAudioSpy();

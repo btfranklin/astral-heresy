@@ -66,6 +66,7 @@ export function pickup(options = {}) {
     category: options.category ?? "utility",
     roleTag: options.roleTag ?? "",
     sigil: options.sigil ?? "hex",
+    fallSpeed: options.fallSpeed ?? 54,
     spawnPause: options.spawnPause ?? 0.24,
     t: 0,
   };

@@ -32,7 +32,7 @@ export function spawnPickup(state, kind, x, y, overrides = {}, spawnOptions = {}
     state,
     createEntity("pickup", {
       position: position(spawnX, y),
-      velocity: velocity(overrides.vx || 0, overrides.vy || 54),
+      velocity: velocity(overrides.vx ?? 0, overrides.vy ?? 54),
       collider: collider(radius),
       render: render({
         color: overrides.color || definition.pickupColor,
@@ -47,6 +47,7 @@ export function spawnPickup(state, kind, x, y, overrides = {}, spawnOptions = {}
         category: definition.category,
         roleTag: definition.roleTag,
         sigil: definition.sigil,
+        fallSpeed: overrides.vy ?? 54,
         spawnPause: overrides.spawnPause ?? 0.24,
       }),
       reward: reward({
@@ -106,6 +107,7 @@ export function updatePickups(state, player, dt) {
         item.spawnPause = Math.max(0, item.spawnPause - pausedDt);
         vel.vx *= 0.18;
         vel.vy *= frameDecay(0.25, pausedDt);
+        if (item.spawnPause === 0) vel.vy = item.fallSpeed;
       }
     } else {
       vel.vx *= frameDecay(0.985, dt);
