@@ -638,7 +638,7 @@ export function createAudioEngine({
       nextStep: 0,
       scheduledThrough: now() + delay,
       skippedLateSteps: 0,
-      scheduledChordSteps: new Set(),
+      scheduledChordBanks: new Map(),
       transportActive: true,
       releaseAt: 0,
       released: false,
@@ -812,8 +812,10 @@ export function createAudioEngine({
       chord.pitchMultiplier;
   }
 
-  function scheduleHarmonyChord(graph, section, chord, at) {
-    const nextBankIndex = section.activeBank < 0 ? 0 : 1 - section.activeBank;
+  function scheduleHarmonyChord(graph, section, chord, at, absoluteStep) {
+    const scheduledBankIndex = section.scheduledChordBanks.get(absoluteStep);
+    const nextBankIndex = scheduledBankIndex ??
+      (section.activeBank < 0 ? 0 : 1 - section.activeBank);
     const nextBank = section.banks[nextBankIndex];
     const previousBank = section.activeBank >= 0 ? section.banks[section.activeBank] : null;
     nextBank.voices.forEach((voice, index) => {
@@ -823,13 +825,16 @@ export function createAudioEngine({
         at
       );
     });
-    setValue(nextBank.gain.gain, MIN_GAIN, at);
-    nextBank.gain.gain.linearRampToValueAtTime(1, at + CHORD_CROSSFADE);
-    if (previousBank) {
-      setValue(previousBank.gain.gain, 1, at);
-      previousBank.gain.gain.linearRampToValueAtTime(MIN_GAIN, at + CHORD_CROSSFADE);
+    if (scheduledBankIndex === undefined) {
+      setValue(nextBank.gain.gain, MIN_GAIN, at);
+      nextBank.gain.gain.linearRampToValueAtTime(1, at + CHORD_CROSSFADE);
+      if (previousBank) {
+        setValue(previousBank.gain.gain, 1, at);
+        previousBank.gain.gain.linearRampToValueAtTime(MIN_GAIN, at + CHORD_CROSSFADE);
+      }
+      section.activeBank = nextBankIndex;
+      section.scheduledChordBanks.set(absoluteStep, nextBankIndex);
     }
-    section.activeBank = nextBankIndex;
     for (const plannedVoice of chord.accompaniment) {
       const voice = graph.accompanimentVoices.find(
         ({ role }) => role === plannedVoice.role
@@ -904,9 +909,8 @@ export function createAudioEngine({
       refreshScorePlan(section, phraseIndex);
     }
     const chord = section.plan.chords.find(({ step }) => step === localStep);
-    if (chord && !section.scheduledChordSteps.has(absoluteStep)) {
-      scheduleHarmonyChord(graph, section, chord, at);
-      section.scheduledChordSteps.add(absoluteStep);
+    if (chord) {
+      scheduleHarmonyChord(graph, section, chord, at, absoluteStep);
     }
     for (const event of section.plan.percussion) {
       if (event.step === localStep) schedulePercussionVoice(graph, section, event, at);
@@ -935,8 +939,8 @@ export function createAudioEngine({
       stepTime = section.startAt + section.nextStep * section.plan.secondsPerStep;
     }
     const oldestChordStep = section.nextStep - section.plan.stepsPerCycle * 2;
-    for (const chordStep of section.scheduledChordSteps) {
-      if (chordStep < oldestChordStep) section.scheduledChordSteps.delete(chordStep);
+    for (const chordStep of section.scheduledChordBanks.keys()) {
+      if (chordStep < oldestChordStep) section.scheduledChordBanks.delete(chordStep);
     }
   }
 
@@ -1745,7 +1749,7 @@ export function createAudioEngine({
     section.scheduledThrough = section.startAt;
     section.plan = null;
     section.planPhraseIndex = -1;
-    section.scheduledChordSteps.clear();
+    section.scheduledChordBanks.clear();
     section.transportActive = true;
   }
 

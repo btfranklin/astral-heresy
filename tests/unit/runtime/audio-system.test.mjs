@@ -348,6 +348,57 @@ test("score controls reschedule an unsounded boundary and boss identity begins o
   await audio.dispose();
 });
 
+test("pending chords retain their crossfade when chain control changes", async (t) => {
+  for (const [name, initialChain, nextChain, upperFrequency] of [
+    ["chain gain", 0, 1, 659.24],
+    ["chain withdrawal", 1, 0, 329.62],
+  ]) {
+    await t.test(name, async () => {
+      const context = new RecordingAudioContext();
+      const audio = createAudioEngine({
+        contextFactory: () => context,
+        enableWorklet: false,
+      });
+      audio.init();
+      audio.beginRun(makeAudioWorld({ chainRatio: initialChain }));
+
+      const chordAt = 2.225;
+      const atChord = ({ method, at }) =>
+        method === "set" && Math.abs(at - chordAt) < 1e-9;
+      context.advance(0.2);
+      audio.updateWorld(makeAudioWorld({ time: 0.2, chainRatio: initialChain }));
+      context.advance(1.8);
+      audio.updateWorld(makeAudioWorld({ time: 2, chainRatio: initialChain }));
+      const bankVoices = context.oscillators.filter(
+        ({ frequency }) => frequency.automation.some(atChord)
+      );
+      assert.equal(bankVoices.length, 4);
+      const bankGains = context.nodes.filter(
+        ({ gain }) => gain?.automation.some(
+          ({ method, at }) => method === "linear" && Math.abs(at - (chordAt + 0.16)) < 1e-9
+        )
+      );
+      assert.equal(bankGains.length, 2);
+      const crossfades = bankGains.map(({ gain }) => [...gain.automation]);
+
+      context.advance(0.1);
+      audio.updateWorld(makeAudioWorld({ time: 2.1, chainRatio: nextChain }));
+
+      const frequencies = bankVoices.map(
+        ({ frequency }) => frequency.automation.findLast(atChord).value
+      );
+      assert.deepEqual(frequencies, [
+        164.81,
+        164.81 * 2 ** (3 / 12),
+        164.81 * 2 ** (8 / 12),
+        upperFrequency,
+      ]);
+      assert.deepEqual(bankGains.map(({ gain }) => gain.automation), crossfades);
+      await audio.dispose();
+    });
+  }
+});
+
 test("ending before the first downbeat cancels every future chord fade-in", async () => {
   const context = new RecordingAudioContext();
   const audio = createAudioEngine({
