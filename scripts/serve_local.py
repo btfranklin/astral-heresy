@@ -5,6 +5,11 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 
+class LocalHTTPServer(ThreadingHTTPServer):
+    # Native modules can open many connections at the same time.
+    request_queue_size = 128
+
+
 class NoStoreRequestHandler(SimpleHTTPRequestHandler):
     def send_head(self):
         # A local source tree can change without its URL changing. Ignore
@@ -25,7 +30,7 @@ def main():
     args = parser.parse_args()
 
     handler = partial(NoStoreRequestHandler, directory=args.directory)
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
+    server = LocalHTTPServer(("127.0.0.1", args.port), handler)
 
     try:
         server.serve_forever()

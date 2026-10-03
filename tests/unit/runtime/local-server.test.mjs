@@ -60,4 +60,12 @@ test("local server always returns current module bytes without caching", async (
   assert.equal(conditionalResponse.status, 200);
   assert.equal(conditionalResponse.headers.get("cache-control"), "no-store");
   assert.match(await conditionalResponse.text(), /export function listActiveEffectDefinitions/);
+
+  const moduleResponses = await Promise.all(
+    Array.from({ length: 50 }, (_, index) => fetch(`${url}?module=${index}`))
+  );
+  for (const response of moduleResponses) {
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /export function listActiveEffectDefinitions/);
+  }
 });
