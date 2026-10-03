@@ -407,6 +407,74 @@ test("authored one-shot stage beats honor density retry delays", () => {
   }
 });
 
+test("Nebula and Crystal side entries move toward the playfield on every layout", () => {
+  const originalRandom = Math.random;
+  const layoutSizes = [
+    [390, 844],
+    [800, 900],
+    [1440, 900],
+  ];
+
+  try {
+    for (const [width, height] of layoutSizes) {
+      for (const randomValue of [0.1, 0.9]) {
+        Math.random = () => randomValue;
+        const { state, player } = makeState({ width, height });
+        const spawns = [];
+        const ctx = {
+          view: state.view,
+          player,
+          playfield: createPlayfieldContext(state),
+          loopIndex: 0,
+          director: { gateWave: () => ({ allow: true, delay: 0, bulletScale: 1, escortScale: 1, anchorOnly: false }) },
+          spawnEnemy(archetypeKey, overrides = {}) { spawns.push({ archetypeKey, overrides }); },
+          spawnEnemyBullet() {},
+          spawnPickup() {},
+          spawnScoreShards() {},
+        };
+
+        const nebulaState = stageNebula.init();
+        nebulaState.nextSwoop = 0;
+        nebulaState.nextRing = 99;
+        nebulaState.nextSine = 99;
+        stageNebula.update(nebulaState, 10.1, 1 / 60, ctx);
+        const nebulaEntry = spawns.filter(({ archetypeKey }) => archetypeKey === "cherub");
+        assert.equal(nebulaEntry.length, 2);
+        for (const { overrides } of nebulaEntry) {
+          assert.equal(overrides.x < ctx.playfield.leftEdge ? overrides.vx > 0 : overrides.vx < 0, true);
+        }
+
+        spawns.length = 0;
+        const corridorState = stageNebula.init();
+        corridorState.nextSwoop = 99;
+        corridorState.nextRing = 99;
+        corridorState.nextSine = 99;
+        stageNebula.update(corridorState, 12.1, 1 / 60, ctx);
+        const corridorEscorts = spawns.filter(({ archetypeKey }) => archetypeKey === "cherub");
+        assert.equal(corridorEscorts.length, 2);
+        for (const { overrides } of corridorEscorts) {
+          assert.equal(overrides.x < ctx.playfield.leftEdge ? overrides.vx > 0 : overrides.vx < 0, true);
+        }
+
+        spawns.length = 0;
+        const crystalState = stageCrystal.init();
+        crystalState.nextShard = 99;
+        crystalState.nextWeaver = 99;
+        crystalState.nextBurst = 0;
+        ctx.loopIndex = 1;
+        stageCrystal.update(crystalState, 2.1, 1 / 60, ctx);
+        const crystalEntries = spawns.filter(({ archetypeKey }) => archetypeKey === "harp" || archetypeKey === "shard");
+        assert.equal(crystalEntries.length, 2);
+        for (const { overrides } of crystalEntries) {
+          assert.equal(overrides.x < ctx.playfield.leftEdge ? overrides.vx > 0 : overrides.vx < 0, true);
+        }
+      }
+    }
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
 test("seraph starfall stays inside the desktop lane and nebula early pacing stays within budget", () => {
   const { state, player } = makeState();
   const envelope = getBulletEnvelope(state.playfield, state.view.width);

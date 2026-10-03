@@ -171,7 +171,7 @@ export const stageCrystal = {
         ctx.spawnEnemy("harp", {
           x: sign < 0 ? lane.leftEdge - 40 : lane.rightEdge + 40,
           y: rand(80, ctx.view.height * 0.35),
-          vx: sign * rand(80, 120),
+          vx: -sign * rand(80, 120),
           vy: rand(10, 30),
           fire(enemy, dtInner) {
             const ai = enemy.components.ai;

@@ -42,7 +42,7 @@ export const stageNebula = {
         ctx.spawnEnemy("cherub", {
           x: startX,
           y: rand(90, ctx.view.height * 0.34),
-          vx: side * rand(86, 132),
+          vx: -side * rand(86, 132),
           vy: rand(20, 44),
           behavior(enemy, dtInner) {
             const vel = enemy.components.velocity;
@@ -67,7 +67,7 @@ export const stageNebula = {
           ctx.spawnEnemy("cherub", {
             x: side < 0 ? lane.rightEdge + 38 : lane.leftEdge - 38,
             y: rand(110, ctx.view.height * 0.36),
-            vx: -side * rand(108, 144),
+            vx: side * rand(108, 144),
             vy: rand(16, 28),
             fire(enemy, dtInner) {
               const ai = enemy.components.ai;
@@ -272,7 +272,7 @@ export const stageNebula = {
             ctx.spawnEnemy("cherub", {
               x: side < 0 ? lane.leftEdge - 44 : lane.rightEdge + 44,
               y: ctx.view.height * 0.28,
-              vx: side * 142,
+              vx: -side * 142,
               vy: 24,
               fire(enemy, dtInner) {
                 const ai = enemy.components.ai;
