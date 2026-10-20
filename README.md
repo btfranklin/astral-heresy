@@ -8,7 +8,10 @@ the choir. Fly close to enemy fire to charge your burst, then use it to clear
 space when a route closes.
 
 The game uses native JavaScript modules, WebGL backgrounds, Canvas 2D graphics,
-and procedural Web Audio. Play needs no build step or runtime packages.
+and procedural Web Audio. Local play from source needs no build step or runtime
+packages. The public site is built into `dist/`.
+
+[Play Astral Heresy](https://btfranklin.github.io/astral-heresy/).
 
 ## Features
 
@@ -65,9 +68,29 @@ For a fixed gameplay seed, open <http://127.0.0.1:7666/?seed=42>.
 Restart uses the same seed. To repeat a run, you must also use the same viewport,
 input, and update time steps. See the [runtime guide](./docs/RUNTIME.md).
 
+## Build And Publish
+
+Use Node.js 26.x and npm to prepare the static site:
+
+```bash
+npm ci
+npm run build
+npm run preview
+```
+
+Open <http://127.0.0.1:7666/> to inspect the build. Each build replaces `dist/`
+with the page, styles, native modules, audio worklet, and MIT license. A static
+host can serve this folder without Node.js. Development files and test artifacts
+are excluded.
+
+GitHub Actions runs `npm run validate` on pushes and pull requests. After checks
+pass on `main`, it uploads only `dist/` and deploys it to GitHub Pages. Other
+branches and pull requests do not deploy. See the
+[deployment guide](./docs/DEPLOYMENT.md) for setup and recovery.
+
 ## Development
 
-Use Node.js and npm for development checks. Install the locked dependencies:
+Use Node.js 26.x and npm for development checks. Install the locked dependencies:
 
 ```bash
 npm ci
@@ -96,9 +119,10 @@ For browser checks, install Chromium and run the browser suite:
 
 ```bash
 npx playwright install chromium
-node scripts/check_runtime_browser_smoke.mjs
+npm run validate
 ```
 
+This runs the fast gate, builds `dist/`, and tests that build in Chromium.
 Browser artifacts are saved under `output/playwright/`. For the separate
 rendering-performance measurements, run `npm run test:performance`.
 See the [quality guide](./docs/QUALITY.md) for focused test commands and manual

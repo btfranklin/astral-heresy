@@ -6,6 +6,7 @@ exclude = [
     "output/**",
     "playwright-report/**",
     "test-results/**",
+    "dist/**",
 ]
 required_paths = ["README.md", "AGENTS.md", "docs/index.md", "docs/QUALITY.md"]
 

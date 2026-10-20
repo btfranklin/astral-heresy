@@ -10,6 +10,7 @@ This directory is the system of record for repository knowledge that should surv
 - [`SOUND_DESIGN.md`](./SOUND_DESIGN.md): present sound-design philosophy, auditory grammar, and implementation boundaries
 - [`QUALITY.md`](./QUALITY.md): verification matrix and golden repo invariants
 - [`RUNTIME.md`](./RUNTIME.md): runbook, seeded runs, debug surfaces, graphics recovery, and smoke-test flows
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md): static build, GitHub Pages, and deployment recovery
 - [`content/stages-bosses.md`](./content/stages-bosses.md): stage and boss authoring contract
 - [`content/enemy-art.md`](./content/enemy-art.md): enemy shapes, attack poses, and defeat effects
 - [`generated/content-inventory.md`](./generated/content-inventory.md): generated reference for stages, bosses, phases, showcase keys, and pattern helpers
