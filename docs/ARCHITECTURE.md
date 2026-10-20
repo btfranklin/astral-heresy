@@ -155,14 +155,14 @@ These boundaries are enforced by `node scripts/check_structure.mjs`, which parse
 
 ## Known Hotspots
 
-- [`../src/data/stages/`](../src/data/stages): per-stage gameplay definitions
+- `../src/data/stages/` (for example, [nebula.js](../src/data/stages/nebula.js)): per-stage gameplay definitions
 - [`../src/data/enemies.js`](../src/data/enemies.js): enemy archetype registry
-- [`../src/data/bosses/`](../src/data/bosses): per-boss phase definitions
+- `../src/data/bosses/` (for example, [seraph.js](../src/data/bosses/seraph.js)): per-boss phase definitions
 - [`../src/data/weapons.js`](../src/data/weapons.js): raw weapon fire definitions, orbital offsets, and temporary weapon firing behavior
 - [`../src/data/powerups.js`](../src/data/powerups.js): generic pickup catalog spanning weapon, utility, and risk rewards
 - [`../src/core/powerups.js`](../src/core/powerups.js): active-effect timers, pickup notice state, and shared powerup rules
 - [`../src/core/director.js`](../src/core/director.js): stage-density budgeting and wave gating for authored stage content
-- [`../src/systems/collisionSystem.js`](../src/systems/collisionSystem.js) and [`../src/systems/collision/`](../src/systems/collision): ordered collision orchestration plus narrow passes for player hazards and burst resolution, enemy hits and kill rewards, boss hits, and pickup/shard collection
+- [`../src/systems/collisionSystem.js`](../src/systems/collisionSystem.js) and `../src/systems/collision/` (for example, [playerHazards.js](../src/systems/collision/playerHazards.js)): ordered collision orchestration plus narrow passes for player hazards and burst resolution, enemy hits and kill rewards, boss hits, and pickup/shard collection
 - [`../src/rendering/enemyRenderers.js`](../src/rendering/enemyRenderers.js): large visual dispatch surface
 - [`../src/core/game.js`](../src/core/game.js): orchestration pressure point
 - [`../src/core/runtimeController.js`](../src/core/runtimeController.js): lifecycle and teardown surface

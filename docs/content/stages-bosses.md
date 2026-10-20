@@ -6,10 +6,10 @@ The files under `src/data/` are executable content factories. They do not just h
 
 - [`../../src/data/stages.js`](../../src/data/stages.js): ordered stage registry
 - [`../../src/data/enemies.js`](../../src/data/enemies.js): enemy archetype registry
-- [`../../src/data/stages/`](../../src/data/stages): per-stage factories and enemy wave timing
+- `../../src/data/stages/` (for example, [nebula.js](../../src/data/stages/nebula.js)): per-stage factories and enemy wave timing
 - [`../../src/data/stageRuntime.js`](../../src/data/stageRuntime.js): shared stage-wave gating helpers
 - [`../../src/data/bosses.js`](../../src/data/bosses.js): boss export surface
-- [`../../src/data/bosses/`](../../src/data/bosses): per-boss factories and phase logic
+- `../../src/data/bosses/` (for example, [seraph.js](../../src/data/bosses/seraph.js)): per-boss factories and phase logic
 - [`../../src/data/powerups.js`](../../src/data/powerups.js): generic pickup catalog and category metadata
 - [`../../src/core/powerups.js`](../../src/core/powerups.js): shared powerup timing/effect rules
 - [`../../src/data/patterns.js`](../../src/data/patterns.js): reusable bullet-pattern helpers

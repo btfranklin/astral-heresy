@@ -15,6 +15,10 @@ function runCommand(command, args) {
     stdio: "inherit",
     encoding: "utf-8",
   });
+  if (result.error) {
+    console.error(`Cannot run ${command}: ${result.error.message}`);
+    process.exit(1);
+  }
   if (result.status !== 0) {
     process.exit(result.status || 1);
   }
@@ -23,6 +27,7 @@ function runCommand(command, args) {
 try {
   runFastTests("all");
   runCommand("python3", ["scripts/check_repo_legibility.py"]);
+  runCommand("perfect-doc", ["check", "--offline", "--config", "perfect-doc.toml"]);
 } catch (error) {
   console.error(error.result?.stderr || error.message);
   process.exit(error.result?.status || 1);

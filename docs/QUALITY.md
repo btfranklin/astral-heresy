@@ -21,7 +21,13 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
 
 - `node scripts/validate_fast.mjs`
   - Primary pre-commit gate.
-  - Runs the full `node:test` suite, then runs repo-legibility checks for docs, links, generated inventory, and structural boundaries.
+  - Runs the full `node:test` suite, repository checks, and the offline Perfect Doc check.
+- `npm run check:docs`
+  - Runs `perfect-doc check --offline --config perfect-doc.toml`.
+  - Requires the Perfect Doc executable on `PATH`.
+  - Checks Markdown and local links with GitHub-flavored Markdown and GitHub
+    heading fragments. Route conversion and network checks are disabled.
+  - Run after Markdown changes. The default validation gate also runs this check.
 - `node scripts/run_fast_tests.mjs all`
   - Runs every deterministic browserless test under `tests/` with Node's built-in test runner.
   - Use this when you want behavioral confidence without the repo-artifact checks.

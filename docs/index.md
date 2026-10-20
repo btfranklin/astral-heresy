@@ -24,6 +24,8 @@ This directory is the system of record for repository knowledge that should surv
 - Use `node scripts/validate_fast.mjs` as the default fast verification gate before wider manual/browser checks.
 - Use `node scripts/run_fast_tests.mjs all` when you want the full deterministic behavioral suite without the repo-artifact pass.
 - Run `python3 scripts/check_repo_legibility.py` after changing docs structure or generated references.
+- Run `npm run check:docs` after Markdown changes. The offline Perfect Doc check
+  uses `../perfect-doc.toml` and also runs in the default validation gate.
 - Use `node scripts/check_structure.mjs` when changing import boundaries or moving code between `src/` areas.
 - Use `node scripts/run_fast_tests.mjs content` when changing stage factories, boss factories, phase structure, or registry contracts.
 - Use `node scripts/run_fast_tests.mjs combat` when changing graze, burst, pickup, weakpoint, chain, or loop-two rules.

@@ -1,122 +1,125 @@
 # Astral Heresy
 
-Astral Heresy is a small browser bullet-hell game built with native ES modules, WebGL for the background, and a 2D canvas overlay for entities and HUD.
+![Astral Heresy banner](https://raw.githubusercontent.com/btfranklin/astral-heresy/main/.github/social%20preview/astral_heresy_social_preview.jpg "Astral Heresy")
 
-## Quickstart
+Astral Heresy is a browser bullet-hell game. Pilot one interceptor through three
+celestial fronts, avoid dense projectile patterns, and defeat the machines of
+the choir. Fly close to enemy fire to charge your burst, then use it to clear
+space when a route closes.
 
-Run the local server helper:
+The game uses native JavaScript modules, WebGL backgrounds, Canvas 2D graphics,
+and procedural Web Audio. Play needs no build step or runtime packages.
+
+## Features
+
+- Three stages: Nebula Gate, Crystalline Choir, and Abyssal Cathedral.
+- Three bosses, each with three phases: Seraph of Orbits, Prism Leviathan,
+  and Cathedral Maw.
+- Pointer or keyboard movement, focused fire, and bursts that clear nearby fire.
+- Weapon pickups, hull protection, score chains, and a second loop.
+- Procedural music and effects that respond to the stage and combat state.
+- Seeded runs and render-study scenes for repeatable development checks.
+
+## Play Locally
+
+Use Python 3 and a desktop browser with WebGL, Canvas 2D, and Web Audio support.
+From the repository directory, run:
 
 ```bash
 ./scripts/play.sh
 ```
 
-Or serve the repo manually:
+The helper starts a local server and opens the game in your browser. Select
+**Launch Sortie** or press `Enter` to start. Audio starts with this action.
+Press `Ctrl+C` in the terminal to stop the server.
+
+To start the server without opening a browser:
 
 ```bash
 python3 scripts/serve_local.py 7666 --directory .
 ```
 
-Then open `http://127.0.0.1:7666/`.
+Then open <http://127.0.0.1:7666/>. Serve the files over HTTP; do not open
+`index.html` directly from the file system.
 
-`./scripts/play.sh` chooses a fresh local port for each run so Safari cannot reuse native modules from an older source revision. You can pin it when needed with `PORT=8686 ./scripts/play.sh`.
-The local server also disables browser caching so subsequent reloads keep one consistent ES-module graph.
+The helper selects a free port on each run to prevent Safari from reusing old
+modules. To set a port, use `PORT=8686 ./scripts/play.sh`. The server disables
+browser caching.
 
-For repeatable gameplay, open `http://127.0.0.1:7666/?seed=42`. Restart uses the
-same seed. See [`docs/RUNTIME.md`](./docs/RUNTIME.md) for the seed controls and
-the conditions needed to repeat a run.
+## Controls
 
-## Repository Map
+| Action | Input |
+| --- | --- |
+| Launch | `Enter` or **Launch Sortie** |
+| Move | Pointer, `WASD`, or arrow keys |
+| Fire | Hold `Z`, `Space`, or the pointer button |
+| Focus fire | Hold `Shift` |
+| Burst | `X` |
+| Restart after a loss | `Enter` or `R` |
+| Toggle pointer steering | `M` |
 
-- [`AGENTS.md`](./AGENTS.md): short task router for coding agents
-- [`docs/index.md`](./docs/index.md): documentation index and system of record
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md): game loop, domains, and dependency rules
-- [`docs/SOUND_DESIGN.md`](./docs/SOUND_DESIGN.md): present sound-design philosophy and auditory grammar
-- [`docs/QUALITY.md`](./docs/QUALITY.md): verification matrix and quality invariants
-- [`docs/RUNTIME.md`](./docs/RUNTIME.md): runbook, debug surfaces, and smoke-test flow
-- [`docs/content/stages-bosses.md`](./docs/content/stages-bosses.md): content authoring contract
-- [`docs/generated/content-inventory.md`](./docs/generated/content-inventory.md): generated reference for stages, bosses, phases, and render-study keys
+Pass close to enemy projectiles without taking a hit to fill the graze reservoir
+and restore burst stocks. Use focused fire when you have a clear lane.
 
-## Source Layout
+For a fixed gameplay seed, open <http://127.0.0.1:7666/?seed=42>.
+Restart uses the same seed. To repeat a run, you must also use the same viewport,
+input, and update time steps. See the [runtime guide](./docs/RUNTIME.md).
 
-- `index.html`: page shell and module bootstrap
-- `style.css`: UI and overlay styling
-- `src/`: game code organized by domain
-- `scripts/`: local helper scripts and repo checks
+## Development
 
-## Maintenance Commands
-
-Refresh the generated gameplay inventory:
+Use Node.js and npm for development checks. Install the locked dependencies:
 
 ```bash
-python3 scripts/generate_content_inventory.py
+npm ci
 ```
 
-Run the default fast validation gate:
+The documentation check also needs the
+[Perfect Doc](https://github.com/btfranklin/perfect-doc) executable on `PATH`.
+Run the default validation gate:
 
 ```bash
-node scripts/validate_fast.mjs
+npm test
 ```
 
-Run only the deterministic behavioral suite:
+This runs the deterministic tests, repository structure and generated-content
+checks, and the offline documentation check. After Markdown changes, you can
+run the documentation check alone:
 
 ```bash
-node scripts/run_fast_tests.mjs all
+npm run check:docs
 ```
 
-Run the repo-legibility checks:
+`perfect-doc.toml` uses GitHub-flavored Markdown and GitHub heading fragments.
+It checks local links without route conversion or network access.
+
+For browser checks, install Chromium and run the browser suite:
 
 ```bash
-python3 scripts/check_repo_legibility.py
-```
-
-That command validates docs, local links, generated references, and the structural import-boundary rules for `src/`.
-
-Run only the stage/boss fast-test group:
-
-```bash
-node scripts/run_fast_tests.mjs content
-```
-
-Run the combat-economy fast-test group:
-
-```bash
-node scripts/run_fast_tests.mjs combat
-```
-
-Run the dedicated powerup fast-test group:
-
-```bash
-node scripts/run_fast_tests.mjs powerups
-```
-
-Run the runtime and UI fast-test group:
-
-```bash
-node scripts/run_fast_tests.mjs runtime
-```
-
-The legacy `check_content_contract`, `check_combat_smoke`, `check_powerup_smoke`, and `check_runtime_smoke` scripts remain as compatibility wrappers over those groups.
-
-Install the development-only parser and browser-test dependencies, then install
-the Chromium build used by Playwright:
-
-```bash
-npm install
 npx playwright install chromium
-```
-
-Run the real Chromium contract lane and capture current-run artifacts under `output/playwright/`:
-
-```bash
 node scripts/check_runtime_browser_smoke.mjs
 ```
 
-Record the opt-in Chromium rendering-performance telemetry:
+Browser artifacts are saved under `output/playwright/`. For the separate
+rendering-performance measurements, run `npm run test:performance`.
+See the [quality guide](./docs/QUALITY.md) for focused test commands and manual
+Safari checks.
 
-```bash
-npm run test:performance
-```
+## Project Structure
 
-This separate lane samples fixed idle, projectile-heavy, and boss render scenes
-at DPR 1 and 2. It reports measurements without enforcing numeric budgets or
-joining the default validation gate.
+- `index.html` and `style.css`: page structure, controls, and overlays.
+- `src/`: gameplay, authored content, graphics, audio, and UI modules.
+- `tests/`: unit, contract, scenario, browser, and performance tests.
+- `scripts/`: local server, content generation, and validation commands.
+- `docs/`: architecture, content rules, and verification guides.
+
+Start with the [documentation index](./docs/index.md). The
+[architecture guide](./docs/ARCHITECTURE.md) explains the game loop and module
+boundaries. The [sound design manifesto](./docs/SOUND_DESIGN.md) explains the
+procedural instrument. To add content, use the
+[stage and boss guide](./docs/content/stages-bosses.md) and the
+[generated content inventory](./docs/generated/content-inventory.md).
+Coding agents should start with [AGENTS.md](./AGENTS.md).
+
+## License
+
+Astral Heresy is released under the [MIT License](./LICENSE).

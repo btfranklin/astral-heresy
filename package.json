@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check:docs": "perfect-doc check --offline --config perfect-doc.toml",
     "test": "node scripts/validate_fast.mjs",
     "test:browser": "playwright test --config=playwright.config.mjs",
     "test:performance": "playwright test --config=playwright.performance.config.mjs"
