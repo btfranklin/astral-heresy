@@ -11,7 +11,7 @@ The game uses native JavaScript modules, WebGL backgrounds, Canvas 2D graphics,
 and procedural Web Audio. Local play from source needs no build step or runtime
 packages. The public site is built into `dist/`.
 
-[Play Astral Heresy](https://btfranklin.github.io/astral-heresy/).
+[Play Astral Heresy](https://astral-heresy.btfranklin.info/).
 
 ## Features
 

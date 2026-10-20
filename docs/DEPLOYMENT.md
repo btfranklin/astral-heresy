@@ -22,9 +22,13 @@ at <http://127.0.0.1:7666/>. The source launcher remains `./scripts/play.sh`.
 ## GitHub Pages
 
 The source repository is [btfranklin/astral-heresy](https://github.com/btfranklin/astral-heresy).
-The site address is <https://btfranklin.github.io/astral-heresy/>.
+The site address is <https://astral-heresy.btfranklin.info/>.
 
 - Set the Pages source to **GitHub Actions** in repository settings.
+- Set the Pages custom domain to `astral-heresy.btfranklin.info`.
+- At the DNS provider, set a `CNAME` record named `astral-heresy` to
+  `btfranklin.github.io`. The DNS target has no repository path.
+- Enable **Enforce HTTPS** after GitHub issues the domain certificate.
 - `.github/workflows/validate.yml` validates pushes, pull requests, and manual runs.
 - Only a successful run on `main` uploads `dist/` and deploys to `github-pages`.
 - The deployment job needs `pages: write` and `id-token: write`. Validation
