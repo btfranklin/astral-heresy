@@ -4,22 +4,26 @@ This repo is easiest to understand by running it. Gameplay flow, render detail, 
 
 ## Local Run Commands
 
-Standard helper:
+Build and preview the hosted files:
 
 ```bash
-./scripts/play.sh
+npm ci
+npm run build
+npm run preview
 ```
 
-Manual server without auto-opening a browser:
+Then visit `http://127.0.0.1:7666/`. Rebuild after source changes.
+The preview server sends `Cache-Control: no-store` and ignores stale
+conditional validators to prevent reuse of old modules.
+
+For source inspection without a build, run:
 
 ```bash
 python3 scripts/serve_local.py 7666 --directory .
 ```
 
-Then visit `http://127.0.0.1:7666/`.
-
-`./scripts/play.sh` chooses a fresh local port for each run so Safari cannot reuse native modules from an older source revision. You can pin it when needed with `PORT=8686 ./scripts/play.sh`.
-The local server sends `Cache-Control: no-store` and ignores stale conditional validators. Together, the fresh origin and no-store responses prevent Safari from combining native-module files from different source revisions.
+Stop the server with `Ctrl+C`. To use a fresh origin for a Safari check,
+select an unused port, such as `8686`, in the server command and browser URL.
 
 ## Start Flow
 
@@ -371,7 +375,8 @@ headless renderers and is recorded as metadata rather than treated as a failure.
 ## Constraints Worth Remembering
 
 - WebGL is required for the animated background. Failure is surfaced through an alert in the composition root.
-- The repo has no build step. Browser-native ES modules are the execution model.
+- The build copies the static files into `dist/`. Browser-native ES modules
+  run without compilation or bundling.
 - Seeded gameplay follows the boundary documented in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Repeatable runs require the same input and update time steps.
 - Browser-visible runtime changes must pass the Chromium contract lane; screenshots remain useful for readability judgments beyond its pixel assertions.
 - Rendering-performance telemetry is opt-in and informational; do not interpret a green run as proof that a numeric frame budget was met.
@@ -379,8 +384,8 @@ headless renderers and is recorded as metadata rather than treated as a failure.
 
 ## Installed Safari Listening Matrix
 
-Run this matrix in installed Safari after audio work. Use a fresh origin from
-`./scripts/play.sh`, launch normally, and keep
+Run this matrix in installed Safari after audio work. Use the local server
+with an unused port for a fresh origin, launch normally, and keep
 `debugAudioDiagnostics()` visible in the Web Inspector console.
 
 | Study | What to accept |

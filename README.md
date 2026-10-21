@@ -23,31 +23,21 @@ packages. The public site is built into `dist/`.
 - Procedural music and effects that respond to the stage and combat state.
 - Seeded runs and render-study scenes for repeatable development checks.
 
-## Play Locally
+## Preview Locally
 
-Use Python 3 and a desktop browser with WebGL, Canvas 2D, and Web Audio support.
-From the repository directory, run:
-
-```bash
-./scripts/play.sh
-```
-
-The helper starts a local server and opens the game in your browser. Select
-**Launch Sortie** or press `Enter` to start. Audio starts with this action.
-Press `Ctrl+C` in the terminal to stop the server.
-
-To start the server without opening a browser:
+Use Node.js 26.x, npm, Python 3, and a browser with WebGL, Canvas 2D,
+and Web Audio support. From the repository directory, run:
 
 ```bash
-python3 scripts/serve_local.py 7666 --directory .
+npm ci
+npm run build
+npm run preview
 ```
 
-Then open <http://127.0.0.1:7666/>. Serve the files over HTTP; do not open
-`index.html` directly from the file system.
-
-The helper selects a free port on each run to prevent Safari from reusing old
-modules. To set a port, use `PORT=8686 ./scripts/play.sh`. The server disables
-browser caching.
+Open <http://127.0.0.1:7666/>. Select **Launch Sortie** or press `Enter`
+to start. Audio starts with this action. Press `Ctrl+C` in the terminal to
+stop the server. Serve the files over HTTP; do not open `index.html`
+directly from the file system. The preview server disables browser caching.
 
 ## Controls
 

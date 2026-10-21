@@ -115,7 +115,9 @@ Run the smallest lane that actually covers the change, then widen out if the edi
     update time steps through the public runtime controls.
 - Installed Safari manual smoke
   - Required after changing the native-module graph, local serving path, or startup flow, and when repairing a Safari-reported regression.
-  - Launch with `./scripts/play.sh`, click `Launch Sortie`, confirm active gameplay begins, and check Safari's JavaScript console for startup errors.
+  - Run `npm run build` and `npm run preview`. Open the preview URL in Safari,
+    click `Launch Sortie`, confirm active gameplay begins, and check the
+    JavaScript console for startup errors.
   - Playwright's Chromium lane remains useful evidence, but it does not substitute for this Safari check.
 
 ### Procedural Audio

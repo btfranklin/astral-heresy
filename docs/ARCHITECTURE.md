@@ -7,7 +7,8 @@ Astral Heresy is a small dependency-free browser game. It runs as ES modules in 
 - [`../index.html`](../index.html): page shell, canvases, overlays, and module bootstrap
 - [`../src/index.js`](../src/index.js): locates DOM nodes, creates the game, and exposes `window.__astralHeresy`
 - [`../src/core/game.js`](../src/core/game.js): composition root for state, systems, renderers, UI sync, and the requestAnimationFrame loop
-- [`../scripts/play.sh`](../scripts/play.sh): local server helper for manual inspection
+- [`../scripts/build.mjs`](../scripts/build.mjs): static site build into `dist/`
+- [`../scripts/serve_local.py`](../scripts/serve_local.py): server for preview and browser tests
 
 ## Runtime Model
 

@@ -17,7 +17,7 @@ path stay intact. Relative paths support the GitHub Pages repository prefix.
 Each build removes the previous output. Do not put authored files in `dist/`.
 
 Run `npm run build` to build alone. Run `npm run preview` to serve the result
-at <http://127.0.0.1:7666/>. The source launcher remains `./scripts/play.sh`.
+at <http://127.0.0.1:7666/>. Rebuild after source changes.
 
 ## GitHub Pages
 
