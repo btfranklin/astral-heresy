@@ -2,11 +2,10 @@ import { clamp } from "../core/math.js";
 import { spawnPlayerBullet } from "./bulletSystem.js";
 import { sfxShoot } from "../audio/sfx.js";
 import { fireWeapon } from "../data/weapons.js";
-import { getPlayerBounds } from "../state/playerState.js";
 
 export function updatePlayer(state, player, audio, dt) {
   const input = state.input;
-  const bounds = getPlayerBounds(state.view.width, state.view.height);
+  const bounds = state.playfield;
   const focus = input.ShiftLeft || input.ShiftRight;
   const speed = focus ? player.focusSpeed : player.speed;
   const pointerEnabled = input.pointerEnabled !== false;

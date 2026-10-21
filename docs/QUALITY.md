@@ -7,6 +7,9 @@ This repo has a fast deterministic validation stack. Use this page as the verifi
 - `src/core/game.js` is the composition root. New runtime wiring should flow through it, not around it.
 - `docs/` is the durable system of record. If a new rule matters across runs, write it down here and link it from [`index.md`](./index.md).
 - Desktop combat space is owned by `state.playfield` and the stage director. Authored stage and boss content should use playfield geometry instead of ad hoc viewport math.
+- The lower movement bound follows the measured combat HUD, with 32 CSS pixels
+  of clearance from the ship center. Check keyboard and pointer movement across
+  portrait, tablet, desktop, resize, restart, and HUD height changes.
 - Stage density gating is authoritative within a frame. `gateWave()` decisions budget against live plus reserved capacity, so later waves in the same tick must not assume the original density snapshot still applies.
 - Runtime inspection surfaces stay explicit and local: use `window.__astralHeresy`, render-study mode, the deterministic Node harnesses, and the Chromium contract suite instead of one-off debug branches.
 - Seeded gameplay uses the generator owned by game state. Stage content uses

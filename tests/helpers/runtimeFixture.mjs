@@ -167,6 +167,33 @@ export function createEventTargetRecorder() {
   };
 }
 
+export function createResizeObserverRecorder() {
+  const observers = [];
+  class ResizeObserverRecorder {
+    constructor(callback) {
+      this.callback = callback;
+      this.targets = new Set();
+      this.disconnectCalls = 0;
+      observers.push(this);
+    }
+
+    observe(target) {
+      this.targets.add(target);
+    }
+
+    disconnect() {
+      this.disconnectCalls += 1;
+      this.targets.clear();
+    }
+
+    trigger() {
+      if (this.disconnectCalls === 0) this.callback([], this);
+    }
+  }
+
+  return { ResizeObserver: ResizeObserverRecorder, observers };
+}
+
 export function getListenerCount(target, type) {
   return target.listeners.get(type)?.size ?? 0;
 }

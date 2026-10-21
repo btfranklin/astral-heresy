@@ -1,4 +1,4 @@
-import { createPlayfield } from "../state/playfieldState.js";
+import { createPlayfield, setPlayfieldBottom } from "../state/playfieldState.js";
 import { getPlayerBounds } from "../state/playerState.js";
 import { resetFreshRunState } from "../state/runReset.js";
 import { createShowcaseScene } from "../debug/showcase.js";
@@ -16,6 +16,7 @@ export function createRuntimeController({
   showcaseConfig,
   bgCanvas,
   gameCanvas,
+  hullPanel,
   backgroundRenderer,
   startScreen,
   startButton,
@@ -29,6 +30,7 @@ export function createRuntimeController({
 }) {
   let initialized = false;
   let disposed = false;
+  let hudObserver = null;
 
   const handlers = {
     startClick: null,
@@ -39,6 +41,21 @@ export function createRuntimeController({
 
   function sync() {
     interfaceController.sync(state, player, stages);
+  }
+
+  function syncCombatBounds() {
+    if (disposed || !state.started || state.over || state.showcase) return;
+    const previousMaxY = state.playfield.maxY;
+    const hudTop = hullPanel.getBoundingClientRect().top;
+    setPlayfieldBottom(state.playfield, Math.min(state.view.height, hudTop));
+    player.y = Math.min(state.playfield.maxY, Math.max(state.playfield.minY, player.y));
+    if (Number.isFinite(state.input.pointerY)) {
+      state.input.pointerY = Math.min(
+        state.playfield.maxY,
+        Math.max(state.playfield.minY, state.input.pointerY)
+      );
+    }
+    if (state.playfield.maxY !== previousMaxY) onRenderInvalidated();
   }
 
   function resetPointers() {
@@ -99,6 +116,8 @@ export function createRuntimeController({
     } else {
       state.input.pointerY = player.y;
     }
+    sync();
+    syncCombatBounds();
   }
 
   function hideOverlays() {
@@ -114,6 +133,8 @@ export function createRuntimeController({
     audio.beginRun(getAudioWorld());
     sfxStart(audio, { x: player.x });
     hideOverlays();
+    sync();
+    syncCombatBounds();
     onGameStart();
     onRenderInvalidated();
   }
@@ -190,6 +211,8 @@ export function createRuntimeController({
     initialized = true;
     inputSystem.attach();
     attachUI();
+    hudObserver = new windowObject.ResizeObserver(syncCombatBounds);
+    hudObserver.observe(hullPanel, { box: "border-box" });
     resize();
 
     if (showcaseConfig) {
@@ -203,6 +226,8 @@ export function createRuntimeController({
     if (disposed) return;
     disposed = true;
     initialized = false;
+    hudObserver?.disconnect();
+    hudObserver = null;
     detachUI();
     inputSystem.detach();
   }

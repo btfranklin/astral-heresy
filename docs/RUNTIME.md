@@ -239,6 +239,11 @@ Run this after gameplay, UI, or content edits:
 3. Launch a run and confirm the active HUD collapses to compact score, stage, runtime, hull, graze, burst, and weapon instruments.
 4. Fire, focus, burst with `X`, and toggle pointer steering with `M`.
 5. Confirm the desktop playfield uses most of the viewport while preserving safe edge margins.
+   At portrait, tablet, desktop, and short landscape sizes, move down with both
+   the pointer and keyboard. The ship center must stop 32 CSS pixels above the
+   top of the bottom HUD, leaving a small visible gap below the ship body.
+   Resize during combat and restart after a loss. The bound must still match
+   the HUD. Font or HUD size changes must also keep the ship clear.
 6. Confirm graze, burst stock, weapon, chain, and loop cues update without layout breakage.
 7. Collect at least one pickup and confirm the in-world acquisition callout appears immediately.
 8. Confirm timed weapon and utility/risk effects appear as player-local canvas sigils.

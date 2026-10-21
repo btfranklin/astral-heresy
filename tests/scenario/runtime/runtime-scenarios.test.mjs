@@ -12,6 +12,7 @@ import {
   createElementRecorder,
   createEventTargetRecorder,
   createInterfaceProjectionFixture,
+  createResizeObserverRecorder,
 } from "../../helpers/runtimeFixture.mjs";
 
 function createRuntimeScenario(width = 1280, height = 720, dpr = 1, showcaseConfig = null) {
@@ -35,11 +36,15 @@ function createRuntimeScenario(width = 1280, height = 720, dpr = 1, showcaseConf
     innerHeight: height,
     devicePixelRatio: dpr,
   });
+  const resizeObservers = createResizeObserverRecorder();
+  windowTarget.ResizeObserver = resizeObservers.ResizeObserver;
   const documentTarget = createEventTargetRecorder();
   const canvases = {
     background: { width: 0, height: 0 },
     game: { width: 0, height: 0 },
   };
+  const hullPanelRect = { top: height - 100 };
+  const hullPanel = createElementRecorder({ rect: hullPanelRect });
   const overlays = {
     start: createElementRecorder(),
     startButton: createElementRecorder(),
@@ -57,6 +62,7 @@ function createRuntimeScenario(width = 1280, height = 720, dpr = 1, showcaseConf
     showcaseConfig,
     bgCanvas: canvases.background,
     gameCanvas: canvases.game,
+    hullPanel,
     backgroundRenderer,
     startScreen: overlays.start,
     startButton: overlays.startButton,
@@ -76,6 +82,9 @@ function createRuntimeScenario(width = 1280, height = 720, dpr = 1, showcaseConf
     interfaceController,
     backgroundRenderer,
     windowTarget,
+    hullPanel,
+    hullPanelRect,
+    resizeObservers,
     canvases,
     overlays,
     runtime,
@@ -149,6 +158,30 @@ test("active-run resize clamps player and pointer to calculated bounds", () => {
   assert.equal(scenario.player.y >= scenario.state.playfield.minY, true);
 });
 
+test("hull panel resize updates the active combat bound and disconnects on disposal", () => {
+  const scenario = createRuntimeScenario();
+  scenario.runtime.init();
+  scenario.runtime.startGame();
+  const observer = scenario.resizeObservers.observers[0];
+
+  assert.equal(observer.targets.has(scenario.hullPanel), true);
+  assert.equal(scenario.state.playfield.maxY, 588);
+
+  scenario.player.y = 700;
+  scenario.state.input.pointerY = 700;
+  scenario.hullPanelRect.top = 500;
+  observer.trigger();
+  assert.equal(scenario.state.playfield.maxY, 468);
+  assert.equal(scenario.player.y, 468);
+  assert.equal(scenario.state.input.pointerY, 468);
+
+  scenario.runtime.dispose();
+  assert.equal(observer.disconnectCalls, 1);
+  scenario.hullPanelRect.top = 400;
+  observer.trigger();
+  assert.equal(scenario.state.playfield.maxY, 468);
+});
+
 test("fresh-run reset restores gameplay state while keeping an auto-started run active", () => {
   const scenario = createRuntimeScenario();
   scenario.runtime.init();
@@ -167,8 +200,8 @@ test("fresh-run reset restores gameplay state while keeping an auto-started run 
   assert.equal(scenario.player.hp, 5);
   assert.equal(scenario.audio.resetCalls, 1);
   assert.equal(scenario.audio.beginCalls, 2);
-  assert.equal(scenario.interfaceController.syncCalls, 2);
-  assert.equal(scenario.renderInvalidations, 4);
+  assert.equal(scenario.interfaceController.syncCalls, 4);
+  assert.equal(scenario.renderInvalidations, 6);
 });
 
 test("showcase activation invalidates after resize and scene construction", () => {

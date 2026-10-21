@@ -56,6 +56,15 @@ background uses `min(state.view.dpr, 1.5)`. The background renderer owns its
 actual drawing-buffer dimensions and coordinate scales, so background uniforms
 do not assume that both canvases share one backing resolution.
 
+During combat, the runtime controller measures the top of `#hull-panel` and sets
+`state.playfield.maxY` 32 CSS pixels above it. This leaves about 14 pixels between
+the ship body and the HUD. Movement reads this shared bound for both keyboard
+and pointer input. The runtime measures after launch and viewport resize. A
+`ResizeObserver` updates the bound when HUD content or fonts change its height.
+It clamps the player and pointer target and disconnects on disposal. The game
+does not read DOM geometry during each movement update. Before combat, bounds
+use the viewport edge with the same clearance.
+
 RAF callbacks and the lightweight idle update path remain continuous. Pixel
 work is invalidated separately: showcases, active runs, shake, and particles
 render continuously; initialization, resize, start, reset, showcase activation,

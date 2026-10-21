@@ -9,7 +9,7 @@ This directory is the system of record for repository knowledge that should surv
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md): domain map, update loop, and dependency rules
 - [`SOUND_DESIGN.md`](./SOUND_DESIGN.md): present sound-design philosophy, auditory grammar, and implementation boundaries
 - [`QUALITY.md`](./QUALITY.md): verification matrix and golden repo invariants
-- [`RUNTIME.md`](./RUNTIME.md): runbook, seeded runs, debug surfaces, graphics recovery, and smoke-test flows
+- [`RUNTIME.md`](./RUNTIME.md): runbook, seeded runs, HUD movement bounds, debug surfaces, graphics recovery, and smoke-test flows
 - [`DEPLOYMENT.md`](./DEPLOYMENT.md): static build, GitHub Pages, and deployment recovery
 - [`content/stages-bosses.md`](./content/stages-bosses.md): stage and boss authoring contract
 - [`content/enemy-art.md`](./content/enemy-art.md): enemy shapes, attack poses, and defeat effects

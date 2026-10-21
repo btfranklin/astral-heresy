@@ -40,6 +40,7 @@ import {
   createElementRecorder,
   createEventTargetRecorder,
   createInterfaceProjectionFixture,
+  createResizeObserverRecorder,
   createRecording2dContext,
   getListenerCount,
   withInputListenerEnvironment,
@@ -256,6 +257,8 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
     innerHeight: 720,
     devicePixelRatio: 2,
   });
+  const resizeObservers = createResizeObserverRecorder();
+  windowTarget.ResizeObserver = resizeObservers.ResizeObserver;
   const documentTarget = createEventTargetRecorder();
   const bgCanvas = { width: 0, height: 0 };
   const gameCanvas = { width: 0, height: 0 };
@@ -276,6 +279,7 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
     showcaseConfig: null,
     bgCanvas,
     gameCanvas,
+    hullPanel: createElementRecorder({ rect: { top: 600 } }),
     backgroundRenderer,
     startScreen,
     startButton,
@@ -302,7 +306,8 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
   assert.equal(audio.initCalls, 1);
   assert.equal(audio.resumeCalls, 1);
   assert.equal(starts, 1);
-  assert.equal(renderInvalidations, 2);
+  assert.equal(renderInvalidations, 3);
+  assert.equal(resizeObservers.observers[0].targets.size, 1);
 
   state.over = true;
   player.hp = 1;
@@ -310,7 +315,7 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
   assert.equal(state.over, false);
   assert.equal(player.hp, 5);
   assert.equal(state.started, true);
-  assert.equal(renderInvalidations, 4);
+  assert.equal(renderInvalidations, 6);
 
   runtime.dispose();
   runtime.dispose();
@@ -319,4 +324,5 @@ test("runtime controller orchestrates init, start, reset, resize, and dispose co
   assert.equal(getListenerCount(documentTarget, "keydown"), 0);
   assert.equal(getListenerCount(startButton, "click"), 0);
   assert.equal(getListenerCount(restartButton, "click"), 0);
+  assert.equal(resizeObservers.observers[0].disconnectCalls, 1);
 });

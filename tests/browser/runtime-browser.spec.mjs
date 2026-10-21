@@ -536,6 +536,113 @@ test("resizes real canvas geometry and clamps active player and pointer state", 
     .toBe(true);
 });
 
+test("lets keyboard and pointer movement reach the measured hull panel boundary across viewports", async ({
+  page,
+  browserErrors: _browserErrors,
+}) => {
+  await openGame(page);
+  await launchWithClick(page);
+  await page.evaluate(() => {
+    window.__astralHeresy.player.invuln = 1_000_000;
+  });
+
+  const viewports = [
+    { width: 565, height: 866 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
+    { width: 900, height: 720 },
+    { width: 1280, height: 720 },
+    { width: 844, height: 390 },
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await expect
+      .poll(() => page.evaluate(() => window.__astralHeresy.state.view.height))
+      .toBe(viewport.height);
+
+    const geometry = await page.evaluate(() => {
+      const game = window.__astralHeresy;
+      const canvas = document.getElementById("game").getBoundingClientRect();
+      const hull = document.getElementById("hull-panel").getBoundingClientRect();
+      return {
+        canvas: { left: canvas.left, top: canvas.top, width: canvas.width, height: canvas.height },
+        hullTop: hull.top,
+        maxY: game.state.playfield.maxY,
+      };
+    });
+    const expectedMaxY = Math.min(
+      viewport.height,
+      geometry.hullTop - geometry.canvas.top
+    ) - 32;
+    expect(geometry.maxY).toBeCloseTo(expectedMaxY, 0);
+
+    await page.keyboard.press("m");
+    await page.keyboard.down("ArrowDown");
+    await expect
+      .poll(() => page.evaluate(() => window.__astralHeresy.player.y))
+      .toBeGreaterThan(expectedMaxY - 2);
+    await page.keyboard.up("ArrowDown");
+
+    await page.keyboard.press("m");
+    await page.mouse.move(
+      geometry.canvas.left + geometry.canvas.width / 2,
+      geometry.canvas.top + Math.min(200, expectedMaxY - 100)
+    );
+    await expect
+      .poll(() => page.evaluate(() => window.__astralHeresy.player.y))
+      .toBeLessThan(expectedMaxY - 80);
+
+    await page.mouse.move(
+      geometry.canvas.left + geometry.canvas.width / 2,
+      geometry.canvas.top + expectedMaxY
+    );
+    await expect
+      .poll(() => page.evaluate(() => window.__astralHeresy.state.input.pointerY))
+      .toBeCloseTo(expectedMaxY, 0);
+    await expect
+      .poll(() => page.evaluate(() => window.__astralHeresy.player.y))
+      .toBeGreaterThan(expectedMaxY - 2);
+
+    const finalPosition = await page.evaluate(() => {
+      const game = window.__astralHeresy;
+      const hullTop =
+        document.getElementById("hull-panel").getBoundingClientRect().top -
+        document.getElementById("game").getBoundingClientRect().top;
+      return { playerY: game.player.y, maxY: game.state.playfield.maxY, hullTop };
+    });
+    expect(finalPosition.playerY).toBeCloseTo(finalPosition.maxY, 0);
+    expect(finalPosition.hullTop - finalPosition.playerY).toBeGreaterThanOrEqual(31);
+    expect(finalPosition.hullTop - finalPosition.playerY).toBeLessThanOrEqual(33);
+
+    await page.evaluate(() => {
+      window.__astralHeresy.state.over = true;
+      window.__astralHeresy.player.hp = 0;
+    });
+    await page.keyboard.press("r");
+    await expect.poll(() => page.evaluate(() => window.__astralHeresy.state.over)).toBe(false);
+    await expect
+      .poll(() => page.evaluate(() => window.__astralHeresy.state.playfield.maxY))
+      .toBeCloseTo(expectedMaxY, 0);
+  }
+
+  const beforeHudGrowth = await page.evaluate(() => ({
+    hullTop: document.getElementById("hull-panel").getBoundingClientRect().top,
+    maxY: window.__astralHeresy.state.playfield.maxY,
+  }));
+  await page.locator("#hull-panel").evaluate((panel) => {
+    panel.style.height = "120px";
+  });
+  await expect
+    .poll(() => page.evaluate(() => window.__astralHeresy.state.playfield.maxY))
+    .toBeLessThan(beforeHudGrowth.maxY - 20);
+  const afterHudGrowth = await page.evaluate(() => ({
+    hullTop: document.getElementById("hull-panel").getBoundingClientRect().top,
+    maxY: window.__astralHeresy.state.playfield.maxY,
+  }));
+  expect(afterHudGrowth.maxY).toBeCloseTo(afterHudGrowth.hullTop - 32, 0);
+});
+
 test.describe("high-DPR browser context", () => {
   test.use({ deviceScaleFactor: 2, viewport: { width: 640, height: 480 } });
 

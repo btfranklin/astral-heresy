@@ -102,6 +102,7 @@ export function createGame({
     showcaseConfig,
     bgCanvas,
     gameCanvas,
+    hullPanel: documentRoot.getElementById("hull-panel"),
     backgroundRenderer,
     startScreen,
     startButton,
